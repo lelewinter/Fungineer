@@ -88,10 +88,23 @@ const ZONES: Array = [
 	},
 ]
 
+# Diálogos do Dr. Valério antes de cada zona
+const ZONE_DIALOGUE: Dictionary = {
+	0: "\"Patrulha de IA no Setor 7. Têm sucata lá... valem o risco? Bom, claro que valem!\"\n— Dr. Valério",
+	1: "\"Instalação de processamento de IA. Alta segurança. Mas os componentes lá dentro são imprescindíveis.\"\n— Dr. Valério",
+	2: "\"Câmaras de circuito integrado. Placas lógicas intactas! Basta não pisar nos alarmes. Fácil.\"\n— Dr. Valério",
+	3: "\"Depósito de combustível. Sessenta segundos antes de colapsar. Cronômetro sorrindo para mim.\"\n— Dr. Valério",
+	4: "\"Zona de transmissão. A IA controla o território por sinais. Temos que perturbá-los. Gentilmente.\"\n— Dr. Valério",
+	5: "\"Laboratório bioprogramável. A IA criou isso para controlar organismos. Nós vamos reapropriá-lo.\"\n— Dr. Valério",
+	6: "\"Complexo subterrâneo abandonado. Drones de patrulha ainda operacionais. Os corredores são um labirinto.\"\n— Dr. Valério",
+	7: "\"Centro de detenção da IA. Recursos e sobreviventes? Cada segundo lá dentro tem um preço.\"\n— Dr. Valério",
+}
+
 var _detail_layer: CanvasLayer
 var _zone_name_lbl: Label
 var _zone_res_lbl: Label
 var _zone_stage_lbl: Label
+var _zone_dialogue_lbl: Label
 var _raid_btn: Button
 var _selected_zone: Dictionary = {}
 var _pulse: float = 0.0
@@ -144,11 +157,15 @@ func _draw() -> void:
 	draw_rect(Rect2(0, 0, VW, SURFACE_Y), Color(0.04, 0.045, 0.08))
 	_draw_city_silhouette()
 
-	# Danger label
+	# Label de controle da IA
 	var dp := 0.5 + 0.5 * sin(_pulse * 2.2)
-	draw_string(ThemeDB.fallback_font, Vector2(VW * 0.5 - 78, 44),
-		"▲  SUPERFICIE — ZONA DE PERIGO  ▲",
-		HORIZONTAL_ALIGNMENT_LEFT, -1, 10, Color(0.85, 0.3, 0.2, 0.55 * dp))
+	draw_string(ThemeDB.fallback_font, Vector2(VW * 0.5 - 90, 22),
+		"⬤  ZONA IA CONTROLADA — ACESSO PROIBIDO  ⬤",
+		HORIZONTAL_ALIGNMENT_LEFT, -1, 9, Color(0.20, 0.60, 0.95, 0.65 * dp))
+	draw_string(ThemeDB.fallback_font, Vector2(VW * 0.5 - 60, 44),
+		"SUPERFÍCIE — ZONA DE PERIGO",
+		HORIZONTAL_ALIGNMENT_LEFT, -1, 10, Color(0.85, 0.3, 0.2, 0.45 * dp))
+	_draw_ai_drones()
 
 	# Surface line
 	draw_line(Vector2(0, SURFACE_Y), Vector2(VW, SURFACE_Y), Color(0.3, 0.22, 0.1), 2.5)
@@ -180,6 +197,29 @@ func _draw() -> void:
 	_draw_stock_panel(bottom_y)
 
 
+func _draw_ai_drones() -> void:
+	## Drones de patrulha da IA pairando sobre a superfície.
+	var drone_positions: Array = [
+		Vector2(60.0, 30.0), Vector2(190.0, 18.0), Vector2(310.0, 28.0), Vector2(430.0, 16.0),
+	]
+	for i in drone_positions.size():
+		var base_pos: Vector2 = drone_positions[i]
+		var bob := sin(_pulse * 2.5 + float(i) * 1.3) * 3.0
+		var pos := base_pos + Vector2(0.0, bob)
+		var scan_alpha := 0.30 + 0.20 * sin(_pulse * 3.0 + float(i))
+		# Corpo do drone
+		var pts := PackedVector2Array([
+			pos + Vector2(0, -6), pos + Vector2(5, 0),
+			pos + Vector2(0, 4),  pos + Vector2(-5, 0),
+		])
+		draw_colored_polygon(pts, Color(0.20, 0.60, 0.95, 0.70))
+		# Sensor
+		draw_circle(pos, 1.8, Color(0.90, 0.95, 1.00, 0.90))
+		# Feixe de escaneamento descendente
+		draw_line(pos + Vector2(0, 4), pos + Vector2(0, 18),
+			Color(0.20, 0.60, 0.95, scan_alpha), 1.5)
+
+
 func _draw_city_silhouette() -> void:
 	var buildings: Array = [
 		Rect2(0,   10, 45, 52), Rect2(52,  22, 36, 40), Rect2(94,  6,  32, 56),
@@ -190,15 +230,21 @@ func _draw_city_silhouette() -> void:
 	var bc := Color(0.055, 0.065, 0.10)
 	for b in buildings:
 		draw_rect(b as Rect2, bc)
-	# Lit windows
-	var wc := Color(0.65, 0.6, 0.28, 0.45)
+	# Janelas da IA (azul frio — estruturas controladas)
+	var wc_ia := Color(0.20, 0.55, 0.90, 0.40)
+	var wc_warm := Color(0.65, 0.6, 0.28, 0.25)  # janelas humanas apagadas (ocupação antiga)
 	for b in buildings:
 		var br := b as Rect2
 		if br.size.x > 38:
-			draw_rect(Rect2(br.position + Vector2(6, 8), Vector2(5, 4)), wc)
-			draw_rect(Rect2(br.position + Vector2(6, 20), Vector2(5, 4)), wc)
+			draw_rect(Rect2(br.position + Vector2(6, 8), Vector2(5, 4)), wc_ia)
+			draw_rect(Rect2(br.position + Vector2(6, 20), Vector2(5, 4)), wc_ia)
 			if br.size.x > 50:
-				draw_rect(Rect2(br.position + Vector2(22, 8), Vector2(5, 4)), wc)
+				draw_rect(Rect2(br.position + Vector2(22, 8), Vector2(5, 4)), wc_warm)
+	# Antena IA no maior prédio (Rect2(214,20,55,42))
+	var ant_x := 214.0 + 27.0
+	draw_line(Vector2(ant_x, 20.0), Vector2(ant_x, 4.0), Color(0.20, 0.60, 0.95, 0.70), 1.5)
+	var blink := 0.5 + 0.5 * sin(_pulse * 4.0)
+	draw_circle(Vector2(ant_x, 4.0), 2.5, Color(0.90, 0.10, 0.10, blink))
 
 
 func _draw_room(floor: int, col: int) -> void:
@@ -391,6 +437,17 @@ func _draw_stock_panel(top_y: float) -> void:
 	var panel_h := VH - top_y
 	draw_rect(Rect2(0, top_y, VW, panel_h), Color(0.05, 0.045, 0.042))
 
+	# Label de identidade da base
+	draw_string(ThemeDB.fallback_font, Vector2(VW - 10.0, top_y + 14.0),
+		"▼  BASE DE RESISTÊNCIA",
+		HORIZONTAL_ALIGNMENT_RIGHT, -1, 10, Color(0.75, 0.55, 0.25, 0.75))
+
+	# Sobreviventes resgatados
+	var rescued := HubState.rescued_characters.size() + 1  # +1 = Dr. Valério sempre presente
+	draw_string(ThemeDB.fallback_font, Vector2(VW - 10.0, top_y + 26.0),
+		"Sobreviventes: %d / 10" % rescued,
+		HORIZONTAL_ALIGNMENT_RIGHT, -1, 9, Color(0.55, 0.70, 0.55, 0.80))
+
 	# Next piece label
 	var piece_idx := HubState.rocket_pieces_built
 	var next_name: String = "FOGUETE COMPLETO!" if piece_idx >= HubState.ROCKET_RECIPE.size() \
@@ -446,13 +503,13 @@ func _build_detail_panel() -> void:
 
 	var panel := ColorRect.new()
 	panel.color = Color(0.07, 0.06, 0.05, 0.97)
-	panel.size = Vector2(340, 180)
-	panel.position = Vector2(VW * 0.5 - 170, VH * 0.5 - 90)
+	panel.size = Vector2(340, 240)
+	panel.position = Vector2(VW * 0.5 - 170, VH * 0.5 - 120)
 	_detail_layer.add_child(panel)
 
 	var vbox := VBoxContainer.new()
-	vbox.position = Vector2(VW * 0.5 - 154, VH * 0.5 - 74)
-	vbox.size = Vector2(308, 160)
+	vbox.position = Vector2(VW * 0.5 - 154, VH * 0.5 - 104)
+	vbox.size = Vector2(308, 220)
 	vbox.add_theme_constant_override("separation", 6)
 	_detail_layer.add_child(vbox)
 
@@ -470,6 +527,13 @@ func _build_detail_panel() -> void:
 	_zone_stage_lbl.add_theme_font_size_override("font_size", 11)
 	_zone_stage_lbl.modulate = Color(0.75, 0.6, 0.5)
 	vbox.add_child(_zone_stage_lbl)
+
+	_zone_dialogue_lbl = Label.new()
+	_zone_dialogue_lbl.add_theme_font_size_override("font_size", 11)
+	_zone_dialogue_lbl.modulate = Color(0.75, 0.80, 0.65)
+	_zone_dialogue_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_zone_dialogue_lbl.custom_minimum_size = Vector2(308, 56)
+	vbox.add_child(_zone_dialogue_lbl)
 
 	_raid_btn = Button.new()
 	_raid_btn.text = "RAIDAR"
@@ -491,6 +555,7 @@ func _show_detail(zone: Dictionary) -> void:
 		if zone["id"] < HubState.zone_deterioration.size() else 0
 	var stage_texts := ["Estagio: Estavel", "Estagio: Deteriorando (+25% inimigos)", "Estagio: Critico (+50% inimigos)"]
 	_zone_stage_lbl.text = stage_texts[stage]
+	_zone_dialogue_lbl.text = ZONE_DIALOGUE.get(zone["id"], "")
 	_detail_layer.visible = true
 
 
