@@ -1,16 +1,16 @@
-## Bruiser — Slow, high HP, high damage. Targets Guardian or highest-HP member.
+## Enforcer-7 — Unidade de supressão pesada. Lenta, alta HP, dano elevado. Prioriza tanques.
 class_name Bruiser
 extends BaseEnemy
 
 
 func _ready() -> void:
-	enemy_name = "Bruiser"
+	enemy_name = "Enforcer-7"
 	max_hp = GameConfig.BRUISER_HP
 	move_speed = GameConfig.BRUISER_SPEED
 	attack_damage = GameConfig.BRUISER_DAMAGE
 	attack_interval = GameConfig.BRUISER_ATTACK_INTERVAL
 	attack_range = GameConfig.BRUISER_ATTACK_RANGE
-	color = Color(0.6, 0.1, 0.1)  # Dark red
+	color = Color(0.50, 0.05, 0.55)  # Roxo sintético (unidade pesada)
 	is_elite = true
 	super._ready()
 

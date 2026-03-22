@@ -1,4 +1,4 @@
-## Spitter — Ranged. Maintains preferred distance. Fires projectile. Forces repositioning.
+## Canhão Orbital — Torre de ataque à distância. Mantém distância preferida e dispara projéteis.
 class_name Spitter
 extends BaseEnemy
 
@@ -6,13 +6,13 @@ var _projectile_timer: float = 0.0
 
 
 func _ready() -> void:
-	enemy_name = "Spitter"
+	enemy_name = "Canhão Orbital"
 	max_hp = GameConfig.SPITTER_HP
 	move_speed = GameConfig.SPITTER_SPEED
 	attack_damage = GameConfig.SPITTER_DAMAGE
 	attack_interval = GameConfig.SPITTER_ATTACK_INTERVAL
 	attack_range = GameConfig.SPITTER_RANGE
-	color = Color(1.0, 0.5, 0.1)  # Orange
+	color = Color(0.95, 0.80, 0.05)  # Amarelo-alvo (laser de precisão)
 	is_elite = true
 	super._ready()
 
