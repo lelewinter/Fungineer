@@ -17,14 +17,22 @@ var stock: Dictionary = {
 # Rocket recipe — 8 pieces built in order.
 # Each piece requires resources from specific zones so ALL zones matter.
 const ROCKET_RECIPE: Array = [
-	{"name": "Base Estrutural",    "scrap": 5},
-	{"name": "Casco Externo",      "fragmentos_estruturais": 4},
-	{"name": "Sistema Eletrico",   "ai_components": 5},
-	{"name": "Motor Principal",    "combustivel_volatil": 5},
-	{"name": "Nucleo de Proc.",    "nucleo_logico": 2, "ai_components": 3},
-	{"name": "Rede de Controle",   "sinais_controle": 60},
-	{"name": "Suporte Biologico",  "biomassa_adaptativa": 10},
-	{"name": "Blindagem Final",    "scrap": 5, "fragmentos_estruturais": 3, "ai_components": 3},
+	# Piece 1 — single resource, fast first win (Hordas)
+	{"name": "Base Estrutural",    "scrap": 3},
+	# Piece 2 — single resource (Extração)
+	{"name": "Motor Principal",    "combustivel_volatil": 3},
+	# Piece 3 — single resource (Circuito)
+	{"name": "Processador",        "nucleo_logico": 2},
+	# Piece 4 — two zones: Labirinto + Hordas
+	{"name": "Revestimento",       "fragmentos_estruturais": 3, "scrap": 2},
+	# Piece 5 — two zones: Stealth/Sacrifício + Campo
+	{"name": "Rede Neural",        "ai_components": 4, "sinais_controle": 20},
+	# Piece 6 — two zones: Infecção + Extração
+	{"name": "Sistema Vital",      "biomassa_adaptativa": 6, "combustivel_volatil": 2},
+	# Piece 7 — two zones: Labirinto + Stealth/Sacrifício
+	{"name": "Blindagem Externa",  "fragmentos_estruturais": 3, "ai_components": 3},
+	# Piece 8 — four zones: forces player to have visited everything
+	{"name": "Ignição Final",      "scrap": 2, "nucleo_logico": 1, "sinais_controle": 30, "biomassa_adaptativa": 4},
 ]
 
 var rocket_pieces_built: int = 0
