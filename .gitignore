@@ -15,6 +15,7 @@ Desktop.ini
 CLAUDE.local.md
 production/session-logs/
 production/session-state/*.md
+.claude/worktrees/
 
 # === Internal Planning (not for public) ===
 docs/IMPROVEMENTS-PROPOSAL.md
