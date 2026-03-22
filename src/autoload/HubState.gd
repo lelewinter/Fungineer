@@ -35,6 +35,19 @@ const ROCKET_RECIPE: Array = [
 	{"name": "Ignição Final",      "scrap": 2, "nucleo_logico": 1, "sinais_controle": 30, "biomassa_adaptativa": 4},
 ]
 
+# Roster de sobreviventes disponíveis para resgate
+const SURVIVOR_ROSTER: Array = [
+	{"name": "Capitã Runa",  "role": "Guardiã",           "color": Color(0.40, 0.90, 0.40)},
+	{"name": "Brix",         "role": "Artilheiro",         "color": Color(1.00, 0.60, 0.20)},
+	{"name": "Zara",         "role": "Artificeira",        "color": Color(0.90, 0.30, 0.30)},
+	{"name": "Luz",          "role": "Médica",             "color": Color(0.80, 0.40, 0.90)},
+	{"name": "Ex-Exec",      "role": "Estrategista",       "color": Color(0.60, 0.55, 0.45)},
+	{"name": "Fio",          "role": "Hacker",             "color": Color(0.20, 0.90, 0.70)},
+	{"name": "Ferro-Velho",  "role": "Engenheiro",         "color": Color(0.70, 0.65, 0.30)},
+	{"name": "Mira",         "role": "Elite",              "color": Color(0.90, 0.70, 0.20)},
+	{"name": "Nulo",         "role": "Agente Stealth",     "color": Color(0.55, 0.55, 0.65)},
+]
+
 var rocket_pieces_built: int = 0
 ## rescued_characters now mirrors CharacterRegistry — kept for backwards compat.
 ## Prefer CharacterRegistry.get_rescued() for new code.
