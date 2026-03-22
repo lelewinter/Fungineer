@@ -1,13 +1,12 @@
-## InfectionMain — Zona de Infecção (v2 — Trade-off System).
-## Four interlocking trade-offs:
-##   A) Instability: auto-propagated nodes are unstable (fragile, low bio).
-##      Player reinforces them (0.5s stand) to stabilise.
-##   B) Biomassa tension: unstable nodes generate 0.05/s; stable 0.10/s;
-##      amplifier-stable 0.30/s. Rushing expansion cuts resource income.
-##   C) Network overload: >15 infected → propagation slows to 8s;
-##      >20 infected → 12s. Uncontrolled growth punishes itself.
-##   D) Node specialisation: Amplifiers (gold, high bio, fragile),
-##      Anchors (blue, low bio, healer-resistant 8s cure).
+## InfectionMain — Laboratório Bioprogramável (v2 — Sistema de Trade-offs).
+## O Doutor descobriu biomassa que subverte sistemas de IA. Quatro trade-offs entrelaçados:
+##   A) Instabilidade: nós propagados automaticamente são instáveis (frágeis, bio baixa).
+##      Jogador os estabiliza (0.5s parado) = subversão consolidada.
+##   B) Tensão de biomassa: instável 0.05/s; estável 0.10/s; nó viral estável 0.30/s.
+##      Expansão rápida reduz renda de biomassa.
+##   C) Sobrecarga da rede: >15 subvertidos → propagação 8s; >20 → 12s.
+##   D) Especialização: Nós Virais (ouro, alto bio, frágeis),
+##      Âncoras (azul, bio baixa, resistentes a agentes de restauração — 8s de cura).
 extends Node2D
 
 # ─────────────────────── Constants ────────────────────────────────────────────
@@ -42,12 +41,12 @@ const _CURE_ANCHOR: float     = GameConfig.INFECTION_CURE_TIME_ANCHOR
 const NODE_NEUTRAL  := 0
 const NODE_INFECTED := 1
 
-# Node types
+# Tipos de nó
 const NODE_STANDARD  := 0
-const NODE_AMPLIFIER := 1  # high bio, very fragile
-const NODE_ANCHOR    := 2  # low bio, healer-resistant
+const NODE_AMPLIFIER := 1  # Nó Viral — alto bio, muito frágil
+const NODE_ANCHOR    := 2  # Âncora — bio baixa, resistente a agentes de restauração
 
-# ─────────────────────── Inner: Healer ────────────────────────────────────────
+# ─────────────────────── Inner: Agente de Restauração da IA ──────────────────
 class _Healer:
 	const SPEED: float     = 70.0
 	const HIT_RANGE: float = 22.0
@@ -158,14 +157,14 @@ class _InfectHUD:
 			infected_count: int) -> void:
 		_timer_lbl.text = "%ds" % ceili(timer)
 		_bio_lbl.text = "Bio:%d" % int(bio)
-		_pct_lbl.text = "Inf:%d%%" % int(pct * 100.0)
-		_hp_lbl.text = "HP:%d" % hp
-		# Overload warning
+		_pct_lbl.text = "Subv:%d%%" % int(pct * 100.0)
+		_hp_lbl.text = "PV:%d" % hp
+		# Aviso de sobrecarga da rede
 		if infected_count >= GameConfig.INFECTION_OVERLOAD_THRESHOLD_2:
 			_status_lbl.text = "SOBRECARGA!"
 			_status_lbl.modulate = Color(1.0, 0.25, 0.20)
 		elif infected_count >= GameConfig.INFECTION_OVERLOAD_THRESHOLD_1:
-			_status_lbl.text = "LENTO"
+			_status_lbl.text = "SATURADA"
 			_status_lbl.modulate = Color(1.0, 0.65, 0.20)
 		else:
 			_status_lbl.text = ""
@@ -199,6 +198,8 @@ var _damage_flash: float = 0.0
 var _healer_spawn_timer: float = 12.0
 var _healer_count_target: int = 1
 var _hud = null  # _InfectHUD
+
+var _glow_time: float = 0.0  # drives amplifier glow pulse
 
 # ─────────────────────── _ready ───────────────────────────────────────────────
 func _ready() -> void:
@@ -340,6 +341,7 @@ func _process(delta: float) -> void:
 		return
 
 	_damage_flash = maxf(0.0, _damage_flash - delta * 3.0)
+	_glow_time += delta
 	_run_timer -= delta
 
 	if _run_timer <= 0.0:
@@ -611,6 +613,23 @@ func _draw_nodes() -> void:
 			else:
 				body_col = Color(0.30, 0.35, 0.30, 0.75)
 
+		# Amplifier radial glow — concentric circles with pulsing alpha/radius
+		if ntype == NODE_AMPLIFIER:
+			var pulse := (sin(_glow_time * 2.8) * 0.5 + 0.5)  # 0..1
+			var glow_extra := pulse * 6.0                       # 0..6 px extra radius
+			var glow_base_a := 0.18 if state == NODE_INFECTED else 0.09
+			var glow_col_r := 1.00
+			var glow_col_g := 0.82 if state == NODE_INFECTED else 0.60
+			# 4 glow layers: outermost to innermost
+			draw_circle(pos, _NODE_R + 14.0 + glow_extra,
+				Color(glow_col_r, glow_col_g, 0.05, glow_base_a * 0.30))
+			draw_circle(pos, _NODE_R + 10.0 + glow_extra * 0.7,
+				Color(glow_col_r, glow_col_g, 0.05, glow_base_a * 0.55))
+			draw_circle(pos, _NODE_R + 6.0 + glow_extra * 0.4,
+				Color(glow_col_r, glow_col_g, 0.05, glow_base_a * 0.80))
+			draw_circle(pos, _NODE_R + 2.5,
+				Color(glow_col_r, glow_col_g, 0.10, glow_base_a * 1.00))
+
 		draw_circle(pos, _NODE_R, body_col)
 		draw_arc(pos, _NODE_R + 1.5, 0.0, TAU, 12,
 			Color(body_col.r, body_col.g, body_col.b, 0.50), 1.5)
@@ -647,6 +666,7 @@ func _draw_nodes() -> void:
 
 
 func _draw_healers() -> void:
+	## Agentes de Restauração da IA — losangos azul-gelo, frios e metálicos.
 	for healer in _healers:
 		var s := 9.0
 		var pts := PackedVector2Array([
@@ -655,17 +675,20 @@ func _draw_healers() -> void:
 			healer.pos + Vector2(0, s),
 			healer.pos + Vector2(-s, 0),
 		])
-		draw_colored_polygon(pts, Color(0.85, 0.30, 0.20, 0.90))
+		draw_colored_polygon(pts, Color(0.15, 0.55, 0.90, 0.88))
 		draw_polyline(PackedVector2Array([pts[0], pts[1], pts[2], pts[3], pts[0]]),
-			Color(1.0, 0.50, 0.35, 0.70), 1.5)
+			Color(0.60, 0.85, 1.00, 0.70), 1.5)
+		# Núcleo sensor central
+		draw_circle(healer.pos, 2.5, Color(0.90, 0.95, 1.00, 0.90))
 
 
 func _draw_player() -> void:
+	## Sobrevivente: âmbar quente — contraste visual com os nós frios da IA.
 	var c: Color = Color(1.0, 0.25, 0.25) if _damage_flash > 0.5 \
-		else Color(0.65, 1.00, 0.70)
+		else Color(0.95, 0.65, 0.20)
 	draw_circle(_player_pos, _PLAYER_R, c)
 	draw_arc(_player_pos, _PLAYER_R + 2.0, 0.0, TAU, 12,
-		Color(c.r, c.g, c.b, 0.45), 1.5)
+		Color(c.r, c.g, c.b, 0.40), 1.5)
 
 
 func _draw_end_overlay() -> void:
@@ -673,13 +696,13 @@ func _draw_end_overlay() -> void:
 	var msg: String
 	var col: Color
 	if not _victory:
-		msg = "FALHOU"
+		msg = "RESISTÊNCIA ELIMINADA"
 		col = Color(1.00, 0.30, 0.30)
 	elif _early_victory:
-		msg = "VITÓRIA ANTECIPADA!"
+		msg = "REDE SUBVERTIDA!"
 		col = Color(0.40, 1.00, 0.45)
 	else:
-		msg = "RUN COMPLETA"
+		msg = "OPERAÇÃO CONCLUÍDA"
 		col = Color(0.30, 0.90, 0.35)
 	draw_string(ThemeDB.fallback_font, Vector2(240.0, 380.0), msg,
 		HORIZONTAL_ALIGNMENT_CENTER, -1, 28, col)

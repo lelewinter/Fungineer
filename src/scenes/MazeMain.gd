@@ -1,7 +1,7 @@
-## MazeMain — Labirinto Dinâmico zone.
-## Solo navigation: collect Fragmentos Estruturais through a 3×5 grid maze.
-## Dynamic walls cycle open↔closed on per-wall timers; closing walls push + damage the player.
-## Player has 3 HP. Sentinels emerge (30% chance) when a wall opens. Reach EXIT to win.
+## MazeMain — Complexo Subterrâneo Abandonado.
+## Navegação solo: colete Fragmentos Estruturais num labirinto de dutos industriais 3×5.
+## Comportas ciclam aberto↔fechado em timers; comportas fechando empurram e danificam o jogador.
+## Jogador tem 3 PV. Drones de patrulha emergem (30% chance) quando uma comporta abre. Alcance a SAÍDA para vencer.
 extends Node2D
 
 # ─────────────────────── Layout constants ─────────────────────────────────────
@@ -26,22 +26,22 @@ const _COLLECT_DIST: float = 24.0
 const _COLLECT_TIME: float = 1.5
 const _FRAG_RADIUS: float = 9.0
 
-# ─── Pac-Man palette ──────────────────────────────────────────────────────────
-const _C_BG: Color           = Color(0.00, 0.00, 0.00)          # arcade black
-const _C_FLOOR: Color        = Color(0.01, 0.01, 0.06)          # dark corridor
-const _C_ENTRY: Color        = Color(0.01, 0.03, 0.12)          # entry tint
-const _C_EXIT: Color         = Color(0.01, 0.08, 0.03)          # exit tint
-const _C_BORDER: Color       = Color(0.12, 0.28, 0.98)          # classic Pac-Man blue
-const _C_WALL_CLOSED: Color  = Color(0.08, 0.18, 0.75)          # solid blue wall
-const _C_WALL_CLOSING: Color = Color(0.90, 0.10, 0.05)          # danger red
-const _C_WALL_OPEN: Color    = Color(0.00, 0.00, 0.00, 0.00)    # invisible (open corridor)
-const _C_WALL_OPENING: Color = Color(0.15, 0.80, 0.30)          # safe green
-const _C_PACMAN: Color       = Color(1.00, 0.90, 0.00)          # Pac-Man yellow
-const _C_PELLET: Color       = Color(1.00, 0.95, 0.85)          # pellet white
-const _C_GHOST_BLINKY: Color = Color(1.00, 0.10, 0.10)          # red
-const _C_GHOST_PINKY: Color  = Color(1.00, 0.60, 0.85)          # pink
-const _C_GHOST_INKY: Color   = Color(0.20, 0.90, 0.95)          # cyan
-const _C_GHOST_CLYDE: Color  = Color(1.00, 0.60, 0.10)          # orange
+# ─── Paleta: Complexo Industrial da IA ───────────────────────────────────────
+const _C_BG: Color           = Color(0.04, 0.04, 0.06)          # espaço profundo
+const _C_FLOOR: Color        = Color(0.07, 0.07, 0.10)          # piso metálico
+const _C_ENTRY: Color        = Color(0.06, 0.10, 0.12)          # tint de entrada
+const _C_EXIT: Color         = Color(0.06, 0.12, 0.08)          # tint de saída
+const _C_BORDER: Color       = Color(0.20, 0.45, 0.70)          # aço azulado
+const _C_WALL_CLOSED: Color  = Color(0.15, 0.30, 0.60)          # comporta fechada
+const _C_WALL_CLOSING: Color = Color(0.90, 0.25, 0.10)          # alerta de fechamento
+const _C_WALL_OPEN: Color    = Color(0.00, 0.00, 0.00, 0.00)    # passagem aberta (invisível)
+const _C_WALL_OPENING: Color = Color(0.20, 0.70, 0.40)          # abertura segura
+const _C_PLAYER: Color       = Color(0.95, 0.65, 0.15)          # âmbar do sobrevivente
+const _C_FRAGMENT: Color     = Color(0.75, 0.80, 0.85)          # fragmento metálico
+const _C_DRONE_1: Color      = Color(0.25, 0.75, 0.95)          # drone cyan
+const _C_DRONE_2: Color      = Color(0.15, 0.55, 0.85)          # drone azul
+const _C_DRONE_3: Color      = Color(0.35, 0.85, 0.80)          # drone teal
+const _C_DRONE_4: Color      = Color(0.60, 0.85, 1.00)          # drone gelo
 
 # ─────────────────────── Inner: DynWall ────────────────────────────────────────
 class _DynWall:
@@ -199,18 +199,18 @@ class _MazeHUD:
 		_hp_lbl = Label.new()
 		_hp_lbl.position = Vector2(10.0, 10.0)
 		_hp_lbl.add_theme_font_size_override("font_size", 18)
-		_hp_lbl.modulate = Color(1.00, 0.90, 0.00)   # Pac-Man yellow
+		_hp_lbl.modulate = Color(0.95, 0.65, 0.15)   # âmbar do sobrevivente
 		_layer.add_child(_hp_lbl)
 
 		_bag_lbl = Label.new()
 		_bag_lbl.position = Vector2(245.0, 10.0)
 		_bag_lbl.add_theme_font_size_override("font_size", 18)
-		_bag_lbl.modulate = Color(1.00, 0.95, 0.85)  # pellet white
+		_bag_lbl.modulate = Color(0.75, 0.80, 0.85)  # fragmento metálico
 		_layer.add_child(_bag_lbl)
 
 	func refresh(hp: int, bag: int, cap: int) -> void:
-		_hp_lbl.text = "LIVES  %d / %d" % [hp, GameConfig.MAZE_PLAYER_HP]
-		_bag_lbl.text = "PELLETS  %d / %d" % [bag, cap]
+		_hp_lbl.text = "INTEG.  %d / %d" % [hp, GameConfig.MAZE_PLAYER_HP]
+		_bag_lbl.text = "FRAGM.  %d / %d" % [bag, cap]
 
 # ─────────────────────── Scene state ──────────────────────────────────────────
 var _player_pos: Vector2 = Vector2.ZERO
@@ -234,10 +234,10 @@ var _victory: bool = false
 var _damage_flash: float = 0.0
 var _hud = null  # _MazeHUD
 
-# ─── Pac-Man animation state ──────────────────────────────────────────────────
-var _player_dir: Vector2 = Vector2.RIGHT   # mouth direction
-var _mouth_anim: float = 0.0               # 0.0=closed 1.0=open
-var _ghost_anim: float = 0.0              # ghost bob timer
+# ─── Estado de animação ───────────────────────────────────────────────────────
+var _player_dir: Vector2 = Vector2.RIGHT   # direção do sobrevivente
+var _move_anim: float = 0.0                # 0.0=parado 1.0=movimento
+var _drone_anim: float = 0.0              # timer de flutuação dos drones
 
 # ─────────────────────── Helpers ──────────────────────────────────────────────
 func _room_rect(col: int, row: int) -> Rect2:
@@ -336,8 +336,8 @@ func _process(delta: float) -> void:
 		return
 
 	_damage_flash = maxf(0.0, _damage_flash - delta * 3.0)
-	_mouth_anim = (sin(Time.get_ticks_msec() * 0.008) + 1.0) * 0.5
-	_ghost_anim += delta
+	_move_anim = (sin(Time.get_ticks_msec() * 0.008) + 1.0) * 0.5
+	_drone_anim += delta
 
 	# Update walls
 	for wall in _walls:
@@ -497,7 +497,18 @@ func _draw() -> void:
 
 
 func _draw_bg() -> void:
-	draw_rect(Rect2(Vector2.ZERO, Vector2(480.0, 854.0)), _C_BG)  # pure black
+	draw_rect(Rect2(Vector2.ZERO, Vector2(480.0, 854.0)), _C_BG)
+	# Grade industrial sutil — padrão de instalação de IA
+	var grid_col := Color(0.10, 0.12, 0.18, 0.20)
+	var step := 60.0
+	var x := 0.0
+	while x <= 480.0:
+		draw_line(Vector2(x, 0.0), Vector2(x, 854.0), grid_col, 0.5)
+		x += step
+	var y := 0.0
+	while y <= 854.0:
+		draw_line(Vector2(0.0, y), Vector2(480.0, y), grid_col, 0.5)
+		y += step
 
 
 func _draw_static_gaps() -> void:
@@ -524,12 +535,12 @@ func _draw_rooms() -> void:
 		draw_rect(r, _C_BORDER, false, 3.0)
 		draw_rect(r, Color(_C_BORDER.r, _C_BORDER.g, _C_BORDER.b, 0.35), false, 6.0)
 
-	# Arcade-style labels
+	# Labels de setor
 	var ec := _room_center(_ENTRY_COL, _ENTRY_ROW)
-	draw_string(ThemeDB.fallback_font, ec + Vector2(0.0, -30.0), "READY!",
-		HORIZONTAL_ALIGNMENT_CENTER, -1, 11, Color(0.12, 0.28, 0.98, 0.90))
+	draw_string(ThemeDB.fallback_font, ec + Vector2(0.0, -30.0), "ACESSO",
+		HORIZONTAL_ALIGNMENT_CENTER, -1, 11, Color(0.20, 0.45, 0.70, 0.90))
 	var xc := _room_center(_EXIT_COL, _EXIT_ROW)
-	draw_string(ThemeDB.fallback_font, xc + Vector2(0.0, 8.0), "EXIT",
+	draw_string(ThemeDB.fallback_font, xc + Vector2(0.0, 8.0), "SAÍDA",
 		HORIZONTAL_ALIGNMENT_CENTER, -1, 14, Color(0.30, 1.00, 0.30, 0.90))
 
 
@@ -577,103 +588,100 @@ func _draw_fragments() -> void:
 		var f = _fragments[i]
 		if f.collected:
 			continue
-		var is_power := (i == 0)  # index 0 = center guaranteed fragment = power pellet
-		if is_power:
-			# Power pellet: large, pulsing white
+		var is_core := (i == 0)  # index 0 = fragmento garantido no caminho central = componente núcleo
+		if is_core:
+			# Componente núcleo: losango pulsando
 			var pulse := 0.7 + 0.3 * sin(Time.get_ticks_msec() * 0.006)
-			var pr := _FRAG_RADIUS * 1.8 * pulse
-			draw_circle(f.pos, pr, _C_PELLET)
+			var pr := _FRAG_RADIUS * 1.5 * pulse
+			var pts := PackedVector2Array([
+				f.pos + Vector2(0, -pr),
+				f.pos + Vector2(pr * 0.75, 0),
+				f.pos + Vector2(0, pr),
+				f.pos + Vector2(-pr * 0.75, 0),
+			])
+			draw_colored_polygon(pts, _C_FRAGMENT)
+			draw_arc(f.pos, pr + 3.0, 0.0, TAU, 12,
+				Color(_C_FRAGMENT.r, _C_FRAGMENT.g, _C_FRAGMENT.b, 0.40), 1.5)
 			if f.collecting:
 				var p := clampf(f.collect_timer / _COLLECT_TIME, 0.0, 1.0)
-				draw_arc(f.pos, pr + 6.0, -PI * 0.5, -PI * 0.5 + TAU * p,
-					32, _C_PACMAN, 3.0)
+				draw_arc(f.pos, pr + 7.0, -PI * 0.5, -PI * 0.5 + TAU * p,
+					32, _C_PLAYER, 3.0)
 		else:
-			# Regular pellet: small white dot
-			var alpha := 0.35 if f.collecting else 1.0
-			draw_circle(f.pos, _FRAG_RADIUS * 0.52, Color(_C_PELLET.r, _C_PELLET.g, _C_PELLET.b, alpha))
+			# Fragmento estrutural: pequeno quadrado metálico
+			var sz := _FRAG_RADIUS * 0.8
+			var alpha := 0.35 if f.collecting else 0.90
+			draw_rect(Rect2(f.pos - Vector2(sz * 0.5, sz * 0.5), Vector2(sz, sz)),
+				Color(_C_FRAGMENT.r, _C_FRAGMENT.g, _C_FRAGMENT.b, alpha))
 			if f.collecting:
 				var p := clampf(f.collect_timer / _COLLECT_TIME, 0.0, 1.0)
 				draw_arc(f.pos, _FRAG_RADIUS + 5.0, -PI * 0.5, -PI * 0.5 + TAU * p,
-					32, Color(1.0, 1.0, 0.5, 0.95), 2.5)
+					32, Color(_C_PLAYER.r, _C_PLAYER.g, _C_PLAYER.b, 0.95), 2.5)
 
 
 func _draw_sentinels() -> void:
-	var ghost_palette := [_C_GHOST_BLINKY, _C_GHOST_PINKY, _C_GHOST_INKY, _C_GHOST_CLYDE]
+	var drone_palette := [_C_DRONE_1, _C_DRONE_2, _C_DRONE_3, _C_DRONE_4]
 	for i in _sentinels.size():
 		var s = _sentinels[i]
 		if not s.alive:
 			continue
-		_draw_ghost(s.pos, 11.0, ghost_palette[i % ghost_palette.size()])
+		_draw_drone(s.pos, 11.0, drone_palette[i % drone_palette.size()])
 
 
-func _draw_ghost(pos: Vector2, radius: float, color: Color) -> void:
+func _draw_drone(pos: Vector2, radius: float, color: Color) -> void:
+	## Drone de patrulha: forma de losango com sensor central e asas laterais.
 	var r := radius
-	var bob := sin(_ghost_anim * 3.5) * 1.5
-	var cx := pos.x
+	var bob := sin(_drone_anim * 3.5) * 1.5
 	var cy := pos.y + bob
-	var dome_cy := cy - r * 0.3
 
-	# Ghost body polygon: top dome arc + right side + scalloped bottom + left side auto-closes
-	var pts := PackedVector2Array()
-	# Top semicircle: from left (PI) over the top (1.5*PI) to right (2*PI)
-	for i in 13:
-		var a := PI + float(i) / 12.0 * PI
-		pts.append(Vector2(cx + cos(a) * r, dome_cy + sin(a) * r))
-	# Right side down
-	var bottom_y := cy + r * 0.9
-	pts.append(Vector2(cx + r, bottom_y))
-	# Scalloped bottom: 3 bumps right→left
-	var bump_w := r * 2.0 / 3.0
-	var bump_h := r * 0.35
-	for b in 3:
-		var bx_mid := cx + r - bump_w * (float(b) + 0.5)
-		var bx_left := cx + r - bump_w * float(b + 1)
-		pts.append(Vector2(bx_mid, bottom_y + bump_h))
-		pts.append(Vector2(bx_left, bottom_y))
-	# Left side auto-closes back to first arc point
+	# Corpo losango
+	var pts := PackedVector2Array([
+		Vector2(pos.x, cy - r * 1.2),
+		Vector2(pos.x + r, cy),
+		Vector2(pos.x, cy + r * 0.8),
+		Vector2(pos.x - r, cy),
+	])
 	draw_colored_polygon(pts, color)
 
-	# White eyes with blue pupils
-	var eye_y := dome_cy - r * 0.05
-	for ex in [cx - r * 0.32, cx + r * 0.32]:
-		draw_circle(Vector2(ex, eye_y), r * 0.22, Color(1.0, 1.0, 1.0))
-		draw_circle(Vector2(ex + r * 0.07, eye_y), r * 0.12, Color(0.10, 0.10, 0.85))
+	# Sensor central (olho de escaneamento)
+	var sensor_pos := Vector2(pos.x, cy - r * 0.1)
+	draw_circle(sensor_pos, r * 0.30, Color(1.0, 1.0, 1.0, 0.90))
+	draw_circle(sensor_pos, r * 0.15, Color(0.05, 0.05, 0.80))
+
+	# Extensões laterais (asas)
+	draw_line(Vector2(pos.x + r, cy), Vector2(pos.x + r + 5.0, cy - 4.0), color, 1.5)
+	draw_line(Vector2(pos.x - r, cy), Vector2(pos.x - r - 5.0, cy - 4.0), color, 1.5)
 
 
 func _draw_player() -> void:
 	if _damage_flash > 0.5:
-		# Flash white when hit
+		# Flash branco ao ser atingido
 		draw_circle(_player_pos, _PLAYER_RADIUS, Color(1.0, 1.0, 1.0))
 		return
 
-	var facing := _player_dir.angle()
-	var mouth_half := _mouth_anim * (PI / 5.5)  # max ~33 degrees half-opening
+	# Corpo do sobrevivente — círculo âmbar
+	draw_circle(_player_pos, _PLAYER_RADIUS, _C_PLAYER)
+	draw_arc(_player_pos, _PLAYER_RADIUS + 1.5, 0.0, TAU, 12,
+		Color(_C_PLAYER.r, _C_PLAYER.g, _C_PLAYER.b, 0.30), 1.2)
 
-	# Pac-Man body polygon: center + arc from lower-jaw to upper-jaw (the long way around)
-	var pts := PackedVector2Array()
-	pts.append(_player_pos)
-	var start_a := facing + mouth_half
-	var end_a := facing + TAU - mouth_half
-	var steps := 20
-	for i in range(steps + 1):
-		var a := start_a + (end_a - start_a) * float(i) / float(steps)
-		pts.append(_player_pos + Vector2(cos(a), sin(a)) * _PLAYER_RADIUS)
-	draw_colored_polygon(pts, _C_PACMAN)
-
-	# Eye (offset up-perpendicular from facing direction)
-	var eye_angle := facing - PI * 0.30
-	var eye_pos := _player_pos + Vector2(cos(eye_angle), sin(eye_angle)) * _PLAYER_RADIUS * 0.45
-	draw_circle(eye_pos, _PLAYER_RADIUS * 0.12, Color(0.0, 0.0, 0.0))
+	# Feixe de lanterna na direção do movimento
+	var beam_alpha := _move_anim * 0.5 + 0.25
+	var beam_end := _player_pos + _player_dir * (_PLAYER_RADIUS + 20.0)
+	draw_line(_player_pos + _player_dir * _PLAYER_RADIUS,
+		beam_end,
+		Color(_C_PLAYER.r, _C_PLAYER.g, _C_PLAYER.b, beam_alpha),
+		3.0)
+	draw_circle(beam_end, 3.5,
+		Color(_C_PLAYER.r, _C_PLAYER.g, _C_PLAYER.b, beam_alpha * 0.7))
 
 
 func _draw_end_overlay() -> void:
 	draw_rect(Rect2(Vector2.ZERO, Vector2(480.0, 854.0)), Color(0.0, 0.0, 0.0, 0.82))
 	if _victory:
-		draw_string(ThemeDB.fallback_font, Vector2(240.0, 375.0), "STAGE  CLEAR!",
-			HORIZONTAL_ALIGNMENT_CENTER, -1, 32, _C_PACMAN)
+		draw_string(ThemeDB.fallback_font, Vector2(240.0, 375.0), "SETOR  LIMPO!",
+			HORIZONTAL_ALIGNMENT_CENTER, -1, 32, _C_PLAYER)
 		draw_string(ThemeDB.fallback_font, Vector2(240.0, 425.0),
-			"PELLETS  %d" % _backpack.size(),
-			HORIZONTAL_ALIGNMENT_CENTER, -1, 22, _C_PELLET)
+			"FRAGMENTOS  %d" % _backpack.size(),
+			HORIZONTAL_ALIGNMENT_CENTER, -1, 22, _C_FRAGMENT)
 	else:
-		draw_string(ThemeDB.fallback_font, Vector2(240.0, 390.0), "GAME  OVER",
+		draw_string(ThemeDB.fallback_font, Vector2(240.0, 390.0), "ELIMINADO",
 			HORIZONTAL_ALIGNMENT_CENTER, -1, 36, Color(1.00, 0.10, 0.10))

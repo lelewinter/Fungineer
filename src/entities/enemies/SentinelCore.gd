@@ -1,4 +1,4 @@
-## SentinelCore — Boss. Dash pattern, adds, vulnerability window. Two phases.
+## Núcleo Sentinela Δ-9 — Boss. Padrão de avanço, invocações, janela de vulnerabilidade. Duas fases.
 class_name SentinelCore
 extends BaseEnemy
 
@@ -21,7 +21,7 @@ signal became_invulnerable()
 
 
 func _ready() -> void:
-	enemy_name = "Sentinel Core"
+	enemy_name = "Núcleo Sentinela Δ-9"
 	max_hp = GameConfig.SENTINEL_HP
 	move_speed = 0.0  # Boss doesn't walk — it dashes
 	attack_damage = 0.0  # Damage is dealt by dash collision and adds

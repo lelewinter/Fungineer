@@ -18,11 +18,11 @@ func _build_ui() -> void:
 	var panel := ColorRect.new()
 	panel.color = Color(0.06, 0.05, 0.04, 0.96)
 	panel.size = Vector2(320, 260)
-	panel.position = Vector2(800.0 * 0.5 - 160, 600.0 * 0.5 - 130)
+	panel.position = Vector2(GameConfig.VIEWPORT_WIDTH * 0.5 - 160, GameConfig.VIEWPORT_HEIGHT * 0.5 - 130)
 	add_child(panel)
 
 	_vbox = VBoxContainer.new()
-	_vbox.position = Vector2(800.0 * 0.5 - 140, 600.0 * 0.5 - 110)
+	_vbox.position = Vector2(GameConfig.VIEWPORT_WIDTH * 0.5 - 140, GameConfig.VIEWPORT_HEIGHT * 0.5 - 110)
 	_vbox.size = Vector2(280, 220)
 	add_child(_vbox)
 
