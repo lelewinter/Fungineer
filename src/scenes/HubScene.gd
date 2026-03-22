@@ -57,17 +57,28 @@ func _ready() -> void:
 
 # ── Background ────────────────────────────────────────────────────────────────
 
-func _build_background() -> void:
-	var bg := ColorRect.new()
-	bg.color = Color(0.06, 0.04, 0.03)
-	bg.size = Vector2(W, H)
-	add_child(bg)
+const BACKGROUND_IMAGE := "res://assets/art/hub/rocket_bay.png"
 
-	# Warm ambient light gradient (simulated with a semi-transparent rect)
-	var glow := ColorRect.new()
-	glow.color = Color(0.6, 0.35, 0.1, 0.06)
-	glow.size = Vector2(W, H)
-	add_child(glow)
+func _build_background() -> void:
+	var tex := load(BACKGROUND_IMAGE) if ResourceLoader.exists(BACKGROUND_IMAGE) else null
+	if tex:
+		var bg := Sprite2D.new()
+		bg.texture = tex
+		bg.centered = false
+		# Scale to fill the scene dimensions
+		bg.scale = Vector2(W / tex.get_width(), H / tex.get_height())
+		add_child(bg)
+	else:
+		# Fallback: prototype ColorRect while image is not yet imported
+		var bg := ColorRect.new()
+		bg.color = Color(0.06, 0.04, 0.03)
+		bg.size = Vector2(W, H)
+		add_child(bg)
+
+		var glow := ColorRect.new()
+		glow.color = Color(0.6, 0.35, 0.1, 0.06)
+		glow.size = Vector2(W, H)
+		add_child(glow)
 
 
 # ── Stock panel (top-left) ────────────────────────────────────────────────────
