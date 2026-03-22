@@ -143,10 +143,11 @@ class _SacHUD:
 		_hp_lbl.modulate = Color(1.0, 0.40, 0.40)
 		_layer.add_child(_hp_lbl)
 
-	func refresh(timer: float, bag: int, cap: int, hp: float) -> void:
+	func refresh(timer: float, bag: int, cap: int, hp: float, invaders: int) -> void:
 		_timer_lbl.text = "Timer: %ds" % ceili(timer)
 		_bag_lbl.text = "Bag: %d/%d" % [bag, cap]
-		_hp_lbl.text = "Vida: %d" % ceili(hp)
+		var inv_str: String = "  ⚠ x%d" % invaders if invaders > 0 else ""
+		_hp_lbl.text = "Vida: %d%s" % [ceili(hp), inv_str]
 
 # ─────────────────────── Scene state ──────────────────────────────────────────
 var _chambers: Array = []
@@ -165,11 +166,12 @@ var _victory: bool = false
 var _damage_flash: float = 0.0
 var _hud = null  # _SacHUD
 
-const _SEAL_TIME: float         = 15.0   # seconds before chamber seals after entry
-const _HUB_SPAWN_INTERVAL: float= 22.0   # seconds between hub enemy waves
+const _SEAL_TIME: float         = 8.0    # seconds before chamber seals after entry
+const _HUB_SPAWN_INTERVAL: float= 12.0   # seconds between hub enemy waves
 const _HUB_ENEMY_HP: float      = 22.0   # HP per hub invader
-const _HUB_ENEMY_SPEED: float   = 55.0   # px/s toward hub center
-const _HUB_ENEMY_DPS: float     = 6.0    # damage/s per invader on squad in hub
+const _HUB_ENEMY_SPEED: float   = 110.0  # px/s chasing the player
+const _HUB_ENEMY_DPS: float     = 8.0    # damage/s per nearby invader
+const _HUB_ENEMY_DAMAGE_DIST: float = 48.0  # px — proximity to deal damage
 const _BONUS_INTERVAL: float    = 12.0   # seconds between bonus chamber rotations
 const _BONUS_COLLECT_TIME: float = 0.35  # pickup time when bonus is active
 
@@ -196,7 +198,7 @@ func _ready() -> void:
 	var hud := _SacHUD.new()
 	hud.setup(self)
 	_hud = hud
-	hud.refresh(_run_timer, 0, _bag_cap, _squad_hp)
+	hud.refresh(_run_timer, 0, _bag_cap, _squad_hp, 0)
 	queue_redraw()
 
 # ─────────────────────── Layout builder ───────────────────────────────────────
@@ -276,6 +278,11 @@ func _process(delta: float) -> void:
 			if ch.seal_timer >= _SEAL_TIME:
 				ch.sealed = true
 				ch.collecting_idx = -1
+				# Sealing releases 2 invaders from the chamber entrance
+				for k in 2:
+					var ang: float = _pulse + k * PI
+					var spawn: Vector2 = ch.center + Vector2(cos(ang), sin(ang)) * 30.0
+					_hub_enemies.append({"pos": spawn, "hp": _HUB_ENEMY_HP})
 
 	# Bonus chamber rotation
 	_bonus_timer -= delta
@@ -289,27 +296,29 @@ func _process(delta: float) -> void:
 		_hub_spawn_timer = _HUB_SPAWN_INTERVAL
 		_spawn_hub_enemies()
 
-	# Hub enemy movement + combat
-	var hub_dps := 0.0
-	var player_in_hub := _HUB_RECT.has_point(_player_pos)
+	# Invader movement + combat — enemies chase the player anywhere on the map
+	var total_dps := 0.0
 	var to_remove_hub: Array[int] = []
 	for i in _hub_enemies.size():
 		var e: Dictionary = _hub_enemies[i]
-		var to_center: Vector2 = _HUB_CENTER - e["pos"]
-		if to_center.length() > 8.0:
-			e["pos"] += to_center.normalized() * _HUB_ENEMY_SPEED * delta
-		if player_in_hub:
-			var per_enemy_dps := _HUB_ENEMY_DPS
-			var squad_dps_share := float(_squad_size) * _SQUAD_DPS / float(_hub_enemies.size())
+		# Chase player
+		var to_player: Vector2 = _player_pos - e["pos"]
+		if to_player.length() > 6.0:
+			e["pos"] += to_player.normalized() * _HUB_ENEMY_SPEED * delta
+		# Deal damage when close
+		var dist: float = e["pos"].distance_to(_player_pos)
+		if dist < _HUB_ENEMY_DAMAGE_DIST:
+			total_dps += _HUB_ENEMY_DPS
+			# Squad fights back — each member does DPS against this enemy
+			var squad_dps_share: float = float(_squad_size) * _SQUAD_DPS / float(_hub_enemies.size())
 			e["hp"] -= squad_dps_share * delta
-			hub_dps += per_enemy_dps
 		if e["hp"] <= 0.0:
 			to_remove_hub.append(i)
 	for i in range(to_remove_hub.size() - 1, -1, -1):
 		_hub_enemies.remove_at(to_remove_hub[i])
-	if player_in_hub and hub_dps > 0.0:
-		_squad_hp -= hub_dps * delta
-		_damage_flash = maxf(_damage_flash, 0.4)
+	if total_dps > 0.0:
+		_squad_hp -= total_dps * delta
+		_damage_flash = maxf(_damage_flash, 0.55)
 		if _squad_hp <= 0.0:
 			_squad_hp = 0.0
 			_end_run(false)
@@ -343,7 +352,7 @@ func _process(delta: float) -> void:
 		if not ch.enemies_alive():
 			_update_collection(ch, _current_chamber_idx, delta)
 
-	_hud.refresh(_run_timer, _backpack.size(), _bag_cap, _squad_hp)
+	_hud.refresh(_run_timer, _backpack.size(), _bag_cap, _squad_hp, _hub_enemies.size())
 
 	# Exit check
 	if _EXIT_RECT.has_point(_player_pos):
@@ -390,7 +399,7 @@ func _update_collection(ch, ch_idx: int, delta: float) -> void:
 				p["collected"] = true
 				p["collecting"] = false
 				ch.collecting_idx = -1
-				_hud.refresh(_run_timer, _backpack.size(), _bag_cap, _squad_hp)
+				_hud.refresh(_run_timer, _backpack.size(), _bag_cap, _squad_hp, _hub_enemies.size())
 	else:
 		if _backpack.size() < _bag_cap:
 			for i in ch.pickups.size():
@@ -519,11 +528,15 @@ func _draw_hub_enemies() -> void:
 		var p := 0.55 + 0.45 * sin(_pulse * 7.0)
 		draw_circle(ep, 9.0, Color(0.95, 0.18, 0.12, p))
 		draw_arc(ep, 11.0, 0.0, TAU, 8, Color(1.0, 0.35, 0.20, 0.65 * p), 1.5)
-	# Warning label if player is in hub with enemies
-	if _hub_enemies.size() > 0 and _HUB_RECT.has_point(_player_pos):
+	# Draw each invader's chase line toward player for readability
+	if _hub_enemies.size() > 0:
 		var wp := 0.6 + 0.4 * sin(_pulse * 8.0)
-		draw_string(ThemeDB.fallback_font, _HUB_CENTER + Vector2(0.0, -65.0),
-			"INVASORES!", HORIZONTAL_ALIGNMENT_CENTER, -1, 13,
+		for e: Dictionary in _hub_enemies:
+			var ep: Vector2 = e["pos"]
+			if ep.distance_to(_player_pos) < _HUB_ENEMY_DAMAGE_DIST:
+				draw_circle(ep, 13.0, Color(1.0, 0.18, 0.08, 0.35 * wp))
+		draw_string(ThemeDB.fallback_font, Vector2(240.0, 80.0),
+			"INVASORES x%d" % _hub_enemies.size(), HORIZONTAL_ALIGNMENT_CENTER, -1, 13,
 			Color(1.0, 0.25, 0.25, wp))
 
 
