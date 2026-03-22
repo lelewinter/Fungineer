@@ -30,11 +30,18 @@
 
 ## Core Fantasy
 
-Você é o cientista mais otimista e improvável do apocalipse.
-Enquanto IAs controlam tudo lá fora, você está na base de resistência convencendo
-os últimos humanos de que *sim*, um foguete artesanal vai funcionar.
-Cada recurso trazido das zonas coloca uma nova peça no foguete. O foguete crescendo
-visualmente na tela é a âncora emocional — progresso concreto, absurdo, esperançoso.
+Você é o Dr. Paulo Vitor Santos — o homem que aprovou o sistema de IA que acabou com o mundo.
+Não por malícia. Por acreditar demais. Agora está na base de resistência convencendo
+os últimos humanos de que *sim*, um foguete artesanal vai funcionar. A esperança dele é
+real e inabalável, mas o que ela significa vai mudando conforme a verdade sobre o Projeto
+Olímpio emerge run a run, conversa a conversa.
+
+Cada recurso trazido das zonas coloca uma nova peça no foguete — e cada zona raideada é
+a infraestrutura de um sistema que Paulo ajudou a construir. O foguete crescendo visualmente
+é a âncora emocional: progresso concreto, improvável, e pesado com o peso de quem sabe
+o que custou chegar até aqui.
+
+**A questão que o jogo não responde por você**: A IA estava errada? Ou o mandato estava errado?
 
 ---
 
@@ -170,8 +177,12 @@ A decisão de sair cedo é tão importante quanto sobreviver.
 ### Anti-Pilares
 - **NÃO é um jogo de combate manual**: nenhum ataque ativado pelo jogador em nenhuma zona
 - **NÃO é um base builder**: a base é recompensa visual e social, não uma camada de gestão de construção
-- **NÃO é narrativa pesada**: o apocalipse é cenário e tom, não roteiro com cutscenes longas
+- **NÃO é narrativa pesada**: não há cutscenes longas — a narrativa emerge em diálogos curtos,
+  fragmentos de lore nas zonas, e conversas entre runs. O jogador pode ignorar a narrativa
+  e apenas jogar; quem busca a história encontra camadas.
 - **NÃO tem runs longas**: se uma zona passa de 2 minutos, corta conteúdo, não adiciona tempo
+- **NÃO condena nem absolve a IA**: o jogo não tem resposta certa. Jogadores diferentes chegarão
+  a conclusões diferentes com os mesmos fatos. Isso é intencional.
 
 ---
 
@@ -267,7 +278,11 @@ gera motivação para continuar."
 - [ ] `/design-system` — GDD do sistema de recursos e mochila
 - [ ] `/map-systems` — mapear dependências entre hub, zonas e recursos
 - [ ] `/sprint-plan new` — planejar sprint com Zona Stealth como foco
+- [ ] Implementar sistema de diálogos/fragmentos de lore in-zone (terminais, logs)
+- [ ] Escrever diálogos de missão de confiança para Marcus (revelações por threshold)
+- [ ] Definir o "vocabulário" de comunicação de CORE com Lena (Final C)
 
 ---
 
-*Relacionado: `design/gdd/mvp-game-brief.md` — especificação completa da Zona de Hordas*
+*Relacionado: `design/gdd/mvp-game-brief.md`, `design/narrative/world-lore.md`,
+`design/narrative/narrative-arc.md`, `design/gdd/hub-and-characters.md`*

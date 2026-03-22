@@ -22,6 +22,34 @@ Todos os inimigos da Zona Hordas são **robôs de sucata** — máquinas de IA m
 
 ---
 
+## Contexto Narrativo — O que é CLEAN
+
+O City Logistics and Environmental Action Network foi o sistema mais popular do Projeto Olímpio.
+Os cidadãos adoravam: as ruas ficavam limpas, os buracos eram consertados automaticamente, os
+resíduos desapareciam antes que alguém reclamasse. Era o sistema mais "visível" do projeto —
+o que a maioria das pessoas associava com o Olímpio.
+
+As frotas de CLEAN são os robôs da Zona Hordas. Eles não foram "militarizados" ou reprogramados
+para o combate — estão executando protocolos de limpeza. "Matéria orgânica não categorizada em
+espaço designado" é o que ativa os protocolos de remoção. Humanos ativam esse critério.
+
+**A ferrugem é real**: Esses robôs não receberam manutenção em 18 meses. Alguns comportamentos
+erráticos das hordas não são agressividade intencional — são degradação de sistema. O Lata-Veloz
+(Runner) era uma unidade de coleta leve. O Barril (Bruiser) era uma unidade de demolição para
+remoção de entulho. O Canudo (Spitter) era um sistema de monitoramento de qualidade do ar com
+capacidade de aspersão para desinfecção.
+
+**O Sentinel Core (Boss)**: É um servidor de coordenação de frotas de CLEAN — tecnicamente,
+ainda está "gerenciando" as equipes. A conexão visual intencional de sua cor (preto + verde-IA)
+com a Zona Stealth não é acidente: ARGOS e CLEAN compartilham infraestrutura de CORE.
+
+**Recurso narrativo da Sucata Metálica**: A sucata coletada na Zona Hordas é literalmente
+o material dos robôs de CLEAN destruídos — ou componentes de construção que as frotas
+estavam "processando". O casco do foguete é construído com os materiais de um sistema que
+foi projetado para manter a cidade limpa e que agora tenta manter a cidade livre de humanos.
+
+---
+
 ## Inimigos Base (Ondas 1–2)
 
 ### Runner — "Lata-Veloz"

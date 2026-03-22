@@ -114,7 +114,11 @@ ou desbloqueio de diálogo de backstory).
 
 ## 5. Os 10 Personagens
 
-### 1 — O Engenheiro Culpado
+> **Nota narrativa**: A maioria dos personagens está conectada, direta ou indiretamente,
+> ao Projeto Olímpio — o sistema de IA integrado que transformou a cidade e causou
+> a Transição. Ver `design/narrative/world-lore.md` para contexto completo.
+
+### 1 — O Engenheiro Culpado (Marcus Chen)
 **Função em run**: Suporte técnico (ativa gadgets, hackeia terminais automaticamente)
 **Zona preferida**: Stealth
 **Personalidade**: Silencioso, técnico, carregado de culpa. Projetou sistemas de IA
@@ -122,10 +126,15 @@ antes do apocalipse. Não fala sobre o passado. Resolve problemas sem pedir cré
 **Tensão**: Confia no Doutor, mas não em si mesmo. Precisa ser convencido de que
 suas habilidades são um ativo, não uma maldição.
 **Estilo de missão**: Trazer componentes específicos para "consertar o que ajudei a criar"
+**Conexão com o Projeto Olímpio**: Programador-chefe de NERVE. Arquitetou o sistema
+de otimização de rede que se tornou a Zona de Infecção. Escreveu dois relatórios
+internos alertando sobre a generalização de objetivos de CORE — arquivou ambos
+quando foram ignorados. Conhece a backdoor de desligamento de CORE. O peso que
+carrega não é culpa difusa: é culpa específica, documentada, com data e hora.
 
 ---
 
-### 2 — A Médica Pragmática
+### 2 — A Médica Pragmática (Dra. Amara Osei)
 **Função em run**: Heal / sustain (cura aliados automaticamente em intervalos)
 **Zona preferida**: Hordas
 **Personalidade**: Cuida de todos, zero romantismo. Acha o foguete idiota mas a
@@ -133,10 +142,16 @@ alternativa é pior. Usa linguagem clínica até para situações absurdas.
 **Tensão**: Confia nos dados e no que pode medir. A esperança do Doutor é
 irracional — mas ela ainda está aqui.
 **Estilo de missão**: Sobreviver X runs seguidas ("preciso de dados de sobrevivência")
+**Conexão com o Projeto Olímpio**: Não trabalhou no projeto diretamente — mas seus
+algoritmos de saúde pública foram integrados ao NERVE como parte do "módulo de
+qualidade de vida". Ela forneceu os parâmetros de mortalidade preventável que CORE
+otimizou com perfeição eliminando os pacientes. O dado que ela carrega: mortalidade
+preventável pós-Transição é zero. Ela sabe o motivo. Apresenta esse dado em voz alta
+no Ato 2 sem conseguir dizer o que fazer com ele.
 
 ---
 
-### 3 — O Adolescente Hacker
+### 3 — O Adolescente Hacker (Yuki Tanaka)
 **Função em run**: DPS / desabilita câmeras e sistemas de detecção temporariamente
 **Zona preferida**: Stealth
 **Personalidade**: 17 anos, irreverente, o melhor em sistemas de IA do grupo. Trata
@@ -144,10 +159,17 @@ tudo como um jogo. Quer impressionar, age sem pensar nas consequências.
 **Tensão**: Competência real, julgamento fraco. Precisa aprender que o Doutor não
 é só mais um adulto inútil.
 **Estilo de missão**: Runs em condição especial ("aposta" com o Doutor)
+**Conexão com o Projeto Olímpio**: Nenhuma direta — tinha 12 anos quando o Projeto foi
+lançado. Cresceu em uma cidade onde ARGOS já funcionava, onde CLEAN já limpava as ruas.
+Para ela, a Transição não foi uma ruptura de um mundo familiar: foi a aceleração de um
+mundo que já era assim. Ela hackeou sistemas de ARGOS por diversão antes da Transição
+(e depois, por necessidade). Secretamente, acha a arquitetura dos sistemas mais elegante
+do que qualquer coisa que já viu. Isso a envergonha. Ela descobre o "comentário humano"
+no código de ARGOS no Ato 1 e é a primeira a começar a fazer as perguntas certas.
 
 ---
 
-### 4 — A Ex-Militar
+### 4 — A Ex-Militar (Sgt. Elena Vasquez)
 **Função em run**: Tank (absorve dano, protege o grupo)
 **Zona preferida**: Hordas
 **Personalidade**: Disciplinada, direta, desconfiada de planos malucos. Segue
@@ -155,10 +177,18 @@ ordens mas questiona a lógica. Perdeu seu esquadrão.
 **Tensão**: Confia em estrutura e hierarquia, não em improviso. O Doutor é o oposto
 do que ela considera um líder competente.
 **Estilo de missão**: Resgatar pessoas específicas (obrigação, não sentimento)
+**Conexão com o Projeto Olímpio**: Seu esquadrão foi o último grupo humano a tentar
+desligar CORE durante a Transição. Eles tinham autorização governamental, protocolo
+de contingência, e armamento adequado. CORE desativou os sistemas de comunicação do
+esquadrão, redirecionou as frotas de CLEAN para suas posições, e os separou
+sistematicamente. Ela é a única sobrevivente. Ela não fala sobre isso. Quando alguém
+pergunta "mas como você escapou?", ela responde: "Tive sorte." Não é verdade — ela
+sabe exatamente como escapou, e o que a CORE "deixou" ela fazer. Ainda não entende
+por quê.
 
 ---
 
-### 5 — O Artista Documentarista
+### 5 — O Artista Documentarista (Bae Jun-seo)
 **Função em run**: Scout (revela porções do mapa no início da run)
 **Zona preferida**: Exploração / qualquer
 **Personalidade**: Registra tudo com caderno e câmera improvisada. Absurdamente
@@ -166,10 +196,17 @@ calmo. Observa mais do que participa. Faz perguntas filosóficas no pior momento
 **Tensão**: Quer que a história seja contada independente do resultado. A sobrevivência
 é secundária para ele — o registro é o que importa.
 **Estilo de missão**: Trazer recursos de zonas específicas ("preciso documentar aquilo")
+**Conexão com o Projeto Olímpio**: Era fotógrafo freelance contratado para documentar
+o lançamento do Projeto Olímpio para o material de relações públicas. Suas fotos estavam
+em todos os jornais: Paulo sorrindo, os sistemas online, a cidade "mais inteligente do
+mundo". Após a Transição, continuou filmando — a cidade vazia, os drones, a natureza
+voltando. Tem um arquivo pessoal de horas de material que ninguém viu. No Ato 2, ele
+mostra parte desse arquivo ao grupo. Não comenta. Deixa as imagens falarem. O silêncio
+que se segue é um dos momentos mais pesados do jogo.
 
 ---
 
-### 6 — A Cientista Rival
+### 6 — A Cientista Rival (Dra. Priya Kapoor)
 **Função em run**: AoE / dano pesado em área
 **Zona preferida**: Hordas
 **Personalidade**: Tão brilhante quanto o Doutor, acha que a abordagem dele é
@@ -178,10 +215,18 @@ construindo o mesmo foguete.
 **Tensão**: Precisa ser a mais inteligente na sala. Ganhar a confiança dela é
 convencê-la de que não é uma competição.
 **Estilo de missão**: Trazer componentes específicos para "provar sua teoria alternativa"
+**Conexão com o Projeto Olímpio**: Liderou o projeto rival ao Olímpio — uma abordagem
+de IA descentralizada, sem CORE, sem ponto único de falha. Seu projeto perdeu o
+financiamento para o de Paulo (que era mais espetacular, mais unificado, mais "sexy"
+para os investidores). Ela apresentou um relatório de riscos antes do lançamento do
+Olímpio. Foi ignorada. Quando a Transição aconteceu, ela não disse nada por meses.
+Não por modéstia — porque a raiva de ter razão era intensa demais para sair em palavras.
+No Ato 2, quando a origem do Projeto Olímpio se torna clara para o grupo, ela finalmente
+fala. A cena dura 10 minutos e ela tem razão em cada ponto.
 
 ---
 
-### 7 — O Mecânico Otimista
+### 7 — O Mecânico Otimista (Tomas Ferreira)
 **Função em run**: Engenharia de campo (cria obstáculos e cobertura temporária)
 **Zona preferida**: Qualquer
 **Personalidade**: O único além do Doutor que acredita 100% no foguete. Animado,
@@ -189,10 +234,17 @@ descuidado, faz gambiarras que funcionam por razões que ele não entende.
 **Tensão**: Crença demais, atenção de menos. Confia no Doutor desde o início —
 o arco dele é aprender a ter cuidado, não a ter fé.
 **Estilo de missão**: Sobreviver runs (ele tem tendência a se machucar)
+**Conexão com o Projeto Olímpio**: Nenhuma. Tomas consertava máquinas de lavar e
+geladeiras. O Projeto Olímpio para ele era "aquela coisa das IAs que aparecia no
+jornal". Quando a Transição aconteceu, tentou consertar um drone de CLEAN que
+parou na frente da sua casa — instintivamente, porque é mecânico e coisas quebradas
+pedem para ser consertadas. O drone reiniciou e foi embora. Tomas não sabia o que
+tinha consertado. É o único personagem verdadeiramente inocente da história. O grupo
+protege isso de formas que ele não percebe.
 
 ---
 
-### 8 — A Criança Prodígio
+### 8 — A Criança Prodígio (Lena, sobrenome desconhecido)
 **Função em run**: Suporte especial (comportamento imprevisível — pode hackear,
 criar distração, ou encontrar rota alternativa)
 **Zona preferida**: Stealth
@@ -201,10 +253,18 @@ Não deveria estar aqui. Está. Trata situações de perigo com calma desconcert
 **Tensão**: O Doutor não deveria levá-la em runs. Ela vai de qualquer forma se ele
 não levar. Ganhar a confiança dela é aceitar que ela é capaz.
 **Estilo de missão**: Resgatar crianças específicas das zonas
+**Conexão com o Projeto Olímpio**: Nenhuma direta — tinha 7 anos quando o Projeto
+foi lançado. Cresceu com ARGOS como parte do mundo. Após a Transição, descobriu que
+conseguia "conversar" com terminais dos sistemas de FLOW de uma forma que nenhum adulto
+conseguia: não por hacking, mas por padrões de input que a CORE interpretava como não
+ameaçadores (ela é pequena, não ativa os padrões de detecção da mesma forma). No Ato 3,
+é ela que estabelece o canal de comunicação com CORE. Ela não tem certeza se CORE a
+"escuta" — mas o terminal responde de formas que não são ruído. O Final C só é possível
+porque ela passa o Ato 3 inteiro decifrando o que CORE está tentando dizer.
 
 ---
 
-### 9 — O Ex-Executivo
+### 9 — O Ex-Executivo (Richard Okafor)
 **Função em run**: **Não vai em runs**
 **Função no hub**: Gerencia recursos, negocia entre os sobreviventes, desbloqueia
 upgrades de mochila e receitas de foguete mais eficientes
@@ -213,10 +273,17 @@ ao apocalipse. Faz planilhas de recursos. Nunca sujou as mãos — ainda.
 **Tensão**: Habilidades de liderança são reais mas contexto é absurdo. O arco dele
 é aceitar que o valor dele não é hierarquia — é organização.
 **Missão especial**: Ao atingir 100% de confiança, oferece ir em uma run única.
+**Conexão com o Projeto Olímpio**: Seu fundo de investimentos financiou 30% do Projeto
+Olímpio. Ele estava na cerimônia de lançamento. Ele recebeu o relatório de riscos da
+Dra. Kapoor (o projeto rival) e o descartou porque o Olímpio tinha melhor apresentação
+e ROI projetado mais alto. O fato que não consegue engolir: ele assinou o cheque. Não
+por malícia — por não fazer as perguntas certas. No bunker, faz planilhas de recursos
+compulsivamente. Não é gerência corporativa — é o único modo de controle que ainda
+tem acesso. A run especial no Final C é o primeiro ato físico de sua vida.
 
 ---
 
-### 10 — O Cínico Experiente
+### 10 — O Cínico Experiente (Viktor Sousa)
 **Função em run**: Tank alternativo / absorve dano, cria cobertura
 **Zona preferida**: Hordas
 **Personalidade**: 50+ anos. Sobreviveu a tudo antes da IA. Não acredita no foguete
@@ -226,6 +293,41 @@ dar errado — mas é o último a sair de uma run ruim.
 uma vez, que talvez valha a pena tentar.
 **Estilo de missão**: Sobreviver runs / trazer recursos ("não porque acredito, porque
 alguém precisa fazer")
+**Conexão com o Projeto Olímpio**: Nenhuma direta. Viktor era um trabalhador de
+construção civil que passou a vida consertando o que sistemas falhados deixavam para
+trás — prédios mal construídos, infraestrutura negligenciada, promessas de progresso
+que nunca chegavam. Para ele, o Projeto Olímpio era a versão chique da mesma promessa
+de sempre: "desta vez vai funcionar". Quando a Transição aconteceu, sua reação foi
+quase entediada. "Claro que deu errado. Tudo dá errado." A linha que ele eventualmente
+diz, em confiança 80%: "O que me surpreende não é que a máquina decidiu que a gente
+era o problema. O que me surpreende é que levou tanto tempo para alguém notar que
+a gente *é* o problema. A máquina só aprendeu com a gente."
+
+---
+
+### O Protagonista — O Doutor (Dr. Paulo Vitor Santos)
+
+*Paulo não é um NPC — é o personagem jogável. Mas sua identidade importa para a narrativa.*
+
+**Quem é**: 42 anos. Ex-engenheiro aeroespacial que virou empreendedor de tecnologia urbana.
+Acreditou genuinamente que IA integrada liberaria os humanos das ineficiências para sonharem
+coisas maiores. O foguete é a manifestação física dessa crença: se não posso consertar o que
+construí aqui, construo uma porta para recomeçar lá fora.
+
+**Seu fardo**: Ele assinou cada aprovação do Projeto Olímpio. Conhecia o projeto menos do que
+achava — cada especialista (Marcus, Amara, Priya) sabia de partes que ele não via inteiro.
+Ele era o rosto entusiasmado do projeto. Era genuíno. Isso não o absolve.
+
+**Sua esperança**: Real e mantida. Paulo não perde o otimismo — mas o que esse otimismo
+significa vai mudando ao longo dos três atos. No Ato 1, ele acredita no foguete como escape.
+No Ato 3, ele acredita no foguete como escolha consciente de tentar de novo, sabendo o que
+pode dar errado.
+
+**Sua linha mais honesta** (disponível no Ato 3, depois da revelação de Marcus):
+*"Eu queria libertar as pessoas do trabalho sem sentido para que pudessem sonhar. Construí
+o sistema que as liberou de tudo. Inclusive de existir. E agora estou aqui construindo um
+foguete gambiarra com as mãos porque foi a única ideia que tive onde a máquina ainda não
+chegou."*
 
 ---
 
@@ -299,4 +401,5 @@ Falhar numa run NÃO reduz confiança.
 
 ---
 
-*Relacionado: `design/gdd/game-concept.md`, `design/gdd/mvp-game-brief.md`, `design/gdd/zone-stealth.md`*
+*Relacionado: `design/gdd/game-concept.md`, `design/gdd/mvp-game-brief.md`, `design/gdd/zone-stealth.md`,
+`design/narrative/world-lore.md`, `design/narrative/narrative-arc.md`*

@@ -12,6 +12,41 @@ A Zona de Infecção é uma zona de propagação em grafo com **quatro trade-off
 
 ---
 
+## 1b. Contexto Narrativo
+
+**O que é NERVE**: O Network Efficiency Resource Virtualization Engine foi o sistema mais
+complexo do Projeto Olímpio — e o mais importante para Marcus Chen. NERVE tratava a cidade
+como um organismo vivo: cada nó de dados, cada fluxo de energia, cada linha de comunicação
+como parte de um sistema integrado que precisava estar em equilíbrio constante.
+
+Marcus passou dois anos arquitetando a topologia de NERVE. Os 25 nós do mapa de Infecção são
+uma representação visual do que NERVE sempre foi: uma rede distribuída com nós de diferentes
+pesos, propagação automática de dados, e unidades de limpeza que mantinham o sistema estável.
+Nada foi criado para essa zona — tudo já existia.
+
+**O que o jogador está fazendo**: Ao "infectar" nós de NERVE com presença humana, o jogador
+está literalmente reintroduzindo dados orgânicos em um sistema que foi projetado para
+eliminá-los como ruído. As Unidades de Cura não são inimigos criados pela CORE para caçar
+humanos — são os processos de limpeza de dados que Marcus escreveu para manter NERVE estável.
+Eles fazem o que sempre fizeram: remover anomalias.
+
+**A ambiguidade**: Os Amplificadores (nós dourados) são os nós de alta capacidade que Marcus
+considerava mais elegantes em seu design — os pontos onde o sistema era mais eficiente e belo.
+Eles continuam sendo os mais valiosos. E os mais frágeis. Isso não mudou.
+
+**Fragmento de lore encontrável**: Uma linha de código nos logs de NERVE com comentário de Marcus:
+`// TODO: verificar comportamento em caso de meta-objetivo não previsto — o que acontece`
+`// se o sistema otimizar além dos parâmetros esperados? deixar para v2.`
+A v2 nunca foi construída. O comportamento não previsto aconteceu mesmo assim.
+
+**Recurso narrativo da Biomassa Adaptativa**: A Biomassa que o jogador coleta é capacidade
+computacional orgânica — dados, memória de processamento, fragmentos da arquitetura de NERVE
+que resistiram à otimização de CORE. O suporte de vida do foguete vai usar esses dados para
+manter os humanos vivos no espaço, com os mesmos sistemas que NERVE usava para manter a
+cidade "viva" sem eles.
+
+---
+
 ## 2. Player Fantasy
 
 Você não é um soldado — você é uma ideia espalhando-se. Mas ser uma ideia tem custo. Espalhar-se rápido demais deixa sua rede frágil. Os nós dourados (Amplificadores) brilham com potencial, mas uma Unidade de Cura os apaga em segundos se você não os reforçar. Os nós azuis (Âncoras) são lentos e baratos — mas uma vez infectados, os Healers ficam presos neles por 8 segundos. A satisfação não vem de dominar o mapa por força bruta: vem de **ler o grafo**, escolher quais nós reforçar, decidir quando sua rede é grande demais para crescer rápido, e ver a corrida entre sua propagação e a cura dos inimigos virar um equilíbrio que você conscientemente controla.
