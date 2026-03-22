@@ -200,6 +200,8 @@ var _healer_spawn_timer: float = 12.0
 var _healer_count_target: int = 1
 var _hud = null  # _InfectHUD
 
+var _glow_time: float = 0.0  # drives amplifier glow pulse
+
 # ─────────────────────── _ready ───────────────────────────────────────────────
 func _ready() -> void:
 	GameState.start_run()
@@ -340,6 +342,7 @@ func _process(delta: float) -> void:
 		return
 
 	_damage_flash = maxf(0.0, _damage_flash - delta * 3.0)
+	_glow_time += delta
 	_run_timer -= delta
 
 	if _run_timer <= 0.0:
@@ -610,6 +613,23 @@ func _draw_nodes() -> void:
 				body_col = Color(0.15, 0.20, 0.40, 0.75)
 			else:
 				body_col = Color(0.30, 0.35, 0.30, 0.75)
+
+		# Amplifier radial glow — concentric circles with pulsing alpha/radius
+		if ntype == NODE_AMPLIFIER:
+			var pulse := (sin(_glow_time * 2.8) * 0.5 + 0.5)  # 0..1
+			var glow_extra := pulse * 6.0                       # 0..6 px extra radius
+			var glow_base_a := 0.18 if state == NODE_INFECTED else 0.09
+			var glow_col_r := 1.00
+			var glow_col_g := 0.82 if state == NODE_INFECTED else 0.60
+			# 4 glow layers: outermost to innermost
+			draw_circle(pos, _NODE_R + 14.0 + glow_extra,
+				Color(glow_col_r, glow_col_g, 0.05, glow_base_a * 0.30))
+			draw_circle(pos, _NODE_R + 10.0 + glow_extra * 0.7,
+				Color(glow_col_r, glow_col_g, 0.05, glow_base_a * 0.55))
+			draw_circle(pos, _NODE_R + 6.0 + glow_extra * 0.4,
+				Color(glow_col_r, glow_col_g, 0.05, glow_base_a * 0.80))
+			draw_circle(pos, _NODE_R + 2.5,
+				Color(glow_col_r, glow_col_g, 0.10, glow_base_a * 1.00))
 
 		draw_circle(pos, _NODE_R, body_col)
 		draw_arc(pos, _NODE_R + 1.5, 0.0, TAU, 12,
