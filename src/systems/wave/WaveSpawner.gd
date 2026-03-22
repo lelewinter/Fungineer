@@ -5,6 +5,7 @@ class_name WaveSpawner
 extends Node
 
 @export var enemies_container: Node2D
+@export var zone_id: int = 0
 
 var _run_timer: float = 0.0
 var _wave1_done: bool = false
@@ -63,7 +64,7 @@ func _process(delta: float) -> void:
 
 func _spawn_wave_1() -> void:
 	print("[WaveSpawner] spawning wave 1")
-	var mult: float = HubState.get_spawn_multiplier(0)
+	var mult: float = HubState.get_spawn_multiplier(zone_id)
 	var runners: int = roundi(GameConfig.WAVE_1_RUNNER_COUNT * mult)
 	var bruisers: int = roundi(GameConfig.WAVE_1_BRUISER_COUNT * mult)
 	for i in runners:
@@ -75,7 +76,7 @@ func _spawn_wave_1() -> void:
 
 
 func _spawn_wave_2() -> void:
-	var mult: float = HubState.get_spawn_multiplier(0)
+	var mult: float = HubState.get_spawn_multiplier(zone_id)
 	var runners: int = roundi(GameConfig.WAVE_2_RUNNER_COUNT * mult)
 	var bruisers: int = roundi(GameConfig.WAVE_2_BRUISER_COUNT * mult)
 	var spitters: int = roundi(GameConfig.WAVE_2_SPITTER_COUNT * mult)
