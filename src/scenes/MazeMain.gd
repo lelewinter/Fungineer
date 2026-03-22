@@ -98,7 +98,7 @@ class _DynWall:
 		return state == State.OPEN or state == State.CLOSING or state == State.OPENING
 
 	func is_blocking() -> bool:
-		return state == State.CLOSED or state == State.CLOSING
+		return state == State.CLOSED   # CLOSING = warning period; passage still open (GDD 3.2)
 
 	func get_progress() -> float:
 		if phase_dur <= 0.0:
@@ -392,6 +392,11 @@ func _push_from_wall(wall) -> void:
 	if dir.length() < 0.1:
 		dir = Vector2(0.0, -1.0)
 	_player_pos += dir.normalized() * 40.0
+	# Clamp to maze bounds so the push never sends the player off-screen
+	_player_pos = _player_pos.clamp(
+		Vector2(_MARGIN_X + _PLAYER_RADIUS, _MARGIN_Y + _PLAYER_RADIUS),
+		Vector2(_MARGIN_X + _COLS * _COL_STEP - _PLAYER_RADIUS,
+				_MARGIN_Y + _ROWS * _ROW_STEP - _PLAYER_RADIUS))
 
 
 func _take_damage(amount: int) -> void:

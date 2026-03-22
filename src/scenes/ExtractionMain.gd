@@ -144,17 +144,17 @@ func _process(delta: float) -> void:
 		_end_run(true)
 		return
 
-	# Check all dead
+	# Check all dead — is_dead is a PROPERTY (not a method); call() would return null
+	# which `not null` evaluates to true, incorrectly marking dead chars as alive.
 	var all_dead := true
 	for ch in GameState.party:
 		if ch is Node and not (ch as Node).get("is_dead"):
 			all_dead = false
 			break
-		if ch is Node and not (ch as Node).call("is_dead"):
-			all_dead = false
-			break
-	if GameState.party.size() == 0:
-		all_dead = false  # no characters = guardian default, can't be dead
+	# GameState.end_run already fires via register_character_death when party empties,
+	# but guard here too. Empty party = no chars yet (guardian default) — don't fail.
+	if GameState.party.is_empty():
+		all_dead = false
 	if all_dead:
 		_end_run(false)
 		return

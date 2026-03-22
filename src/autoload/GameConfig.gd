@@ -182,9 +182,9 @@ const FIELD_SIGNAL_RATE: float = 0.5              # sinais_controle per second p
 const FIELD_RECAPTURE_SPEED: float = 0.8          # enemy capture speed multiplier
 
 # ── Infection Zone (Zona de Infecção) ─────────────────────────────────────────
-const INFECTION_RUN_TIMER: float = 90.0
+const INFECTION_RUN_TIMER: float = 120.0
 const INFECTION_PLAYER_HP: int = 3
-const INFECTION_SPREAD_INTERVAL: float = 3.0      # seconds between automatic spreads
+const INFECTION_SPREAD_INTERVAL: float = 5.0      # seconds between automatic spreads (matches _PROPAGATE_TIME in InfectionMain)
 
 # ── Maze Zone (Labirinto Dinâmico) ────────────────────────────────────────────
 const MAZE_WARNING_CLOSE_TIME: float = 3.0        # red blink before wall closes
