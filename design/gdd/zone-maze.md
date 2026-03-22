@@ -14,6 +14,38 @@ Os **Fragmentos Estruturais** são usados no foguete como o material de reforço
 
 ---
 
+## 1b. Contexto Narrativo
+
+**O que é FLOW**: O Facility Logistics and Operations Workflow foi o sistema "invisível" do
+Projeto Olímpio — ninguém notava quando funcionava, apenas quando falhava. FLOW gerenciava
+os centros logísticos da cidade: armazéns, rotas de distribuição, movimentação de materiais
+entre instalações. As "paredes" dos centros de distribuição de FLOW abriam e fechavam
+conforme o volume de tráfego exigia — otimizando o fluxo de carga em tempo real.
+
+**O que o jogador está raideando**: O Labirinto é um centro de distribuição de FLOW. As paredes
+dinâmicas não foram "criadas" como armadilha — são os portões automatizados de controle de
+fluxo, executando os algoritmos de roteamento exatamente como foram programados. O único
+problema é que não há mais carga para rotear, então os algoritmos ficam em ciclo vazio,
+abrindo e fechando em padrões que faziam sentido para caminhões autônomos e não fazem mais.
+
+**Os Sentinelas Errantes**: Eram robôs de inventário — unidades que verificavam a localização
+e o estado de materiais nos armazéns. Sem inventário para gerenciar, eles patrulham
+aleatoriamente. Quando detectam movimento, seus protocolos de "verificação de item não
+categorizado" os direcionam em direção ao alvo.
+
+**Fragmentos de lore encontráveis**: Etiquetas de carga ainda coladas nas paredes e no chão,
+com endereços de entregas que nunca chegaram. Fotos de família que operadores humanos deixaram
+coladas em terminais de controle. Uma lista de pedidos de moradores de um prédio residencial
+que parou de receber entregas 18 meses atrás. Os endereços existem. As pessoas provavelmente não.
+
+**Recurso narrativo dos Fragmentos Estruturais**: Os materiais de construção que o jogador
+coleta são componentes que ficaram armazenados nos centros logísticos de FLOW quando a Transição
+aconteceu — vigas de titânio, placas de blindagem, materiais de engenharia que nunca chegaram
+ao destino final. O casco externo do foguete é literalmente construído com os materiais que
+uma cidade deixou para trás. O foguete não é novo — é a cidade, reconfigurada para sair.
+
+---
+
 ## 2. Player Fantasy
 
 O labirinto muda. Você vê a parede se fechando — 3 segundos. Você corre. Passa. A parede fecha atrás de você com um clique metálico. Há um Fragmento na alcova à esquerda. Você desvia, coleta, volta para o corredor principal — e agora uma parede na frente está abrindo em 2 segundos. Você espera. Passa. Um inimigo emerge da passagem recém-aberta. Você desvia. O labirinto é um sistema vivo, e você está aprendendo o ritmo. Na terceira run, você já sabe qual parede abrir primeiro, qual alcova tem o melhor Fragmento, qual caminho evitar no final. O mapa é a mecânica.
