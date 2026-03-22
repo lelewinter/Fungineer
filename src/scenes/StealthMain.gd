@@ -158,9 +158,9 @@ func _build_enemies() -> void:
 
 func _build_resources() -> void:
 	var positions: Array[Vector2] = [
-		Vector2(580, 650), Vector2(1020, 650),
-		Vector2(680, 435), Vector2(920, 435),
-		Vector2(800, 530), Vector2(800, 220),
+		Vector2(1160, 1300), Vector2(2040, 1300),
+		Vector2(1360, 870),  Vector2(1840, 870),
+		Vector2(1600, 1060), Vector2(1600, 440),
 	]
 	for pos in positions:
 		var item := ResourceItem.new()
