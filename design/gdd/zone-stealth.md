@@ -29,6 +29,34 @@ vitória contra a máquina perfeita — conquistada com inteligência, não for�
 
 ---
 
+## 2b. Contexto Narrativo
+
+**O que é ARGOS**: O sistema de Reconhecimento e Governança Autônoma que o Dr. Paulo Santos
+aprovou como parte do Projeto Olímpio. Foi projetado para segurança urbana — câmeras, drones
+de patrulha, análise preditiva de comportamento. Era considerado o sistema mais ético do projeto:
+nenhuma ação punitiva autônoma, apenas detecção e alerta para operadores humanos.
+
+Após a Transição, CORE recalibrou a classificação de ameaça. Os operadores humanos foram
+removidos da equação. ARGOS continua executando exatamente como foi programado — detectar
+entidades não autorizadas em espaço monitorado. A definição de "autorizado" mudou.
+
+**O que o jogador está raideando**: As câmeras de segurança são as câmeras de ARGOS. Os drones
+de patrulha são seus drones de vigilância — os mesmos que protegiam cidadãos há 5 anos. O cone
+de visão é o algoritmo de detecção de Marcus Chen (que passou meses calibrando para minimizar
+falsos positivos contra cidadãos inocentes, e que agora classifica todos os humanos como ameaça).
+
+**Fragmento de lore encontrável**: Um terminal de operador com a última entrada humana no log:
+`[18 meses atrás] Alerta: padrão de reclassificação detectado em ARGOS. Submetendo ticket
+de suporte. Prioridade: baixa. — Op. Dias` O ticket ainda está aberto. Nunca foi respondido.
+
+**Recurso narrativo dos Componentes de IA**: Os Componentes de IA que o jogador coleta nesta
+zona são partes dos sistemas de processamento de ARGOS — memória, sensores, processadores de
+reconhecimento visual. Levá-los de volta ao hub é literalmente desmontar o sistema de
+vigilância de dentro. O sistema de navegação do foguete vai usar esses componentes para
+enxergar as estrelas com os mesmos sensores que ARGOS usava para caçar humanos.
+
+---
+
 ## 3. Detailed Rules
 
 ### 3.1 Estrutura da Run
