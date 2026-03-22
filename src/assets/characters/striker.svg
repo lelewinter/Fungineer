@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <!-- Corpo slim e dinamico — inclinado levemente para frente -->
+  <rect x="22" y="28" width="20" height="24" rx="4" fill="#00C8C8" stroke="#1A1A2E" stroke-width="2"/>
+  <!-- Detalhe: listra de energia -->
+  <line x1="32" y1="30" x2="32" y2="50" stroke="#00FFFF" stroke-width="2" opacity="0.7"/>
+  <ellipse cx="32" cy="40" rx="4" ry="6" fill="none" stroke="#00FFFF" stroke-width="1" opacity="0.5"/>
+  <!-- Pescoço fino -->
+  <rect x="29" y="23" width="6" height="6" rx="2" fill="#E8D5C0" stroke="#1A1A2E" stroke-width="1.5"/>
+  <!-- Cabeca: viseira aerodinamica -->
+  <ellipse cx="32" cy="16" rx="10" ry="10" fill="#1A8A8A" stroke="#1A1A2E" stroke-width="2"/>
+  <!-- Viseira triangular/aerodinamica -->
+  <path d="M22 13 Q32 6 42 13 Q40 20 32 22 Q24 20 22 13 Z" fill="#00DFDF" stroke="#1A1A2E" stroke-width="1"/>
+  <!-- Olho unico centralizado — tipo visor -->
+  <ellipse cx="32" cy="15" rx="6" ry="4" fill="#001A1A" stroke="#00FFFF" stroke-width="1"/>
+  <ellipse cx="32" cy="15" rx="3" ry="2" fill="#00FFFF" opacity="0.8"/>
+  <circle cx="33" cy="14" r="1" fill="white"/>
+  <!-- Bracos finos e angulados -->
+  <rect x="11" y="29" width="11" height="6" rx="3" fill="#00C8C8" stroke="#1A1A2E" stroke-width="2" transform="rotate(-15 17 32)"/>
+  <rect x="42" y="29" width="11" height="6" rx="3" fill="#00C8C8" stroke="#1A1A2E" stroke-width="2" transform="rotate(15 47 32)"/>
+  <!-- Punhos com energia -->
+  <circle cx="11" cy="35" r="4" fill="#00FFFF" stroke="#1A1A2E" stroke-width="1.5"/>
+  <circle cx="53" cy="35" r="4" fill="#00FFFF" stroke="#1A1A2E" stroke-width="1.5"/>
+  <!-- Brilho de energia nos punhos -->
+  <circle cx="11" cy="34" r="1.5" fill="white" opacity="0.8"/>
+  <circle cx="53" cy="34" r="1.5" fill="white" opacity="0.8"/>
+  <!-- Pernas ageis -->
+  <rect x="22" y="51" width="8" height="11" rx="3" fill="#007A7A" stroke="#1A1A2E" stroke-width="2" transform="rotate(-5 26 56)"/>
+  <rect x="34" y="51" width="8" height="11" rx="3" fill="#007A7A" stroke="#1A1A2E" stroke-width="2" transform="rotate(5 38 56)"/>
+  <!-- Detalhes de speed: linhas de velocidade -->
+  <line x1="14" y1="44" x2="8" y2="44" stroke="#00FFFF" stroke-width="1" opacity="0.6"/>
+  <line x1="14" y1="47" x2="10" y2="47" stroke="#00FFFF" stroke-width="1" opacity="0.4"/>
+</svg>

@@ -1,0 +1,6 @@
+[gd_scene format=3 uid="uid://ddqr8lsl0o5yy"]
+
+[ext_resource type="Script" uid="uid://stealthmainscript01" path="res://src/scenes/StealthMain.gd" id="1_sm01"]
+
+[node name="StealthMain" type="Node2D" unique_id=951658372]
+script = ExtResource("1_sm01")

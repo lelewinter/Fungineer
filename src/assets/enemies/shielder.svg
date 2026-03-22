@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+
+  <!-- ═══ SHIELDER — "Escudo" ═══ -->
+  <!-- Cor-âncora: Prata-polido (#A8A8B8) — o mais limpo e "novo" entre os inimigos -->
+  <!-- Braços cruzados na frente, postura defensiva, olho central -->
+
+  <!-- ═══ PERNAS ROBUSTAS ═══ -->
+  <rect x="19" y="51" width="10" height="11" rx="3" fill="#8A8A9A" stroke="#4A4A5A" stroke-width="2"/>
+  <rect x="35" y="51" width="10" height="11" rx="3" fill="#8A8A9A" stroke="#4A4A5A" stroke-width="2"/>
+  <!-- Pés metálicos -->
+  <rect x="17" y="59" width="14" height="5" rx="2" fill="#5A5A6A" stroke="#3A3A4A" stroke-width="1"/>
+  <rect x="33" y="59" width="14" height="5" rx="2" fill="#5A5A6A" stroke="#3A3A4A" stroke-width="1"/>
+
+  <!-- ═══ CORPO — armadura de placa compacta ═══ -->
+  <rect x="16" y="30" width="32" height="23" rx="4" fill="#A8A8B8" stroke="#5A5A6A" stroke-width="2"/>
+  <!-- Reflexo metálico no corpo -->
+  <rect x="17" y="31" width="10" height="21" rx="3" fill="#C8C8D8" opacity="0.4"/>
+  <!-- Detalhe: placa traseira -->
+  <rect x="18" y="33" width="28" height="18" rx="2" fill="#B8B8C8" opacity="0.3"/>
+  <!-- Rebites de fixação -->
+  <circle cx="19" cy="33" r="1.5" fill="#6A6A7A"/>
+  <circle cx="45" cy="33" r="1.5" fill="#6A6A7A"/>
+  <circle cx="19" cy="50" r="1.5" fill="#6A6A7A"/>
+  <circle cx="45" cy="50" r="1.5" fill="#6A6A7A"/>
+
+  <!-- ═══ BRAÇOS CRUZADOS NA FRENTE (postura defensiva) ═══ -->
+  <!-- Braço esquerdo (cruzado à direita) -->
+  <rect x="12" y="31" width="22" height="10" rx="4" fill="#9A9AAA" stroke="#5A5A6A" stroke-width="1.5" transform="rotate(20 23 36)"/>
+  <!-- Braço direito (cruzado à esquerda) -->
+  <rect x="30" y="31" width="22" height="10" rx="4" fill="#9A9AAA" stroke="#5A5A6A" stroke-width="1.5" transform="rotate(-20 41 36)"/>
+
+  <!-- ═══ ESCUDO — placa de sinalização de estrada remodelada ═══ -->
+  <!-- Escudo principal (frente do corpo — forma de placa rodoviária) -->
+  <rect x="12" y="27" width="40" height="28" rx="5" fill="#B8B8CC" stroke="#6A6A7E" stroke-width="2.5"/>
+  <!-- Reflexo polido no escudo -->
+  <rect x="13" y="28" width="12" height="26" rx="4" fill="white" opacity="0.2"/>
+  <!-- Borda interna do escudo (dupla borda como placa de trânsito) -->
+  <rect x="14" y="29" width="36" height="24" rx="3" fill="none" stroke="#8A8A9A" stroke-width="1.5"/>
+  <!-- Texto/ícone de sinalização no escudo (estética de placa de rua) -->
+  <rect x="18" y="34" width="28" height="14" rx="2" fill="#9898A8" opacity="0.5"/>
+  <line x1="20" y1="39" x2="44" y2="39" stroke="#CCCCDD" stroke-width="1.5" opacity="0.7"/>
+  <line x1="20" y1="43" x2="38" y2="43" stroke="#CCCCDD" stroke-width="1" opacity="0.5"/>
+  <!-- Parafusos de montagem do escudo -->
+  <circle cx="16" cy="31" r="2" fill="#7A7A8A"/>
+  <circle cx="48" cy="31" r="2" fill="#7A7A8A"/>
+  <circle cx="16" cy="51" r="2" fill="#7A7A8A"/>
+  <circle cx="48" cy="51" r="2" fill="#7A7A8A"/>
+
+  <!-- ═══ CABEÇA ═══ -->
+  <rect x="22" y="14" width="20" height="16" rx="5" fill="#A0A0B0" stroke="#5A5A6A" stroke-width="2"/>
+  <!-- Reflexo na cabeça -->
+  <rect x="23" y="15" width="6" height="14" rx="4" fill="white" opacity="0.25"/>
+
+  <!-- ═══ OLHO ÚNICO CENTRAL NA TESTA ═══ -->
+  <!-- Aro externo do olho -->
+  <circle cx="32" cy="21" r="6" fill="#1A1A2A" stroke="#5A5A6A" stroke-width="1.5"/>
+  <!-- Íris azul-fria (modo defesa) -->
+  <circle cx="32" cy="21" r="4.5" fill="#1A3A5A"/>
+  <circle cx="32" cy="21" r="3" fill="#2A5A8A"/>
+  <!-- Pupila -->
+  <circle cx="32" cy="21" r="1.8" fill="#0A1A2A"/>
+  <!-- Brilho do olho azul (modo defesa ativo) -->
+  <circle cx="30" cy="19" r="1.2" fill="#66BBFF" opacity="0.9"/>
+  <!-- Glow azul ao redor do olho quando defendendo -->
+  <circle cx="32" cy="21" r="7" fill="none" stroke="#4488CC" stroke-width="1" opacity="0.5"/>
+
+  <!-- ═══ ANTENAS / SENSORES NA CABEÇA ═══ -->
+  <line x1="26" y1="14" x2="24" y2="8" stroke="#7A7A8A" stroke-width="1.5" stroke-linecap="round"/>
+  <line x1="38" y1="14" x2="40" y2="8" stroke="#7A7A8A" stroke-width="1.5" stroke-linecap="round"/>
+  <circle cx="24" cy="7" r="2" fill="#A8A8B8" stroke="#6A6A7A" stroke-width="1"/>
+  <circle cx="40" cy="7" r="2" fill="#A8A8B8" stroke="#6A6A7A" stroke-width="1"/>
+
+</svg>
