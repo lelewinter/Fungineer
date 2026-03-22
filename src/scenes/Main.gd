@@ -247,7 +247,7 @@ func _restart_run() -> void:
 	for child in _enemies.get_children():
 		child.queue_free()
 	_item_spawner.clear_items()
-	_extraction_point._triggered = false
+	_extraction_point.reset()
 
 	# Clear characters from party node
 	_party.reset()
