@@ -5,12 +5,36 @@ extends Node2D
 const W: float = 800.0
 const H: float = 600.0
 
+# Diálogos do Dr. Valério ao completar cada peça do foguete
+const PIECE_DIALOGUES: Array = [
+	"\"BASE ESTRUTURAL instalada! O foguete tem uma fundação! Ele vai para o espaço, não vai explodir!\"\n— Dr. Valério",
+	"\"MOTOR PRINCIPAL acoplado! Sessenta por cento de chance de sobreviver à decolagem. Progresso!\"\n— Dr. Valério",
+	"\"PROCESSADOR funcionando! Agora podemos calcular a trajetória. Ou pelo menos tentaremos.\"\n— Dr. Valério",
+	"\"REVESTIMENTO aplicado! Proteção térmica garantida! Vamos sobreviver à reentrada atmosférica!\"\n— Dr. Valério",
+	"\"REDE NEURAL operacional! A IA vai odiar que usamos a tecnologia dela contra ela.\"\n— Dr. Valério",
+	"\"SISTEMA VITAL ativo! Oxigênio, pressão, temperatura. Vamos respirar lá em cima!\"\n— Dr. Valério",
+	"\"BLINDAGEM EXTERNA instalada! Último obstáculo entre nós e o vácuo gelado do espaço.\"\n— Dr. Valério",
+	"\"IGNIÇÃO FINAL conectada! O foguete está COMPLETO! Vamos ESCAPAR!\"\n— Dr. Valério",
+]
+
+# Nomes dos sobreviventes presentes (índice 0 = Dr. Valério, sempre presente)
+const SURVIVOR_NAMES: Array = [
+	"Dr. Valério",
+	"Capitã Runa",
+	"Brix",
+	"Zara",
+	"Luz",
+]
+
 var _bar_fill: ColorRect
 var _bar_label: Label
 var _stock_label: Label
 var _piece_label: Label
 var _character_container: Node2D
 var _rocket_node: Node2D
+var _notification_panel: ColorRect
+var _notification_label: Label
+var _notification_timer: float = 0.0
 
 
 func _ready() -> void:
@@ -24,6 +48,7 @@ func _ready() -> void:
 	HubState.stock_changed.connect(_refresh_stock)
 	HubState.rocket_piece_built.connect(_on_piece_built)
 
+	_build_notification_overlay()
 	_refresh_stock(HubState.stock)
 	_refresh_rocket()
 	_refresh_characters()
@@ -121,19 +146,53 @@ func _build_progress_bar() -> void:
 	_refresh_progress()
 
 
+# ── Notification overlay (rocket milestones) ──────────────────────────────────
+
+func _build_notification_overlay() -> void:
+	var layer := CanvasLayer.new()
+	layer.layer = 30
+	add_child(layer)
+
+	_notification_panel = ColorRect.new()
+	_notification_panel.color = Color(0.06, 0.10, 0.06, 0.93)
+	_notification_panel.size = Vector2(W - 80, 80)
+	_notification_panel.position = Vector2(40, H * 0.5 - 40)
+	_notification_panel.visible = false
+	layer.add_child(_notification_panel)
+
+	_notification_label = Label.new()
+	_notification_label.position = Vector2(48, H * 0.5 - 32)
+	_notification_label.size = Vector2(W - 96, 64)
+	_notification_label.add_theme_font_size_override("font_size", 13)
+	_notification_label.modulate = Color(0.55, 1.00, 0.60)
+	_notification_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_notification_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	layer.add_child(_notification_label)
+
+
+func _process(delta: float) -> void:
+	if _notification_timer > 0.0:
+		_notification_timer -= delta
+		var alpha := clampf(_notification_timer / 1.0, 0.0, 1.0)
+		_notification_panel.modulate.a = alpha
+		_notification_label.modulate.a = alpha
+		if _notification_timer <= 0.0:
+			_notification_panel.visible = false
+
+
 # ── Character icons (bottom-left) ─────────────────────────────────────────────
 
 func _build_character_area() -> void:
 	var label := Label.new()
 	label.text = "EQUIPE"
-	label.position = Vector2(12, H - 88)
+	label.position = Vector2(12, H - 100)
 	label.add_theme_font_size_override("font_size", 10)
 	label.modulate = Color(0.5, 0.5, 0.5)
 	add_child(label)
 
 	_character_container = Node2D.new()
 	_character_container.name = "Characters"
-	_character_container.position = Vector2(16, H - 68)
+	_character_container.position = Vector2(16, H - 80)
 	add_child(_character_container)
 
 
@@ -141,20 +200,29 @@ func _refresh_characters() -> void:
 	for child in _character_container.get_children():
 		child.queue_free()
 
-	var colors := [
-		Color(0.3, 0.7, 1.0),   # Doctor (always present)
-		Color(0.4, 0.9, 0.4),
-		Color(1.0, 0.6, 0.2),
-		Color(0.9, 0.3, 0.3),
-		Color(0.8, 0.4, 0.9),
+	var survivor_colors := [
+		Color(0.3, 0.7, 1.0),   # Dr. Valério (sempre presente)
+		Color(0.4, 0.9, 0.4),   # Capitã Runa
+		Color(1.0, 0.6, 0.2),   # Brix
+		Color(0.9, 0.3, 0.3),   # Zara
+		Color(0.8, 0.4, 0.9),   # Luz
 	]
 	var count := 1 + HubState.rescued_characters.size()
-	count = min(count, colors.size())
+	count = min(count, survivor_colors.size())
 	for i in count:
 		var dot := CharacterDot.new()
-		dot.dot_color = colors[i]
-		dot.position = Vector2(i * 32, 0)
+		dot.dot_color = survivor_colors[i]
+		dot.position = Vector2(i * 36, 0)
 		_character_container.add_child(dot)
+
+		# Nome do sobrevivente abaixo do ponto
+		var name_lbl := Label.new()
+		name_lbl.text = SURVIVOR_NAMES[i] if i < SURVIVOR_NAMES.size() else "?"
+		name_lbl.position = Vector2(i * 36 - 10, 18)
+		name_lbl.add_theme_font_size_override("font_size", 8)
+		name_lbl.modulate = Color(survivor_colors[i].r, survivor_colors[i].g,
+			survivor_colors[i].b, 0.75)
+		_character_container.add_child(name_lbl)
 
 
 # ── World map button (bottom center) ─────────────────────────────────────────
@@ -210,9 +278,20 @@ func _refresh_progress() -> void:
 	_bar_label.text = "  ".join(cost_parts)
 
 
-func _on_piece_built(_index: int, _name: String) -> void:
+func _on_piece_built(index: int, _name: String) -> void:
 	_refresh_rocket()
 	_refresh_characters()
+	_show_piece_dialogue(index)
+
+
+func _show_piece_dialogue(index: int) -> void:
+	if index < 0 or index >= PIECE_DIALOGUES.size():
+		return
+	_notification_label.text = PIECE_DIALOGUES[index]
+	_notification_panel.modulate.a = 1.0
+	_notification_label.modulate.a = 1.0
+	_notification_panel.visible = true
+	_notification_timer = 5.0
 
 
 # ── Navigation ────────────────────────────────────────────────────────────────
