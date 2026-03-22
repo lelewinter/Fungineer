@@ -184,7 +184,31 @@ const FIELD_RECAPTURE_SPEED: float = 0.8          # enemy capture speed multipli
 # ── Infection Zone (Zona de Infecção) ─────────────────────────────────────────
 const INFECTION_RUN_TIMER: float = 120.0
 const INFECTION_PLAYER_HP: int = 3
-const INFECTION_SPREAD_INTERVAL: float = 5.0      # seconds between automatic spreads (matches _PROPAGATE_TIME in InfectionMain)
+
+# Propagation — base and overload tiers
+const INFECTION_SPREAD_INTERVAL: float = 5.0       # base seconds between auto-spreads
+const INFECTION_SPREAD_INTERVAL_OVL1: float = 8.0  # overload tier 1 (>15 infected)
+const INFECTION_SPREAD_INTERVAL_OVL2: float = 12.0 # overload tier 2 (>20 infected)
+const INFECTION_OVERLOAD_THRESHOLD_1: int = 15
+const INFECTION_OVERLOAD_THRESHOLD_2: int = 20
+
+# Biomassa rates per stability/type
+const INFECTION_BIOMASS_RATE_STABLE: float   = 0.10  # standard node, stable
+const INFECTION_BIOMASS_RATE_UNSTABLE: float = 0.05  # any node infected via auto-propagation
+const INFECTION_BIOMASS_RATE_AMPLIFIER: float = 0.30 # amplifier node, stable only
+
+# Cure times per type
+const INFECTION_CURE_TIME_STABLE: float   = 3.0  # standard stable
+const INFECTION_CURE_TIME_UNSTABLE: float = 1.5  # any unstable node
+const INFECTION_CURE_TIME_AMPLIFIER: float = 1.0 # amplifier (always fragile)
+const INFECTION_CURE_TIME_ANCHOR: float   = 8.0  # anchor (always resistant)
+
+# Reinforcement (player stabilises an unstable node)
+const INFECTION_REINFORCE_TIME: float = 0.5  # seconds standing on unstable node
+
+# Node type distribution (fraction of total nodes)
+const INFECTION_PCT_AMPLIFIERS: float = 0.15  # ~15% of nodes are amplifiers
+const INFECTION_PCT_ANCHORS: float    = 0.15  # ~15% of nodes are anchors
 
 # ── Maze Zone (Labirinto Dinâmico) ────────────────────────────────────────────
 const MAZE_WARNING_CLOSE_TIME: float = 3.0        # red blink before wall closes
