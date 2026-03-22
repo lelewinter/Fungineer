@@ -192,7 +192,7 @@ func get_dialogue(char_id: String) -> String:
 		return ""
 	var dialogue: Dictionary = CHARACTERS[char_id]["dialogue"]
 	var trust := get_trust(char_id)
-	var best_line := dialogue.get(0, "")
+	var best_line: String = dialogue.get(0, "")
 	for threshold: int in dialogue:
 		if trust >= threshold:
 			best_line = dialogue[threshold]
