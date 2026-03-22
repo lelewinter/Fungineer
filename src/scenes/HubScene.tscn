@@ -1,6 +1,6 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene format=3 uid="uid://bfjfq1mep5cxp"]
 
-[ext_resource type="Script" path="res://src/scenes/HubScene.gd" id="1"]
+[ext_resource type="Script" uid="uid://bpah0httb356k" path="res://src/scenes/HubScene.gd" id="1"]
 
-[node name="HubScene" type="Node2D"]
+[node name="HubScene" type="Node2D" unique_id=1935765202]
 script = ExtResource("1")
