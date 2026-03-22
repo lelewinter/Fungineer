@@ -186,26 +186,30 @@ func _refresh_progress() -> void:
 	var stock := HubState.stock
 	var piece_name: String = cost.get("name", "")
 
-	# Progress = how close we are to affording next piece
-	# Use the limiting resource as the progress indicator
-	var scrap_needed: int = cost.get("scrap", 0)
-	var ia_needed: int = cost.get("ai_components", 0)
-	var progress := 1.0
+	const RESOURCE_NAMES: Dictionary = {
+		"scrap": "Sucata",
+		"ai_components": "Comp. IA",
+		"nucleo_logico": "Nucleo Log.",
+		"combustivel_volatil": "Combustivel",
+		"sinais_controle": "Sinais Ctrl.",
+		"biomassa_adaptativa": "Biomassa",
+		"fragmentos_estruturais": "Frag. Estru.",
+	}
 
-	if scrap_needed > 0:
-		progress = min(progress, float(stock.get("scrap", 0)) / scrap_needed)
-	if ia_needed > 0:
-		progress = min(progress, float(stock.get("ai_components", 0)) / ia_needed)
+	# Progress = limiting resource ratio across all required resources
+	var progress := 1.0
+	var cost_parts: Array[String] = []
+	for key in cost:
+		if key == "name":
+			continue
+		var needed: int = cost[key]
+		var have: int = stock.get(key, 0)
+		progress = min(progress, float(have) / needed)
+		var label: String = RESOURCE_NAMES.get(key, key)
+		cost_parts.append("%d/%d %s" % [min(have, needed), needed, label])
 	progress = clamp(progress, 0.0, 1.0)
 
 	_bar_fill.size.x = 200.0 * progress
-
-	var cost_parts: Array[String] = []
-	if scrap_needed > 0:
-		cost_parts.append("%d/%d Sucata" % [min(stock.get("scrap", 0), scrap_needed), scrap_needed])
-	if ia_needed > 0:
-		cost_parts.append("%d/%d IA" % [min(stock.get("ai_components", 0), ia_needed), ia_needed])
-
 	_piece_label.text = piece_name
 	_bar_label.text = "  ".join(cost_parts)
 

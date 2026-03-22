@@ -12,6 +12,10 @@ func setup(party_node: Node2D) -> void:
 	_party = party_node
 
 
+func reset() -> void:
+	_triggered = false
+
+
 func _process(delta: float) -> void:
 	if _triggered or _party == null:
 		return

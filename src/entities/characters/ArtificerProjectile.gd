@@ -54,7 +54,7 @@ func _explode() -> void:
 		cluster_bonus = 1.0 + GameConfig.ARTIFICER_CLUSTER_BONUS
 
 	for enemy in all_enemies:
-		enemy.take_damage(damage * cluster_bonus * GameState.power_damage_multiplier, null)
+		enemy.take_damage(damage * cluster_bonus, null)
 
 	# Visual flash (simple — replace with particles later)
 	var flash := ColorRect.new()
