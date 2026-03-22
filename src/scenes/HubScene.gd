@@ -33,6 +33,17 @@ var _piece_label: Label
 var _character_container: Node2D
 var _rocket_node: Node2D
 var _char_card: CanvasLayer  # character info card overlay
+var _notification_panel: ColorRect
+var _notification_label: Label
+var _notification_timer: float = 0.0
+
+const survivor_colors: Array = [
+	Color(0.3, 0.7, 1.0),   # Dr. Valério
+	Color(0.9, 0.3, 0.3),   # Capitã Runa
+	Color(0.4, 0.9, 0.4),   # Brix
+	Color(0.9, 0.8, 0.2),   # Zara
+	Color(0.8, 0.4, 0.9),   # Luz
+]
 
 
 func _ready() -> void:
@@ -42,6 +53,7 @@ func _ready() -> void:
 	_build_progress_bar()
 	_build_character_area()
 	_build_world_map_button()
+	_build_notification_overlay()
 	_build_character_card()
 
 	HubState.stock_changed.connect(_refresh_stock)
