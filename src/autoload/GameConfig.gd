@@ -7,8 +7,8 @@ const VIEWPORT_WIDTH: float = 480.0
 const VIEWPORT_HEIGHT: float = 854.0
 
 # ── Arena (game world — larger than viewport, requires Camera2D) ─────────────
-const ARENA_WIDTH: float = 1600.0
-const ARENA_HEIGHT: float = 1200.0
+const ARENA_WIDTH: float = 3200.0
+const ARENA_HEIGHT: float = 2400.0
 
 # ── Party ───────────────────────────────────────────────────────────────────
 const MAX_PARTY_SIZE: int = 4
@@ -135,8 +135,8 @@ const TECH_FRAGMENTS_BOSS_BONUS: int = 10
 # ── Backpack / Resources ──────────────────────────────────────────────────────
 const BACKPACK_CAPACITY: int = 3
 const RESOURCE_COLLECTION_TIME: float = 1.5
-const RESOURCE_COLLECTION_RADIUS: float = 50.0
-const RESOURCE_SPAWN_COUNT: int = 6
+const RESOURCE_COLLECTION_RADIUS: float = 35.0
+const RESOURCE_SPAWN_COUNT: int = 4
 const RESOURCE_ITEM_RADIUS: float = 14.0
 
 # ── Stealth Zone ─────────────────────────────────────────────────────────────
