@@ -450,20 +450,21 @@ func _update_plate_activation(delta: float) -> void:
 			_activating_chamber = -1
 
 
-## Partial reset formula from GDD:
-##   step 1 or 2  → reset to 0
-##   step 3 or 4  → go back 2
-##   step 5+      → go back 3
+## Partial reset formula from GDD (P = 1-indexed passo being attempted; step = P-1 in 0-indexed):
+##   P=1,2 (step 0,1)  → reset to step 0 (redo everything)
+##   P=3,4 (step 2,3)  → new_step = 1 (keep 1 plate, redo from 2nd)
+##   P=5+  (step 4+)   → new_step = step - 2 (keeps all but last 2 plates)
+## GDD example: P=5 → "volta ao passo 2, refaz passos 3,4,5" → new_step=2 ✓
 ## Wrong plate also costs 1 HP — making guesses genuinely risky.
 func _apply_partial_reset(chamber_idx: int) -> void:
 	var step: int = _chamber_steps[chamber_idx]
 	var new_step: int
-	if step <= 2:
+	if step <= 1:
 		new_step = 0
-	elif step <= 4:
-		new_step = max(0, step - 2)
+	elif step <= 3:
+		new_step = 1
 	else:
-		new_step = max(0, step - 3)
+		new_step = max(0, step - 2)
 	_chamber_steps[chamber_idx] = new_step
 
 	# Un-activate plates beyond the new step
@@ -611,7 +612,10 @@ func _clamp_agent_to_door(door: Rect2, chamber_below: int) -> void:
 
 func _update_nucleo(delta: float) -> void:
 	var dist: float = _agent.global_position.distance_to(_nucleo_pos)
-	if dist <= _NUCLEO_RADIUS:
+	var agent_still: bool = _agent.get_speed() < 8.0
+	var backpack_full: bool = GameState.backpack.size() >= HubState.get_backpack_capacity()
+
+	if dist <= _NUCLEO_RADIUS and agent_still and not backpack_full:
 		_nucleo_collecting = true
 		_nucleo_collect_timer += delta
 		if _nucleo_collect_timer >= _NUCLEO_COLLECT_TIME:
