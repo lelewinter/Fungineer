@@ -136,7 +136,7 @@ var _edges: Array = []                          # Array of [int, int]
 var _healers: Array = []                        # Array[_Healer]
 
 var _biomass_acc: float = 0.0
-var _run_timer: float = 120.0
+var _run_timer: float = GameConfig.INFECTION_RUN_TIMER
 var _player_hp: int = GameConfig.INFECTION_PLAYER_HP
 var _player_pos: Vector2 = Vector2.ZERO
 var _drag_target: Vector2 = Vector2.ZERO
@@ -157,7 +157,7 @@ var _hud = null  # _InfectHUD
 # ─────────────────────── _ready ───────────────────────────────────────────────
 func _ready() -> void:
 	GameState.start_run()
-	_run_timer = 120.0
+	_run_timer = GameConfig.INFECTION_RUN_TIMER
 	_build_graph()
 	_player_pos = Vector2(240.0, 400.0)
 	_drag_target = _player_pos
@@ -251,13 +251,15 @@ func _process(delta: float) -> void:
 		_end_run(true, false)
 		return
 
-	# Healer spawning
+	# Healer spawning — target count per GDD phase (ranges 1-2, 2-3, 3-4)
 	_healer_spawn_timer -= delta
-	var elapsed := 120.0 - _run_timer
+	var elapsed := GameConfig.INFECTION_RUN_TIMER - _run_timer
 	if elapsed >= 80.0:
-		_healer_count_target = 3
+		_healer_count_target = randi_range(3, 4)   # GDD: 3–4 simultâneos
 	elif elapsed >= 40.0:
-		_healer_count_target = 2
+		_healer_count_target = randi_range(2, 3)   # GDD: 2–3 simultâneos
+	else:
+		_healer_count_target = randi_range(1, 2)   # GDD: 1–2 simultâneos
 	if _healer_spawn_timer <= 0.0 and _healers.size() < _healer_count_target:
 		_spawn_healer()
 		_healer_spawn_timer = 12.0

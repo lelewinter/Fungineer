@@ -18,7 +18,7 @@ const _SMALL_CAPTURE_RATE: float  = 0.20   # 5s to capture
 const _MEDIUM_CAPTURE_RATE: float = 0.10   # 10s
 const _CENTRAL_CAPTURE_RATE: float = 0.05  # 20s
 const _DECAY_MULTIPLIER: float = 0.50      # fall speed = 0.5× rise speed
-const _CONTEST_DECAY: float   = 0.30      # bar decays this rate while contested
+const _CONTEST_DECAY: float   = 0.50      # bar decays this rate while contested (GDD: 0.5× rise speed)
 const _KILL_REWARD: float     = 8.0       # instant sinais per recapturer kill
 
 # ─────────────────────── Zone states ──────────────────────────────────────────
@@ -217,7 +217,7 @@ func _process(delta: float) -> void:
 		elif elapsed >= 30.0:
 			_spawn_timer = 10.0
 		else:
-			_spawn_timer = 12.0
+			_spawn_timer = 15.0
 
 	# Update recapturers
 	var to_remove: Array[int] = []
@@ -315,7 +315,7 @@ func _count_recapturers_in_zone(zone) -> int:
 
 
 func _spawn_recapturer() -> void:
-	if _recapturers.size() >= 6:
+	if _recapturers.size() >= 12:   # raised from 6; GDD has no cap, 12 is a safety net
 		return
 	var spawn_pt: Vector2 = _SPAWN_POINTS[randi() % _SPAWN_POINTS.size()]
 	var rec := _Recapturer.new()
