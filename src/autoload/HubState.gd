@@ -49,6 +49,8 @@ const SURVIVOR_ROSTER: Array = [
 ]
 
 var rocket_pieces_built: int = 0
+## rescued_characters now mirrors CharacterRegistry — kept for backwards compat.
+## Prefer CharacterRegistry.get_rescued() for new code.
 var rescued_characters: Array[String] = []
 
 # Which zones are available (index = zone id)
@@ -59,8 +61,8 @@ var zones_unlocked: Array[bool] = [true, true, true, true, true, true, true, tru
 var zone_deterioration: Array[int] = [0, 0, 0, 0, 0, 0, 0, 0]
 var total_runs: int = 0
 
-# Ex-Executivo trust (0-100)
-var ex_exec_trust: int = 0
+## Lore fragments found during runs. Keyed by fragment id (see LoreFragments.gd).
+var lore_found: Array[String] = []
 
 signal stock_changed(stock: Dictionary)
 signal rocket_piece_built(piece_index: int, piece_name: String)
@@ -132,11 +134,16 @@ func is_rocket_complete() -> bool:
 
 
 func get_backpack_capacity() -> int:
-	if ex_exec_trust >= 80:
-		return 7
-	if ex_exec_trust >= 40:
-		return 5
-	return 3
+	return GameConfig.BACKPACK_CAPACITY + CharacterRegistry.get_backpack_bonus()
+
+
+func mark_lore_found(fragment_id: String) -> void:
+	if fragment_id not in lore_found:
+		lore_found.append(fragment_id)
+
+
+func is_lore_found(fragment_id: String) -> bool:
+	return fragment_id in lore_found
 
 
 func get_spawn_multiplier(zone_id: int) -> float:
