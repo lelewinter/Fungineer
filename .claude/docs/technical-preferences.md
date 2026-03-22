@@ -5,19 +5,19 @@
 
 ## Engine & Language
 
-- **Engine**: [TO BE CONFIGURED — run /setup-engine]
-- **Language**: [TO BE CONFIGURED]
-- **Rendering**: [TO BE CONFIGURED]
-- **Physics**: [TO BE CONFIGURED]
+- **Engine**: Godot 4.6
+- **Language**: GDScript (primary), C++ via GDExtension (performance-critical)
+- **Rendering**: Forward+ (default), Mobile (fallback), Compatibility (web/low-end)
+- **Physics**: Jolt (default in 4.6)
 
 ## Naming Conventions
 
-- **Classes**: [TO BE CONFIGURED]
-- **Variables**: [TO BE CONFIGURED]
-- **Signals/Events**: [TO BE CONFIGURED]
-- **Files**: [TO BE CONFIGURED]
-- **Scenes/Prefabs**: [TO BE CONFIGURED]
-- **Constants**: [TO BE CONFIGURED]
+- **Classes**: PascalCase (ex: `PlayerController`)
+- **Variables/funções**: snake_case (ex: `move_speed`)
+- **Signals**: snake_case passado (ex: `health_changed`)
+- **Files**: snake_case matching class (ex: `player_controller.gd`)
+- **Scenes**: PascalCase matching root node (ex: `PlayerController.tscn`)
+- **Constants**: UPPER_SNAKE_CASE (ex: `MAX_HEALTH`)
 
 ## Performance Budgets
 
@@ -28,7 +28,7 @@
 
 ## Testing
 
-- **Framework**: [TO BE CONFIGURED]
+- **Framework**: GUT (Godot Unit Testing)
 - **Minimum Coverage**: [TO BE CONFIGURED]
 - **Required Tests**: Balance formulas, gameplay systems, networking (if applicable)
 

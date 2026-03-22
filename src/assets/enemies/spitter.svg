@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+
+  <!-- ═══ SPITTER — "Canudo" ═══ -->
+  <!-- Cor-âncora: Verde-oxidado (#4A7C59) — diferente de todos os outros -->
+
+  <!-- ═══ PERNAS — TRIPÉ DE CÂMERA ═══ -->
+  <!-- Perna esquerda -->
+  <line x1="25" y1="47" x2="12" y2="62" stroke="#3A5A42" stroke-width="3" stroke-linecap="round"/>
+  <!-- Perna direita -->
+  <line x1="36" y1="47" x2="50" y2="62" stroke="#3A5A42" stroke-width="3" stroke-linecap="round"/>
+  <!-- Perna central (traseira) -->
+  <line x1="30" y1="47" x2="30" y2="63" stroke="#3A5A42" stroke-width="3" stroke-linecap="round"/>
+  <!-- Travas das pernas de tripé -->
+  <rect x="8" y="59" width="8" height="3" rx="1" fill="#2A4A2E" stroke="#1A3A1E" stroke-width="1"/>
+  <rect x="46" y="59" width="8" height="3" rx="1" fill="#2A4A2E" stroke="#1A3A1E" stroke-width="1"/>
+  <rect x="26" y="61" width="8" height="2" rx="1" fill="#2A4A2E" stroke="#1A3A1E" stroke-width="1"/>
+  <!-- Junta central onde as pernas se encontram -->
+  <circle cx="30" cy="47" r="5" fill="#2A4A2E" stroke="#1A3A1E" stroke-width="1.5"/>
+  <circle cx="30" cy="47" r="2.5" fill="#4A7C59"/>
+
+  <!-- ═══ CORPO — garrafa térmica fina ═══ -->
+  <!-- Corpo principal (cilindro fino) -->
+  <rect x="23" y="18" width="14" height="30" rx="5" fill="#4A7C59" stroke="#2A4A2E" stroke-width="2"/>
+  <!-- Oxidação e patina verde no corpo -->
+  <rect x="23" y="24" width="14" height="3" rx="0" fill="#5A8C69" opacity="0.7"/>
+  <rect x="23" y="34" width="14" height="3" rx="0" fill="#5A8C69" opacity="0.7"/>
+  <!-- Manchas de oxidação -->
+  <ellipse cx="26" cy="29" rx="2.5" ry="4" fill="#6A9C72" opacity="0.5"/>
+  <ellipse cx="35" cy="38" rx="2" ry="3" fill="#3A5C3E" opacity="0.6"/>
+  <!-- Boca do cano (na frente do corpo) — saída de projéteis -->
+  <rect x="36" y="28" width="16" height="6" rx="2" fill="#2A4A2E" stroke="#1A3A1E" stroke-width="1.5"/>
+  <!-- Interior do cano -->
+  <rect x="37" y="29" width="14" height="4" rx="1" fill="#1A2A1E" opacity="0.9"/>
+  <!-- Anéis reforçadores do cano -->
+  <rect x="38" y="27" width="3" height="8" rx="1" fill="#3A5A3E" stroke="#2A4A2E" stroke-width="0.5"/>
+  <rect x="44" y="27" width="3" height="8" rx="1" fill="#3A5A3E" stroke="#2A4A2E" stroke-width="0.5"/>
+  <!-- Ponta do cano (brilho metálico) -->
+  <rect x="51" y="29" width="3" height="4" rx="1" fill="#5A8C59" stroke="#2A4A2E" stroke-width="1"/>
+  <!-- Válvula de pressão no corpo -->
+  <rect x="18" y="32" width="6" height="4" rx="1" fill="#3A5A3E" stroke="#2A4A2E" stroke-width="1"/>
+  <rect x="15" y="33" width="4" height="2" rx="0.5" fill="#5A8C59"/>
+
+  <!-- ═══ PESCOÇO FINO ═══ -->
+  <rect x="27" y="10" width="6" height="9" rx="2" fill="#3A5A42" stroke="#2A4A2E" stroke-width="1"/>
+
+  <!-- ═══ CABEÇA — esfera com olho de câmera giratório ═══ -->
+  <!-- Esfera da cabeça -->
+  <circle cx="30" cy="7" r="8" fill="#4A7C59" stroke="#2A4A2E" stroke-width="2"/>
+  <!-- Aro metálico externo (como câmera) -->
+  <circle cx="30" cy="7" r="6.5" fill="none" stroke="#3A5A3E" stroke-width="1.5"/>
+  <!-- Oxidação na cabeça -->
+  <path d="M24 4 Q27 2 30 4" fill="none" stroke="#6A9C69" stroke-width="1.5" opacity="0.6"/>
+  <!-- Olho de câmera — lente grande -->
+  <circle cx="30" cy="7" r="5" fill="#0A1A0A" stroke="#1A3A1A" stroke-width="1"/>
+  <!-- Iris da lente (verde brilhante) -->
+  <circle cx="30" cy="7" r="3.5" fill="#1A4A2A"/>
+  <circle cx="30" cy="7" r="2.5" fill="#2A6A3A"/>
+  <!-- Pupila -->
+  <circle cx="30" cy="7" r="1.5" fill="#0A1A0A"/>
+  <!-- Brilho da lente -->
+  <circle cx="28" cy="5" r="1.2" fill="white" opacity="0.7"/>
+  <!-- Anel externo da lente (dourado) -->
+  <circle cx="30" cy="7" r="5" fill="none" stroke="#8A7A3A" stroke-width="1"/>
+  <!-- Parafusos na cabeça -->
+  <circle cx="24" cy="4" r="1" fill="#2A4A2E"/>
+  <circle cx="36" cy="4" r="1" fill="#2A4A2E"/>
+  <circle cx="24" cy="10" r="1" fill="#2A4A2E"/>
+  <circle cx="36" cy="10" r="1" fill="#2A4A2E"/>
+
+</svg>
