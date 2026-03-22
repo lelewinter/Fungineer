@@ -6,13 +6,13 @@
 extends Node2D
 
 # ── Map geometry ──────────────────────────────────────────────────────────────
-const _ROUTE_Y: Array[float] = [240.0, 600.0, 960.0]   # Safe / Medium / Dangerous
-const _ROUTE_H: Array[float] = [80.0,  80.0,  60.0]
-const _ROUTE_X_START: float = 60.0
-const _ROUTE_X_END: float   = GameConfig.ARENA_WIDTH - 60.0
-const _JUNCTION_X: Array   = [450.0, 1100.0]
+const _ROUTE_Y: Array[float] = [480.0, 1200.0, 1920.0]   # Safe / Medium / Dangerous
+const _ROUTE_H: Array[float] = [80.0,  80.0,   60.0]
+const _ROUTE_X_START: float = 120.0
+const _ROUTE_X_END: float   = GameConfig.ARENA_WIDTH - 120.0
+const _JUNCTION_X: Array   = [900.0, 2200.0]
 const _JUNCTION_W: float    = 80.0   # vertical corridor width
-const _ENTRY_X: float       = 100.0
+const _ENTRY_X: float       = 200.0
 const _EXIT_X: float        = GameConfig.ARENA_WIDTH - 100.0
 const _EXIT_RADIUS: float   = 45.0
 
@@ -250,28 +250,28 @@ func _build_canisters() -> void:
 
 	# Safe route: 4 static canisters
 	var safe_y: float = (_ROUTE_Y[0] as float) + (_ROUTE_H[0] as float) * 0.5
-	for x: float in [280.0, 480.0, 700.0, 900.0]:
+	for x: float in [560.0, 960.0, 1400.0, 1800.0]:
 		_spawn_canister(canisters_node, Vector2(x, safe_y), false, false)
 
 	# Medium route: 3 static + 3 moving, 2 bonus
 	var mid_y: float = (_ROUTE_Y[1] as float) + (_ROUTE_H[1] as float) * 0.5
-	_spawn_canister(canisters_node, Vector2(300.0, mid_y), false, false)
-	_spawn_canister(canisters_node, Vector2(600.0, mid_y), false, true)   # bonus +T
-	_spawn_canister(canisters_node, Vector2(900.0, mid_y), false, false)
-	_spawn_moving_canister(canisters_node, Vector2(400.0, mid_y), 380.0, 540.0)
-	_spawn_moving_canister(canisters_node, Vector2(750.0, mid_y), 700.0, 870.0)
-	_spawn_moving_canister(canisters_node, Vector2(1050.0, mid_y), 980.0, 1150.0)
+	_spawn_canister(canisters_node, Vector2(600.0, mid_y), false, false)
+	_spawn_canister(canisters_node, Vector2(1200.0, mid_y), false, true)   # bonus +T
+	_spawn_canister(canisters_node, Vector2(1800.0, mid_y), false, false)
+	_spawn_moving_canister(canisters_node, Vector2(800.0, mid_y),  760.0, 1080.0)
+	_spawn_moving_canister(canisters_node, Vector2(1500.0, mid_y), 1400.0, 1740.0)
+	_spawn_moving_canister(canisters_node, Vector2(2100.0, mid_y), 1960.0, 2300.0)
 
 	# Dangerous route: 5 static + 3 moving, 1 bonus
 	var danger_y: float = (_ROUTE_Y[2] as float) + (_ROUTE_H[2] as float) * 0.5
-	_spawn_canister(canisters_node, Vector2(300.0, danger_y), false, false)
-	_spawn_canister(canisters_node, Vector2(420.0, danger_y), false, false)
-	_spawn_canister(canisters_node, Vector2(660.0, danger_y), false, true)   # bonus +T
-	_spawn_canister(canisters_node, Vector2(900.0, danger_y), false, false)
-	_spawn_canister(canisters_node, Vector2(1140.0, danger_y), false, false)
-	_spawn_moving_canister(canisters_node, Vector2(540.0, danger_y), 500.0, 620.0)
-	_spawn_moving_canister(canisters_node, Vector2(780.0, danger_y), 730.0, 860.0)
-	_spawn_moving_canister(canisters_node, Vector2(1020.0, danger_y), 960.0, 1100.0)
+	_spawn_canister(canisters_node, Vector2(600.0, danger_y), false, false)
+	_spawn_canister(canisters_node, Vector2(840.0, danger_y), false, false)
+	_spawn_canister(canisters_node, Vector2(1320.0, danger_y), false, true)   # bonus +T
+	_spawn_canister(canisters_node, Vector2(1800.0, danger_y), false, false)
+	_spawn_canister(canisters_node, Vector2(2280.0, danger_y), false, false)
+	_spawn_moving_canister(canisters_node, Vector2(1080.0, danger_y), 1000.0, 1240.0)
+	_spawn_moving_canister(canisters_node, Vector2(1560.0, danger_y), 1460.0, 1720.0)
+	_spawn_moving_canister(canisters_node, Vector2(2040.0, danger_y), 1920.0, 2200.0)
 
 
 func _spawn_canister(parent: Node, pos: Vector2, _moving: bool, bonus: bool) -> void:
@@ -298,11 +298,11 @@ func _build_drones() -> void:
 	var danger_y: float = (_ROUTE_Y[2] as float) + (_ROUTE_H[2] as float) * 0.5
 
 	# Medium route: 1 drone
-	_spawn_drone(drones_node, Vector2(650.0, mid_y), Vector2(550.0, mid_y), leader)
+	_spawn_drone(drones_node, Vector2(1300.0, mid_y), Vector2(1100.0, mid_y), leader)
 
 	# Dangerous route: 2 drones
-	_spawn_drone(drones_node, Vector2(500.0, danger_y), Vector2(420.0, danger_y), leader)
-	_spawn_drone(drones_node, Vector2(900.0, danger_y), Vector2(820.0, danger_y), leader)
+	_spawn_drone(drones_node, Vector2(1000.0, danger_y), Vector2(840.0, danger_y), leader)
+	_spawn_drone(drones_node, Vector2(1800.0, danger_y), Vector2(1640.0, danger_y), leader)
 
 
 func _spawn_drone(parent: Node, a: Vector2, b: Vector2, leader: Node2D) -> void:
