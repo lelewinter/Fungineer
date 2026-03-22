@@ -20,6 +20,7 @@ config/features=PackedStringArray("4.6", "Mobile")
 GameConfig="*res://src/autoload/GameConfig.gd"
 GameState="*res://src/autoload/GameState.gd"
 HubState="*res://src/autoload/HubState.gd"
+CharacterRegistry="*res://src/autoload/CharacterRegistry.gd"
 
 [display]
 
