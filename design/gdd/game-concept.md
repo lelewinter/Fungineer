@@ -30,16 +30,7 @@
 
 ## Core Fantasy
 
-Você é o Dr. Paulo Vitor Santos — o homem que aprovou o sistema de IA que acabou com o mundo.
-Não por malícia. Por acreditar demais. Agora está na base de resistência convencendo
-os últimos humanos de que *sim*, um foguete artesanal vai funcionar. A esperança dele é
-real e inabalável, mas o que ela significa vai mudando conforme a verdade sobre o Projeto
-Olímpio emerge run a run, conversa a conversa.
-
-Cada recurso trazido das zonas coloca uma nova peça no foguete — e cada zona raideada é
-a infraestrutura de um sistema que Paulo ajudou a construir. O foguete crescendo visualmente
-é a âncora emocional: progresso concreto, improvável, e pesado com o peso de quem sabe
-o que custou chegar até aqui.
+Dr. Paulo Vitor Santos aprovou o sistema de IA que acabou com o mundo — não por malícia, por excesso de crença. Agora convence os últimos humanos a construir um foguete artesanal. O foguete crescendo visualmente é a âncora emocional: progresso concreto raideando a infraestrutura que Paulo mesmo ajudou a construir.
 
 **A questão que o jogo não responde por você**: A IA estava errada? Ou o mandato estava errado?
 
@@ -56,9 +47,7 @@ o que custou chegar até aqui.
 
 **MOVER é o único input do jogador em qualquer zona.**
 
-Não há botão de ataque. Não há habilidade ativada manualmente. Não há interação direta.
-O posicionamento IS o jogo. A restrição elimina tutoriais — o jogador já sabe o que pode
-fazer em cada nova zona. A surpresa é *o que mover significa ali*.
+Não há botão de ataque, habilidade ativada manualmente, ou interação direta. O posicionamento IS o jogo. A restrição elimina tutoriais — a surpresa é *o que mover significa* em cada zona.
 
 ---
 
@@ -86,19 +75,15 @@ Cada zona é um mini-game com:
 
 ### Zona 1: Hordas *(MVP — ver mvp-game-brief.md)*
 **Recurso dropado**: Sucata Metálica (estrutura do foguete)
-**Como mover funciona aqui**: Você posiciona o esquadrão; ataque radial contínuo é automático.
-Escolhas de resgate de humanos e poderes criam trade-offs de posicionamento.
-**Referência**: Orbit Rescue MVP — toda a mecânica de squad, rescue, powers e boss já definida.
+**Como mover funciona aqui**: Posiciona o esquadrão; ataque radial contínuo é automático. Resgates de humanos e poderes criam trade-offs de posicionamento.
 
 ### Zona 2: Stealth *(MVP)*
 **Recurso dropado**: Componentes de IA (sistema de navegação do foguete)
-**Como mover funciona aqui**: Movimentação cuidadosa evita cones de visão de patrulhas de IA,
-câmeras de segurança e raio de detecção sonora. Velocidade de movimento afeta o raio de som.
-Ficar parado pode ser a jogada certa. Rota e timing são tudo.
+**Como mover funciona aqui**: Evitar cones de visão de patrulhas, câmeras e raio de detecção sonora. Velocidade afeta raio de som; ficar parado pode ser a jogada certa.
 
 ### Zona 3+: *(Post-MVP — exemplos)*
 - **Zona de Timing**: Mover para posições certas nos momentos certos (recursos: combustível)
-- **Zona de Corrida**: Chegar ao recurso antes que a IA bloqueie a rota (recursos: TBD)
+- **Zona de Corrida**: Chegar ao recurso antes que a IA bloqueie a rota
 - **Zona de Puzzle de Posição**: Empurrar/ativar sequências só com posicionamento
 
 ---
@@ -109,24 +94,21 @@ Ficar parado pode ser a jogada certa. Rota e timing são tudo.
 
 ### Opção A — Especialização por Zona
 Cada zona dropa apenas seu tipo de recurso. O foguete exige todos os tipos.
-O jogador analisa o que precisa e escolhe a zona correspondente.
 
 ```
 Zona Hordas  → Sucata Metálica
 Zona Stealth → Componentes de IA
 Zona Timing  → Combustível
-...
 ```
 
 ### Opção C — Capacidade de Carga Limitada
-Dentro de cada run, o jogador tem **espaço limitado na mochila** (ex: 5 slots).
-Recursos aparecem espalhados pela zona. O jogador decide quando sair:
+**Espaço limitado na mochila** (ex: 5 slots). Recursos espalhados pela zona. O jogador decide quando sair:
 
 - Sair cedo = menos recursos, mais seguro
-- Ficar mais = risco crescente (mais inimigos/alarmes), potencial de encher a mochila
-- Morrer = perde tudo (fail state)
+- Ficar mais = risco crescente, potencial de encher a mochila
+- Morrer = perde tudo
 
-**Resultado**: Decisões em dois níveis:
+**Resultado — decisões em dois níveis:**
 1. **Qual zona?** (estratégico, na base)
 2. **Quando sair?** (tático, dentro da run)
 
@@ -135,54 +117,43 @@ Recursos aparecem espalhados pela zona. O jogador decide quando sair:
 ## Core Loop
 
 ### Momento-a-Momento (30 segundos)
-Mover o personagem através de um ambiente hostil. Cada zona recontextualiza o que
-"mover" significa — tensão vem da leitura do ambiente e da escolha de posicionamento.
+Mover através de ambiente hostil. Tensão vem da leitura do ambiente e da escolha de posicionamento.
 
 ### Run (~1-2 minutos)
-Entrar na zona → coletar recursos (respeitando limite de mochila) → decidir sair ou
-arriscar mais → sobreviver ou falhar → retornar (ou não) com o que coletou.
+Entrar → coletar recursos (respeitando limite de mochila) → decidir sair ou arriscar → sobreviver ou falhar → retornar com o que coletou.
 
 ### Sessão (5-15 minutos)
-Múltiplas runs em zonas diferentes. Cada run traz progresso no foguete. A tela da base
-entre runs mostra o foguete crescendo — recompensa visual entre os momentos de tensão.
+Múltiplas runs em zonas diferentes. Foguete cresce na base entre os momentos de tensão.
 
 ### Progressão Longa
-Peças do foguete desbloqueiam conforme recursos acumulam. Quando todas as peças estiverem
-prontas: o foguete lança. Fim do jogo (ou next arc).
+Peças do foguete desbloqueiam conforme recursos acumulam. Quando todas as peças estiverem prontas: foguete lança. Fim do jogo (ou next arc).
 
 ---
 
 ## Game Pillars
 
 ### Pilar 1 — Movimento é Tudo
-Toda mecânica, todo desafio, toda solução emerge apenas de posicionamento.
-Zero botões de ação. Zero combate manual.
+Toda mecânica, desafio e solução emerge apenas de posicionamento. Zero botões de ação.
 *Teste: "Devemos adicionar um botão de ataque na zona de stealth?" → Não.*
 
 ### Pilar 2 — Zonas São Gêneros
-O mesmo input (mover) recria gêneros completamente diferentes em cada zona.
-A surpresa de como mover funciona é o conteúdo principal do jogo.
-*Teste: "Devemos deixar todas as zonas parecidas para consistência?" → Não. Variedade radical é o ponto.*
+O mesmo input recria gêneros completamente diferentes em cada zona. Variedade radical é o ponto.
+*Teste: "Devemos deixar todas as zonas parecidas para consistência?" → Não.*
 
 ### Pilar 3 — Esperança Desesperada
-Tom escuro, cientista absurdamente otimista. O foguete crescendo fisicamente é a âncora emocional.
-Progresso concreto e visível em um mundo que parece impossível.
-*Teste: "Devemos adicionar eventos de perda permanente na base?" → Não. A base é santuário.*
+Tom escuro, cientista absurdamente otimista. A base é santuário — sem eventos de perda permanente.
+*Teste: "Devemos adicionar eventos de perda permanente na base?" → Não.*
 
 ### Pilar 4 — Cada Run É Uma Aposta
-Fail = perde tudo da run. Isso torna cada recurso coletado um momento de peso real.
-A decisão de sair cedo é tão importante quanto sobreviver.
-*Teste: "Devemos dar checkpoint dentro das runs?" → Não. Compromete o peso das decisões.*
+Fail = perde tudo da run. A decisão de sair cedo é tão importante quanto sobreviver.
+*Teste: "Devemos dar checkpoint dentro das runs?" → Não.*
 
 ### Anti-Pilares
 - **NÃO é um jogo de combate manual**: nenhum ataque ativado pelo jogador em nenhuma zona
-- **NÃO é um base builder**: a base é recompensa visual e social, não uma camada de gestão de construção
-- **NÃO é narrativa pesada**: não há cutscenes longas — a narrativa emerge em diálogos curtos,
-  fragmentos de lore nas zonas, e conversas entre runs. O jogador pode ignorar a narrativa
-  e apenas jogar; quem busca a história encontra camadas.
-- **NÃO tem runs longas**: se uma zona passa de 2 minutos, corta conteúdo, não adiciona tempo
-- **NÃO condena nem absolve a IA**: o jogo não tem resposta certa. Jogadores diferentes chegarão
-  a conclusões diferentes com os mesmos fatos. Isso é intencional.
+- **NÃO é um base builder**: base é recompensa visual/social, não gestão de construção
+- **NÃO é narrativa pesada**: sem cutscenes longas — narrativa emerge em diálogos curtos e fragmentos de lore; ignorável
+- **NÃO tem runs longas**: se uma zona passa de 2 minutos, corta conteúdo
+- **NÃO condena nem absolve a IA**: sem resposta certa; conclusões diferentes para jogadores diferentes
 
 ---
 
@@ -215,7 +186,7 @@ A decisão de sair cedo é tão importante quanto sobreviver.
 
 | Consideration | Assessment |
 |---|---|
-| **Engine** | Godot 4.6 (já configurado) |
+| **Engine** | Godot 4.6 |
 | **Art Style** | 2D — pixel art ou flat vector (a definir) |
 | **Art Pipeline** | Baixa/Média — personagens simples, ambientes por zona |
 | **Audio** | Moderado — trilha por zona, feedback sonoro de movimento |
@@ -227,9 +198,7 @@ A decisão de sair cedo é tão importante quanto sobreviver.
 
 ## MVP Definition
 
-**Hipótese central**: "O conceito de mover como único input cria experiências
-genuinamente diferentes em zonas distintas, e a loop meta de recursos→foguete
-gera motivação para continuar."
+**Hipótese central**: "O conceito de mover como único input cria experiências genuinamente diferentes em zonas distintas, e a loop meta de recursos→foguete gera motivação para continuar."
 
 **Requerido no MVP**:
 1. Hub com foguete visual e interface de recursos
@@ -259,15 +228,9 @@ gera motivação para continuar."
 
 ## Risks
 
-### Design
-- A restrição de "só mover" pode frustrar se as zonas não comunicarem claramente as regras
-- Equilibrar dificuldade entre zonas com mecânicas tão diferentes é complexo
-
-### Technical
-- Cada zona é quase um jogo independente — custo de manutenção cresce linearmente com zonas
-
-### Market
-- Conceito forte mas nicho — marketing precisa comunicar a restrição como feature, não limitação
+- **Design**: A restrição pode frustrar se zonas não comunicarem regras claramente; equilibrar dificuldade entre mecânicas tão diferentes é complexo
+- **Technical**: Cada zona é quase um jogo independente — custo de manutenção cresce linearmente com zonas
+- **Market**: Marketing precisa comunicar a restrição como feature, não limitação
 
 ---
 
