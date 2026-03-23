@@ -11,9 +11,6 @@ Each agent owns a specific domain, enforcing separation of concerns and quality.
 - **Build System**: SCons (engine), Godot Export Templates
 - **Asset Pipeline**: Godot Import System + custom resource pipeline
 
-> **Note**: Engine-specialist agents exist for Godot, Unity, and Unreal with
-> dedicated sub-specialists. Use the set matching your engine.
-
 ## Project Structure
 
 @.claude/docs/directory-structure.md

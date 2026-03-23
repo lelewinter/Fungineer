@@ -8,21 +8,16 @@
 
 ## 1. Overview
 
-O sistema de recursos conecta as zonas de raid ao foguete no hub. Cada zona dropa
-um tipo específico de recurso. O jogador coleta recursos durante runs, os traz de
-volta ao hub, e os acumula até ter o suficiente para construir cada peça do foguete.
+O sistema de recursos conecta zonas de raid ao foguete no hub. Cada zona dropa um tipo específico de recurso que o jogador coleta durante runs e acumula até completar cada peça do foguete.
 
-A tensão central do sistema: **quando sair da zona?** Ficar mais tempo rende mais
-recursos, mas aumenta o risco de morrer e perder tudo.
+A tensão central: **quando sair da zona?** Ficar mais tempo rende mais recursos, mas aumenta o risco de perder tudo.
 
 ---
 
 ## 2. Player Fantasy
 
-Cada recurso na mochila é uma decisão tomada. Você entrou, sobreviveu, escolheu
-o momento certo de sair. Ver os recursos sendo depositados no hub e uma nova peça
-do foguete aparecendo é a recompensa concreta de ter jogado bem — não de ter tido
-sorte.
+- Cada recurso na mochila representa uma decisão tomada sob risco
+- Ver recursos depositados no hub e uma nova peça do foguete aparecer é a recompensa concreta de jogar bem — não de ter sorte
 
 ---
 
@@ -37,62 +32,50 @@ sorte.
 
 ### 3.1-B Tipos de Recurso (Pós-MVP — Zonas 3–8)
 
-Recursos adicionais desbloqueados conforme o jogador avança para zonas pós-MVP.
-Cada recurso representa uma camada de funcionalidade do foguete — o foguete não pode ser completado
-sem todos os tipos.
-
 | Recurso | Zona de Origem | Representa no Foguete | Mecânica de Coleta |
 |---|---|---|---|
-| **Núcleo Lógico** | Zona 3 — Circuito Quebrado | Processador central do sistema de navegação autônoma | 1 por run (alta raridade), coleta após resolver 3 câmaras de puzzle |
-| **Combustível Volátil** | Zona 4 — Corrida de Extração | Motor de propulsão — empuxo para vencer a gravidade | Instantâneo ao contato (sem parada de 1.5s) |
-| **Sinais de Controle** | Zona 5 — Controle de Campo | Sistema de comunicações e telemetria | Fluxo passivo (não usa slots de mochila) |
-| **Biomassa Adaptativa** | Zona 6 — Zona de Infecção | Suporte de vida — filtros, oxigênio, isolamento biológico | Fluxo passivo por nós infectados (não usa slots de mochila) |
-| **Fragmentos Estruturais** | Zona 7 — Labirinto Dinâmico | Reforço do casco — vigas e blindagem externa | Padrão 1.5s (usa slots de mochila) |
-| **Sucata Metálica + Componentes de IA** | Zona 8 — Zona de Sacrifício | Ambos os recursos base em quantidade premium | Padrão 1.5s com custos por câmara |
+| **Núcleo Lógico** | Zona 3 — Circuito Quebrado | Processador central de navegação autônoma | 1 por run (alta raridade), após resolver 3 câmaras de puzzle |
+| **Combustível Volátil** | Zona 4 — Corrida de Extração | Motor de propulsão | Instantâneo ao contato (sem parada de 1.5s) |
+| **Sinais de Controle** | Zona 5 — Controle de Campo | Comunicações e telemetria | Fluxo passivo (não usa slots de mochila) |
+| **Biomassa Adaptativa** | Zona 6 — Zona de Infecção | Suporte de vida | Fluxo passivo por nós infectados (não usa slots de mochila) |
+| **Fragmentos Estruturais** | Zona 7 — Labirinto Dinâmico | Reforço do casco | Padrão 1.5s (usa slots de mochila) |
+| **Sucata + Comp. IA** | Zona 8 — Zona de Sacrifício | Recursos base em quantidade premium | Padrão 1.5s com custos por câmara |
 
-**Nota sobre recursos de fluxo (Sinais de Controle e Biomassa Adaptativa):**
-Esses recursos não usam o sistema de mochila. Eles são acumulados em um medidor de run separado
-e transferidos ao hub ao final da run. O sistema de recursos deve suportar dois tipos de acumulação:
+**Dois tipos de acumulação:**
 - **Tipo Item**: ocupa slots de mochila (Sucata, Componentes, Núcleos, Combustível, Fragmentos)
-- **Tipo Fluxo**: acumulação passiva em medidor (Sinais, Biomassa)
+- **Tipo Fluxo**: acumulação passiva em medidor de run; transferido ao hub ao final (Sinais, Biomassa)
 
 ### 3.2 A Mochila
 
-- O jogador carrega uma mochila com **slots limitados** durante cada run
 - Capacidade padrão: **3 slots**
 - Cada recurso coletado ocupa 1 slot
-- A mochila é visível na UI durante a run (slots preenchidos em tempo real)
+- Slots visíveis na UI durante a run em tempo real
 
 ### 3.3 Coleta por Parada
 
-Para coletar um recurso, o jogador deve **parar completamente sobre ele por 1.5 segundos**.
-
-- Um **círculo de progresso** aparece ao redor do ícone do recurso enquanto o jogador está parado
-- Qualquer movimento cancela a coleta e reseta o círculo do zero
-- A coleta é sempre intencional — não há coleta acidental por proximidade
-
-**Mochila cheia**: recursos no chão são silenciosamente ignorados. Nenhum prompt, nenhuma interrupção. O jogador vê os slots cheios na UI e sabe que precisa ir ao EXIT.
+- Jogador deve **parar completamente sobre o recurso por 1.5 segundos**
+- Círculo de progresso aparece ao redor do ícone durante a parada
+- Qualquer movimento cancela e reseta o círculo do zero
+- Coleta é sempre intencional — sem coleta acidental por proximidade
+- **Mochila cheia**: recursos no chão são ignorados silenciosamente (sem prompt, sem interrupção)
 
 **Tensão por zona:**
-- *Hordas* — parar 1.5s com inimigos se aproximando cria risco de posicionamento real
-- *Stealth* — parar elimina ruído de movimento, mas deixa o jogador imóvel durante ciclos de patrulha
+- *Hordas*: parar 1.5s com inimigos se aproximando cria risco real de posicionamento
+- *Stealth*: parar elimina ruído de movimento, mas deixa o jogador imóvel durante ciclos de patrulha
 
 ### 3.4 Fail State
 
-- Morrer em qualquer zona = **perde todos os recursos da run**
-- Recursos acumulados no hub de runs anteriores **não são afetados**
-- Retornar ao hub sem morrer = recursos da run vão para o estoque do hub
+- Morrer = **perde todos os recursos da run atual**
+- Estoque acumulado no hub de runs anteriores **não é afetado**
+- Retornar ao EXIT vivo = recursos da run vão para o estoque do hub
 
 ### 3.5 Estoque do Hub
 
-- Recursos acumulam no hub entre runs (persistência total)
-- Sem limite de estoque — o jogador acumula livremente
-- O estoque é visível no hub na interface de recursos
-- Peças do foguete são construídas automaticamente ao atingir o custo da receita
+- Recursos acumulam entre runs (persistência total)
+- Sem limite de estoque
+- Peças do foguete construídas automaticamente ao atingir o custo da receita
 
 ### 3.6 Upgrade de Mochila
-
-O **Ex-Executivo** pode aumentar a capacidade da mochila conforme confiança cresce:
 
 | Nível | Slots | Custo (confiança) |
 |---|---|---|
@@ -104,8 +87,7 @@ O **Ex-Executivo** pode aumentar a capacidade da mochila conforme confiança cre
 
 ## 4. Receitas do Foguete (MVP — 8 Peças)
 
-O foguete é construído em 8 etapas sequenciais. Cada peça fica visível no foguete
-ao ser completada. Peças devem ser construídas em ordem — não é possível pular.
+Peças construídas em ordem sequencial — não é possível pular.
 
 | # | Peça | Custo | Zonas necessárias |
 |---|---|---|---|
@@ -123,32 +105,16 @@ ao ser completada. Peças devem ser construídas em ordem — não é possível 
 ### Pacing Estimado
 
 ```
-Slots padrão (3): média de 2.5 recursos por run
-  69 recursos ÷ 2.5 = ~28 runs para completar
-  28 runs × ~2 min = ~56 min de gameplay bruto
-
-Slots upgrade 1 (5): média de 4.0 recursos por run
-  69 recursos ÷ 4.0 = ~18 runs para completar
-  18 runs × ~2 min = ~36 min de gameplay bruto
-
-Slots upgrade 2 (7): média de 5.5 recursos por run
-  69 recursos ÷ 5.5 = ~13 runs para completar
-  13 runs × ~2 min = ~26 min de gameplay bruto
+Slots padrão (3): média 2.5 recursos/run → 69 ÷ 2.5 = ~28 runs → ~56 min bruto
+Slots upgrade 1 (5): média 4.0 recursos/run → 69 ÷ 4.0 = ~18 runs → ~36 min bruto
+Slots upgrade 2 (7): média 5.5 recursos/run → 69 ÷ 5.5 = ~13 runs → ~26 min bruto
 ```
-
-O upgrade de mochila não torna o jogo "mais fácil" — torna as runs mais eficientes,
-recompensando o investimento no relacionamento com o Ex-Executivo.
 
 ---
 
 ## 5. Formulas
 
-### Pressão de Saída
-
-Não há fórmula de força — a pressão é ambiental (inimigos, risco) e psicológica
-(mochila quase cheia, um recurso a mais pode completar uma peça).
-
-### Decisão de Sair — Framework de Valor Esperado (para o jogador raciocinar)
+### Decisão de Sair — Framework de Valor Esperado
 
 ```
 valor_esperado_ficar = recursos_coletáveis_restantes × probabilidade_sobreviver
@@ -158,12 +124,10 @@ Se valor_esperado_ficar > valor_sair_agora → considerar ficar
 Se valor_sair_agora ≥ valor_esperado_ficar → sair
 
 Exemplo:
-  Mochila: 2/3 slots preenchidos
-  Recursos visíveis no mapa: 3 mais
-  Probabilidade subjetiva de sobreviver: 60%
-  Valor esperado de ficar: 3 × 0.6 = 1.8 recursos esperados
-  Valor de sair agora: 2 recursos garantidos
-  → Sair é matematicamente melhor, mas o jogador pode querer arriscar
+  Mochila: 2/3 slots; recursos visíveis: 3; probabilidade sobreviver: 60%
+  Valor esperado ficar: 3 × 0.6 = 1.8
+  Valor sair agora: 2 (garantido)
+  → Sair é matematicamente melhor
 ```
 
 ---
@@ -172,12 +136,12 @@ Exemplo:
 
 | Situação | Comportamento |
 |---|---|
-| Mochila cheia, recurso no chão | Recurso ignorado silenciosamente — sem prompt. Jogador vai ao EXIT. |
+| Mochila cheia, recurso no chão | Recurso ignorado silenciosamente — sem prompt |
 | Morre com mochila cheia | Perde tudo — mochila cheia não protege |
-| Completa receita de peça mid-hub | Peça é construída imediatamente, animação do foguete atualiza |
-| Dois recursos no chão, 1 slot livre | Coleta o primeiro automaticamente; segundo dispara prompt se tentar coletar |
-| Estoque do hub com exatamente o custo de uma peça | Peça é construída automaticamente ao retornar da run |
-| Jogador descarta recurso errado no prompt | Sem desfazer — decisão é permanente dentro da run |
+| Completa receita mid-hub | Peça construída imediatamente; animação do foguete atualiza |
+| Dois recursos no chão, 1 slot livre | Coleta o primeiro; segundo ignorado se mochila encher |
+| Estoque do hub com exatamente o custo de uma peça | Peça construída automaticamente ao retornar da run |
+| Jogador descarta recurso errado | Sem desfazer — decisão permanente dentro da run |
 
 ---
 
@@ -188,10 +152,10 @@ Exemplo:
 | **Zona Hordas** | Fonte de Sucata Metálica |
 | **Zona Stealth** | Fonte de Componentes de IA |
 | **Hub** | Armazena estoque; exibe interface de recursos e progresso do foguete |
-| **UX / UI** | Círculo de progresso ao redor do recurso durante coleta; slots da mochila visíveis durante a run |
-| **Foguete** | Consome recursos do estoque conforme receitas são completadas |
+| **UX / UI** | Círculo de progresso durante coleta; slots da mochila visíveis durante run |
+| **Foguete** | Consome recursos conforme receitas completadas |
 | **Ex-Executivo** | Desbloqueia upgrades de capacidade da mochila |
-| **Missões de personagens** | Missões do tipo "trazer recurso" consomem recursos da mochila ao retornar |
+| **Missões de personagens** | Missões "trazer recurso" consomem recursos da mochila ao retornar |
 
 ---
 
@@ -209,15 +173,15 @@ Exemplo:
 
 ## Acceptance Criteria
 
-- [ ] A mochila (slots cheios/vazios) é visível e legível durante a run em tela mobile
-- [ ] Círculo de progresso aparece ao redor do recurso imediatamente ao parar sobre ele
+- [ ] Mochila (slots cheios/vazios) visível e legível durante a run em tela mobile
+- [ ] Círculo de progresso aparece imediatamente ao parar sobre recurso
 - [ ] Qualquer movimento cancela e reseta o círculo instantaneamente
-- [ ] Com mochila cheia, parar sobre um recurso não inicia o círculo — sem feedback visual, sem prompt
+- [ ] Com mochila cheia, parar sobre recurso não inicia círculo — sem feedback visual, sem prompt
 - [ ] Recursos retornam ao estoque do hub apenas se o jogador chegar ao EXIT vivo
-- [ ] Morte remove todos os recursos da run sem afetar o estoque do hub
-- [ ] Peça do foguete é construída automaticamente ao atingir o custo (sem input extra)
-- [ ] Interface do hub mostra claramente: estoque atual, custo da próxima peça, quanto falta
-- [ ] Upgrade de mochila do Ex-Executivo é refletido imediatamente na próxima run
+- [ ] Morte remove todos os recursos da run sem afetar estoque do hub
+- [ ] Peça do foguete construída automaticamente ao atingir custo (sem input extra)
+- [ ] Interface do hub mostra: estoque atual, custo da próxima peça, quanto falta
+- [ ] Upgrade de mochila do Ex-Executivo refletido imediatamente na próxima run
 
 ---
 
