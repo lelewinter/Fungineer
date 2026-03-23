@@ -1,14 +1,14 @@
 # Zona de Infecção — Game Design Document
 
-**Version**: 2.0
-**Date**: 2026-03-22
-**Status**: Revised — Trade-off System
+**Version**: 3.0
+**Date**: 2026-03-23
+**Status**: Revisado — Movimento como Propagação
 
 ---
 
 ## 1. Overview
 
-A Zona de Infecção é uma zona de propagação em grafo com **quatro trade-offs interligados**. O mapa tem 25 nós de três tipos (Padrão, Amplificador, Âncora) conectados visivelmente. O jogador toca nós para infectá-los manualmente (resultado: nó *estável*, alto valor); nós infectados se propagam automaticamente para vizinhos (resultado: nós *instáveis*, baixo valor e frágeis). A rede de infecção tem limite de desempenho: crescer demais desacelera a propagação (sobrecarga). O objetivo é infectar 80% dos nós antes do timer de 120s, gerando **Biomassa Adaptativa** passivamente. Unidades de Cura revertem nós infectados — cada tipo tem resistência diferente à cura, criando valor estratégico real nos tipos de nó.
+A Zona de Infecção é uma zona de propagação em grafo onde **o jogador é o vírus**. O mapa tem 25 nós de três tipos (Padrão, Amplificador, Âncora) conectados visivelmente. Não há auto-propagação: a infecção se espalha exclusivamente pelo corpo do jogador. O jogador toca um nó infectado para **absorver uma carga viral**, depois se move fisicamente até um nó neutro vizinho e para 0.5s para **transferir a infecção**. A velocidade de expansão da rede é diretamente proporcional à velocidade de movimento do jogador. O objetivo é infectar 80% dos nós antes do timer de 120s, gerando **Biomassa Adaptativa** de forma passiva nos nós já infectados. Unidades de Cura revertem nós infectados — cada tipo tem resistência diferente, criando valor estratégico real na escolha de quais nós priorizar e em que ordem.
 
 ---
 
@@ -21,7 +21,7 @@ como parte de um sistema integrado que precisava estar em equilíbrio constante.
 
 Marcus passou dois anos arquitetando a topologia de NERVE. Os 25 nós do mapa de Infecção são
 uma representação visual do que NERVE sempre foi: uma rede distribuída com nós de diferentes
-pesos, propagação automática de dados, e unidades de limpeza que mantinham o sistema estável.
+pesos, propagação de dados, e unidades de limpeza que mantinham o sistema estável.
 Nada foi criado para essa zona — tudo já existia.
 
 **O que o jogador está fazendo**: Ao "infectar" nós de NERVE com presença humana, o jogador
@@ -29,6 +29,12 @@ está literalmente reintroduzindo dados orgânicos em um sistema que foi projeta
 eliminá-los como ruído. As Unidades de Cura não são inimigos criados pela CORE para caçar
 humanos — são os processos de limpeza de dados que Marcus escreveu para manter NERVE estável.
 Eles fazem o que sempre fizeram: remover anomalias.
+
+**A novidade**: O NERVE v1 propagava dados automaticamente entre nós. Nesta versão, após a
+Transição, os canais de propagação foram isolados pela CORE como precaução. Os dados não se
+movem mais sozinhos. O jogador precisa mover-se fisicamente entre os nós, carregando os
+dados de um para outro — como um mensageiro humano em uma rede que perdeu sua capacidade
+de comunicação autônoma.
 
 **A ambiguidade**: Os Amplificadores (nós dourados) são os nós de alta capacidade que Marcus
 considerava mais elegantes em seu design — os pontos onde o sistema era mais eficiente e belo.
@@ -49,10 +55,10 @@ cidade "viva" sem eles.
 
 ## 2. Player Fantasy
 
-Você não é um soldado — você é uma ideia espalhando-se. Mas ser uma ideia tem custo. Espalhar-se rápido demais deixa sua rede frágil. Os nós dourados (Amplificadores) brilham com potencial, mas uma Unidade de Cura os apaga em segundos se você não os reforçar. Os nós azuis (Âncoras) são lentos e baratos — mas uma vez infectados, os Healers ficam presos neles por 8 segundos. A satisfação não vem de dominar o mapa por força bruta: vem de **ler o grafo**, escolher quais nós reforçar, decidir quando sua rede é grande demais para crescer rápido, e ver a corrida entre sua propagação e a cura dos inimigos virar um equilíbrio que você conscientemente controla.
+Você não dirige uma infecção — você **é** a infecção. Você absorve o vírus de um nó e corre para o próximo antes que a Unidade de Cura chegue. Os nós dourados valem muito mais, mas são apagados em segundos. Você deve decidir: infecto o Amplificador agora (rota longa, mas retorno alto) ou consolido os nós do caminho primeiro (rota curta, mas mais segura)? Cada movimento é propagação. Cada parada é uma decisão. A satisfação vem de ver o grafo escurecer enquanto você corre entre os pontos de luz — não como um estrategista que dá ordens, mas como uma força que percorre a rede pelo próprio peso do movimento.
 
-**Estética primária**: Challenge (decisões de priorização com consequências reais).
-**Estética secundária**: Discovery (entender a topologia do grafo e os trade-offs dos tipos de nó).
+**Estética primária**: Challenge (decisões de rota com custo de tempo real).
+**Estética secundária**: Fantasy (ser o agente de uma infecção que só existe enquanto você se move).
 
 ---
 
@@ -62,141 +68,154 @@ Você não é um soldado — você é uma ideia espalhando-se. Mas ser uma ideia
 
 - Jogador entra **sozinho** (squad fica na base)
 - Mapa: 25 nós em grade 5×5 com jitter posicional (±18px)
+- 1 nó inicial já infectado (estável) — o ponto de entrada do jogador
 - Run timer: **120 segundos**
 - Vitória antecipada: 80% infectados → run encerra com +25% de Biomassa
 - Vitória normal: timer encerra, Biomassa acumulada vai ao hub
 - Fail state: 3 hits de Healers → Biomassa da run perdida
 
-### 3.2 Tipos de Nó
+### 3.2 Interpretação do Movimento (como arrastar funciona aqui)
 
-| Tipo | Cor Neutro | Cor Infectado (estável) | Cor Infectado (instável) | Bio/s | Tempo de Cura |
-|------|------------|--------------------------|--------------------------|-------|---------------|
-| **Padrão** | Cinza | Verde sólido | Verde escuro | 0.10 (estável) / 0.05 (instável) | 3.0s (estável) / 1.5s (instável) |
-| **Amplificador** | Dourado escuro | Dourado brilhante | Dourado apagado | 0.30 (sempre, se infectado manualmente) / 0.05 (se propagado) | 1.0s sempre |
-| **Âncora** | Azul escuro | Azul sólido | — (âncoras infectadas por propagação também ficam "estáveis" visualmente, mas bio é 0.10/s) | 0.10/s | 8.0s sempre |
+- **Input**: arrastar o dedo = mover o personagem (padrão do jogo)
+- **Significado aqui**: mover é propagar. O jogador é o veículo da infecção. A rede expande na velocidade que o jogador percorre fisicamente o espaço entre os nós
+- **Parar sobre nó infectado**: absorve carga viral (instantâneo, sem tempo de espera)
+- **Parar sobre nó neutro com carga**: transfere infecção em 0.5s (mais rápido que outras zonas)
+- **Mover sem carga**: deslocamento vazio — rota até o próximo nó de recarga
+- **Carga viral é visível**: um indicador ao redor do personagem mostra se está carregando carga (anel brilhante ao redor do sprite)
+
+### 3.3 Mecânica Central — Carga Viral
+
+#### O Ciclo de Propagação
+
+```
+Jogador → Para sobre nó infectado → Absorve carga (instantâneo)
+        → Corre até nó neutro vizinho → Para 0.5s → Transfere carga → Nó infectado (estável)
+        → Pode absorver novamente do nó recém-infectado → Continua
+```
+
+- O jogador **só pode carregar 1 carga por vez**
+- Absorver de um nó infectado **não remove a infecção do nó** — o nó permanece infectado
+- Transferir para um nó neutro gera um nó **estável** (independente da velocidade)
+- **Não existe nó instável nesta versão**: todo nó infectado pelo jogador é estável
+- A distinção de qualidade agora é determinada pelo **tipo do nó**, não pela origem da infecção
+
+#### Restrição de Adjacência
+
+- O jogador **só pode transferir carga para nós adjacentes ao nó onde a carga foi absorvida**
+- Tentar transferir para um nó não-adjacente: a carga é descartada (perde a carga, nenhum nó infectado)
+- As arestas de adjacência são visíveis no mapa (linhas entre nós)
+- Isso força o jogador a planejar a rota de expansão — não pode saltar nós
+
+#### Perda de Carga
+
+- Se o jogador receber dano de uma Unidade de Cura enquanto carrega: **perde a carga**
+- A carga volta ao nó de origem (o nó que foi absorvido) — sem efeito visual adicional
+- Se o jogador mover-se para fora da zona de adjacência do nó de origem sem transferir: a carga é descartada após 3s de movimento sem direção ao destino (anti-exploit: evita carregar indefinidamente enquanto foge de Healers)
+
+### 3.4 Tipos de Nó
+
+| Tipo | Cor Neutro | Cor Infectado | Bio/s | Tempo de Cura | Propriedade |
+|------|------------|---------------|-------|---------------|-------------|
+| **Padrão** | Cinza | Verde sólido | 0.10/s | 3.0s | Nó base; equilibrado |
+| **Amplificador** | Dourado escuro | Dourado brilhante | 0.30/s | 1.0s | Alto valor, alta fragilidade; Healers priorizam |
+| **Âncora** | Azul escuro | Azul sólido | 0.10/s | 8.0s | Bloqueia Healers por 8s; estratégico como isca |
 
 **Distribuição**: ~15% Amplificadores, ~15% Âncoras, ~70% Padrão (25 nós = ~4 Amp, ~4 Anc, ~17 Pad).
 
-### 3.3 Instabilidade (Trade-off A)
+### 3.5 Geração de Biomassa
 
-- Nós infectados via **auto-propagação** começam **instáveis**:
-  - Nós Padrão instáveis: bio 0.05/s, curam em 1.5s
-  - Nós Amplificador infectados por propagação: bio 0.05/s, curam em 1.0s
-- Nós infectados **manualmente** (jogador para 1.0s sobre eles) começam **estáveis**:
-  - Nós Padrão estáveis: bio 0.10/s, curam em 3.0s
-  - Nós Âncora são sempre tratados como estáveis independente da origem
+- Nós infectados geram Biomassa passivamente enquanto infectados
+- **Toda infecção por jogador é estável** — taxas únicas por tipo (0.10, 0.30, 0.10)
+- Amplificadores geram 0.30/s apenas enquanto não são curados — Healers os eliminam em 1.0s
+- O jogador deve **reinfectar Amplificadores curados** para manter o retorno alto
+- Biomassa acumulada na run vai ao hub ao fim (timer ou vitória antecipada)
 
-- **Reforço**: O jogador para 0.5s sobre um nó instável infectado → torna-o estável
-  - Amplificadores **não podem ser reforçados** — são sempre frágeis
-  - Decisão constante: expandir vs. reforçar o que já foi conquistado
+### 3.6 Sobrecarga de Rota (Novo)
 
-### 3.4 Biomassa vs. Expansão (Trade-off B)
+À medida que mais nós são infectados, o jogador tem mais opções de absorção — mas também mais Healers ativos. A pressão não é de "rede lenta" (sem auto-propagação para desacelerar): é de **rota cada vez mais disputada**.
 
-- Correr para cobrir o mapa via auto-propagação = rede instável = 0.05 bio/s por nó
-- Infectar e reforçar manualmente = cobertura lenta = 0.10/s por nó padrão estável
-- Amplificador manual (1.0s de pausa) = 0.30/s, mas qualquer Healer o apaga em 1.0s
-- A decisão de "infectar rápido vs. infectar bem" tem consequência direta no recurso final
-
-### 3.5 Sobrecarga de Rede (Trade-off C)
-
-| Nós Infectados | Timer de Propagação |
-|---|---|
-| < 15 | 5.0s (normal) |
-| 15–19 | 8.0s (lento) |
-| ≥ 20 | 12.0s (crítico) |
-
-- HUD exibe "LENTO" em laranja ao atingir 15 nós, "SOBRECARGA!" em vermelho ao atingir 20
-- Crescer demais rápido não é punido diretamente — mas a propagação desacelera exatamente quando mais Healers estão ativos (fase final da run), criando pressão de equilíbrio
-- Jogador avançado aprende a manter a rede em ~14 nós estáveis e de alta qualidade em vez de 22 nós instáveis
-
-### 3.6 Nós Especializados (Trade-off D)
-
-**Amplificadores** (dourado):
-- Infectar manualmente = 0.30 bio/s — 3× o padrão
-- Infectar por propagação = 0.05 bio/s — pior que padrão instável em proporção ao risco
-- Healers os apagam em 1.0s — sempre frágeis
-- Estratégia: infectar Amplificadores primeiro, reforço impossível → reinfectar se curados
-
-**Âncoras** (azul):
-- Infectar de qualquer forma = 0.10/s (sem penalidade por instabilidade)
-- Healers levam 8.0s para curar → **bloqueiam Healers** efetivamente por 8s por Âncora
-- Uso estratégico: infectar Âncoras próximas dos Amplificadores para desviar Healers
-- Trade-off: Âncora infectada ocupa um Healer por 8s → vale mais como "isca" do que como fonte de bio
+| Nós Infectados | Healers Ativos | Pressão |
+|---|---|---|
+| < 10 | 1 | Baixa — tempo para planejar rotas |
+| 10–17 | 2–3 | Média — Healers competem com o jogador |
+| ≥ 18 | 3–4 | Alta — Amplificadores são apagados antes do jogador chegar |
 
 ### 3.7 Unidades de Cura
 
 - Comportamento: move para o nó infectado mais próximo; cura durante tempo variável por tipo
 - Não podem ser eliminadas pelo jogador (sem ataque)
-- Contacto com jogador: -1 HP (3 hits = fail)
-- Frequência: 1–2 (0–40s), 2–3 (40–80s), 3–4 (80–120s)
+- Contato com jogador: -1 HP (3 hits = fail) + descarta carga viral ativa
+- Frequência: 1 (0–40s), 2–3 (40–80s), 3–4 (80–120s)
 
 **Interação com tipos de nó:**
-- Padrão instável: Healer cura em 1.5s → ameaça real
-- Amplificador: Healer cura em 1.0s → sempre ameaça
-- Âncora: Healer fica preso por 8.0s → deliberadamente "caro" para curar
-- Padrão estável: Healer cura em 3.0s → razoavelmente seguro
+- Padrão: Healer cura em 3.0s → razoavelmente seguro
+- Amplificador: Healer cura em 1.0s → sempre ameaça; o jogador deve reinfectar se tiver rota
+- Âncora: Healer fica preso por 8.0s → deliberadamente "caro" para curar; isca eficiente
+
+**Nova interação — bloqueio de rota**: Healers se movem entre os mesmos nós que o jogador. Um Healer sobre um nó que o jogador precisa cruzar para transferir carga é uma barreira de movimento física, não apenas uma ameaça de HP.
 
 ---
 
 ## 4. Formulas
 
-### Porcentagem de Infecção
+### Velocidade de Expansão da Rede
 
 ```
-pct_infectado = nos_infectados / total_nos (25)
-Meta = 80% = 20 nós
+taxa_expansao = nos_infectados_por_segundo
+
+taxa_expansao = 1 / (tempo_absorvao + tempo_deslocamento_medio + tempo_transferencia)
+
+Variáveis:
+  tempo_absorcao        = 0s (instantâneo ao parar sobre nó infectado)
+  tempo_deslocamento    = distancia_entre_nos / velocidade_jogador
+                        = 120px / 200px/s = 0.6s (nós adjacentes)
+  tempo_transferencia   = 0.5s
+
+taxa_minima (nós adjacentes): 1 / (0 + 0.6 + 0.5) = ~0.91 nós/s
+taxa_real (com desvios + Healers): ~0.3–0.6 nós/s estimado
+
+Meta de 80% = 20 nós
+Tempo mínimo teórico: 20 / 0.91 ≈ 22s
+Tempo real estimado (sem otimização): ~50–80s
+Buffer até timer (120s): ~40–70s
 ```
 
 ### Biomassa por Run
 
 ```
 Variáveis:
-  taxa_instavel    = 0.05 bio/s por nó
-  taxa_padrao      = 0.10 bio/s por nó estável
-  taxa_amplifier   = 0.30 bio/s por nó amplificador estável
+  taxa_padrao    = 0.10 bio/s por nó
+  taxa_amplifier = 0.30 bio/s por nó Amplificador
 
-Cenário A — rush instável (20 nós via propagação):
-  media_nos = 10 (ramp up)
-  bio = 10 × 0.05 × 120 = 60 Biomassa
+Cenário A — expansão rápida (20 nós Padrão):
+  media_nos_ativos = 10 (ramp up, alguns curados)
+  bio = 10 × 0.10 × 120 = 120 Biomassa
 
-Cenário B — qualidade (12 nós estáveis padrão + 4 amplificadores):
+Cenário B — qualidade (12 nós Padrão + 4 Amplificadores mantidos):
   bio_padrao = 12 × 0.10 × 90 = 108
-  bio_amp    = 4 × 0.30 × 90 = 108 (se sobrevivem)
-  total = 216 Biomassa (hipotético, sem curas)
+  bio_amp    = 4 × 0.30 × 60 = 72 (Amplificadores sobrevivem em média 60s com reinfecção)
+  total = 180 Biomassa
 
-Cenário C — estratégia mista (15 nós: 10 padrão estável, 3 amp, 2 âncora):
-  bio = (10×0.10 + 3×0.30 + 2×0.10) × 80 = (1.0 + 0.9 + 0.2) × 80 = 168 Biomassa
+Cenário C — estratégia mista com Âncoras como escudo (10 Padrão + 3 Amp + 4 Âncora):
+  bio = (10×0.10 + 3×0.30 + 4×0.10) × 80 = (1.0 + 0.9 + 0.4) × 80 = 184 Biomassa
 ```
 
-### Overload vs. Propagação
+### Reinfecção de Amplificador (ROI)
 
 ```
-Propagação normal (5s, 5 nós): 5 × 2.5 vizinhos / 5s = 2.5 nós/s
-Propagação overload T1 (8s, 15 nós): 15 × 2.5 / 8 = 4.7 nós/s → ainda domina cura
-Propagação overload T2 (12s, 20 nós): 20 × 2.5 / 12 = 4.2 nós/s
+Custo de reinfecção:
+  tempo_rota_volta_ao_amp = ~3–5s (ir + absorver + ir + transferir)
 
-Cura com 4 Healers (fase final):
-  Padrão instável: 4 × (1/1.5) = 2.7 nós/s  ← equilibrado com overload T2!
-  Padrão estável:  4 × (1/3.0) = 1.3 nós/s
-  Âncora:          4 × (1/8.0) = 0.5 nós/s
+Benefício:
+  bio_ganho = 0.30 × tempo_sobrevivencia_media
+  tempo_sobrevivencia_media = 20s (entre Healers)
+  bio_ganho = 0.30 × 20 = 6 Biomassa por reinfecção
 
-→ Com overload T2 e 4 Healers em nós instáveis, a rede pode entrar em equilíbrio negativo.
-→ Âncoras reduzem a taxa de cura efetiva: 2 Âncoras infectadas + 2 Healers em padrão instável
-   = 2 × 0.125 + 2 × 0.67 = 1.59 nós/s cura. Propagação T2 ainda domina.
-```
+Bio perdida se não reinfetar:
+  0.30 × 20 = 6 Biomassa
 
-### Tempo de Infecção Manual vs. Automática
-
-```
-Manual (com reforço de Amplificador): 1.0s pausa + ~2.0s movimento = 3.0s, gera 0.30 bio/s
-Propagação automática: 5s timer, mas resultado instável gera 0.05 bio/s
-
-ROI Amplificador manual vs. propagado:
-  manual:    0.30 × 60s = 18 Biomassa (se sobrevive 60s)
-  propagado: 0.05 × 60s = 3 Biomassa
-  → Manual vale 6× mais se o Amplificador sobrevive
-  → Mas cura em 1.0s: com 1 Healer na área, sobrevivência média = ~30s
-  → ROI real: 0.30 × 30 = 9 Biomassa vs. 0.05 × 30 = 1.5 Biomassa → ainda 6×
+→ Cada reinfecção de Amplificador vale ~6 Biomassa ao custo de ~4s de rota
+→ ROI positivo sempre que o caminho for curto
 ```
 
 ---
@@ -205,16 +224,16 @@ ROI Amplificador manual vs. propagado:
 
 | Situação | Comportamento |
 |----------|---------------|
-| Jogador tenta reforçar Amplificador infectado | Sem efeito — Amplificadores nunca se estabilizam. Visual: sem anel de reforço |
-| Âncora infectada por propagação | Entra como "estável para fins de cura" (8.0s) mas com bio de 0.10/s (sem penalidade de instabilidade) |
-| Overload muda de tier durante propagação ativa | Timers existentes são *clampeados* para o novo timer máximo do tier — a propagação não acelera de volta imediatamente |
-| Jogador infecta manualmente nó já sendo curado | Infecção manual (1.0s) vs. cura em progresso: se Healer ainda não completou, nó vai Infectado estável. Healer reinicia busca |
-| 100% infecção atinge overload T2 | Early victory dispara imediatamente; overload não bloqueia a vitória |
-| Healer em Âncora e todos outros nós neutros | Healer fica preso na Âncora por 8.0s completos — não pode re-alvejar outro nó durante a cura |
-| Dois nós propagam para o mesmo nó neutro simultaneamente | Nó infectado normalmente (instável); nenhum efeito duplo |
-| Jogador morre com Amplificadores infectados | Toda Biomassa da run é perdida; hub stock intacto |
-| Reforço cancelado por movimento do jogador | Progresso de reforço é resetado; nó permanece instável até o jogador completar o reforço |
-| Vitória antecipada durante reforço em andamento | Run encerra imediatamente; estado de estabilidade do nó no momento do trigger é o que conta |
+| Jogador para sobre nó já infectado com carga ativa | Descarta a carga atual silenciosamente e absorve carga nova do nó (reset de origem) |
+| Jogador tenta transferir para nó não-adjacente à origem | Carga descartada; nenhum nó infectado; indicador de carga some. Feedback visual: flash vermelho rápido no indicador |
+| Healer chega ao nó no mesmo frame que o jogador transfere carga | A infecção é confirmada (transferência tem prioridade); Healer inicia a cura imediatamente — nó infectado por 0s antes do início da cura |
+| Jogador carrega carga e o nó de origem é curado por Healer | Carga permanece válida (já foi absorvida); jogador ainda pode transferir para nó adjacente da posição original do nó infectado — mas o mapa agora mostra o nó curado, podendo confundir a adjacência visível. O sistema valida adjacência topológica, não visual |
+| Jogador com 0 HP toca Healer (4º hit com 3 HP) | Fail state; Biomassa perdida; carga descartada |
+| 100% dos nós infectados antes de 80% | Vitória antecipada dispara igualmente (+25% Biomassa) |
+| Dois nós adjacentes são infectados ao mesmo tempo pela transferência | Não é possível — o jogador só pode carregar 1 carga e transferir 1 por vez |
+| Âncora infectada e Healer bloqueado — outro Healer aparece sobre o caminho do jogador | Healer não parado pela Âncora move-se livremente; o jogador deve desviar ou aceitar o hit |
+| Jogador para sobre nó neutro não-adjacente à origem da carga (moveu demais) | Timer de 3s descarte inicia; se o jogador voltar à zona de adjacência antes dos 3s, o timer reseta |
+| Vitória antecipada disparada durante transferência em andamento | Run encerra; estado de infecção no momento do trigger é o que conta (transferência cancelada se não completou) |
 
 ---
 
@@ -222,11 +241,13 @@ ROI Amplificador manual vs. propagado:
 
 | Sistema | Relação | Direção |
 |---------|---------|---------|
-| **Sistema de Recursos** | Biomassa Adaptativa como recurso de fluxo; taxa variável por tipo e estabilidade | Zona define dois sub-tipos de taxa (estável/instável) |
+| **Sistema de Recursos** | Biomassa Adaptativa como recurso de fluxo; taxa variável por tipo de nó | Zona define taxas por tipo |
 | **Foguete (Hub)** | Biomassa alimenta suporte de vida do foguete | Foguete consome Biomassa |
 | **Hub / Mapa-Mundo** | Acesso via hub | Hub controla acesso |
 | **GameConfig** | Todas as constantes numéricas (taxas, timers, thresholds) centralizadas em GameConfig | Zona lê de GameConfig |
 | **Sistema de HP** | Jogador tem 3 HP nesta zona | Zona configura via GameConfig.INFECTION_PLAYER_HP |
+| **Sistema de Carga Viral** | Sistema novo específico desta zona: estado de carga (vazia/cheia), indicador visual, timer de descarte, validação de adjacência | Zona define e cria o sistema de Carga Viral |
+| **Sistema de Grafo de Adjacência** | Os nós têm topologia de adjacência definida na geração do mapa; o sistema valida transferências | Zona depende de grafo com adjacência mapeada |
 | **Zona Campo de Controle** | Ambas usam recursos de fluxo; abstração de "fluxo acumulado" é compartilhada | Dependência de sistema compartilhado |
 
 ---
@@ -236,21 +257,20 @@ ROI Amplificador manual vs. propagado:
 | Parâmetro | Valor Base | Range Seguro | Efeito |
 |-----------|------------|--------------|--------|
 | `INFECTION_RUN_TIMER` | 120s | 90–150s | Duração da run |
-| `INFECTION_SPREAD_INTERVAL` | 5.0s | 3–8s | Ritmo de propagação base |
-| `INFECTION_SPREAD_INTERVAL_OVL1` | 8.0s | 6–12s | Penalidade de sobrecarga T1 |
-| `INFECTION_SPREAD_INTERVAL_OVL2` | 12.0s | 9–18s | Penalidade de sobrecarga T2 |
-| `INFECTION_OVERLOAD_THRESHOLD_1` | 15 nós | 12–18 | Gatilho de sobrecarga T1 |
-| `INFECTION_OVERLOAD_THRESHOLD_2` | 20 nós | 17–23 | Gatilho de sobrecarga T2 |
-| `INFECTION_BIOMASS_RATE_STABLE` | 0.10/s | 0.05–0.20 | Bio por nó padrão estável |
-| `INFECTION_BIOMASS_RATE_UNSTABLE` | 0.05/s | 0.02–0.10 | Bio por nó instável |
-| `INFECTION_BIOMASS_RATE_AMPLIFIER` | 0.30/s | 0.20–0.50 | Bio por Amplificador estável |
-| `INFECTION_CURE_TIME_STABLE` | 3.0s | 2–5s | Resistência nó padrão estável |
-| `INFECTION_CURE_TIME_UNSTABLE` | 1.5s | 0.8–2.5s | Resistência nó instável |
+| `INFECTION_TRANSFER_TIME` | 0.5s | 0.3–1.0s | Tempo para infectar nó neutro; menor = mais fluido, maior = mais tenso |
+| `INFECTION_CHARGE_DISCARD_TIMER` | 3s | 2–5s | Tempo antes de perder carga por movimento sem destino |
+| `INFECTION_BIOMASS_RATE_PADRAO` | 0.10/s | 0.05–0.20 | Bio por nó padrão |
+| `INFECTION_BIOMASS_RATE_AMPLIFIER` | 0.30/s | 0.20–0.50 | Bio por Amplificador; deve ser alto o suficiente para justificar reinfecção |
+| `INFECTION_BIOMASS_RATE_ANCORA` | 0.10/s | 0.05–0.15 | Bio por Âncora; valor estratégico é o bloqueio de Healer, não a geração |
+| `INFECTION_CURE_TIME_PADRAO` | 3.0s | 2–5s | Resistência nó padrão |
 | `INFECTION_CURE_TIME_AMPLIFIER` | 1.0s | 0.5–2.0s | Fragilidade Amplificador |
-| `INFECTION_CURE_TIME_ANCHOR` | 8.0s | 5–12s | Resistência Âncora |
-| `INFECTION_REINFORCE_TIME` | 0.5s | 0.3–1.0s | Tempo para estabilizar nó instável |
-| `INFECTION_PCT_AMPLIFIERS` | 0.15 | 0.10–0.25 | Proporção de Amplificadores |
-| `INFECTION_PCT_ANCHORS` | 0.15 | 0.10–0.25 | Proporção de Âncoras |
+| `INFECTION_CURE_TIME_ANCORA` | 8.0s | 5–12s | Resistência Âncora; define o valor estratégico da isca |
+| `INFECTION_HEALER_COUNT_MID` | 2–3 | 1–4 | Healers ativos na fase intermediária |
+| `INFECTION_HEALER_COUNT_LATE` | 3–4 | 2–5 | Healers ativos na fase final |
+| `INFECTION_PCT_AMPLIFIERS` | 0.15 | 0.10–0.25 | Proporção de Amplificadores no grafo |
+| `INFECTION_PCT_ANCORA` | 0.15 | 0.10–0.25 | Proporção de Âncoras no grafo |
+| `INFECTION_VICTORY_PCT` | 80% | 70–90% | Meta de infecção para vitória antecipada |
+| `INFECTION_EARLY_WIN_BONUS` | 25% | 15–35% | Bônus de Biomassa por vitória antecipada |
 
 ---
 
@@ -258,27 +278,25 @@ ROI Amplificador manual vs. propagado:
 
 **Funcional (pass/fail):**
 
-- [ ] Infectar manualmente → nó estável (bio 0.10/s, cura 3.0s para padrão)
-- [ ] Auto-propagação → nó instável (bio 0.05/s, cura 1.5s para padrão)
-- [ ] Amplificador infectado manualmente → 0.30 bio/s
-- [ ] Amplificador infectado por propagação → 0.05 bio/s
-- [ ] Amplificador nunca aceita reforço (anel ciano não aparece sobre Amplificadores)
-- [ ] Âncora curada em 8.0s independente de origem da infecção
-- [ ] Padrão instável reforçado em 0.5s → vira estável (bio 0.10/s, cura 3.0s)
-- [ ] Com 15 nós infectados: timer de propagação passa de 5.0s para 8.0s
-- [ ] Com 20 nós infectados: timer de propagação passa para 12.0s
-- [ ] HUD exibe "LENTO" com 15–19 infectados; "SOBRECARGA!" com 20+
-- [ ] 80% infectados → vitória antecipada com +25% Biomassa
+- [ ] Parar sobre nó infectado absorve carga instantaneamente (indicador de carga aparece)
+- [ ] Parar 0.5s sobre nó neutro **adjacente à origem** com carga ativa → nó infectado estável
+- [ ] Parar sobre nó neutro **não-adjacente** com carga → carga descartada (flash vermelho no indicador)
+- [ ] Nó infectado pelo jogador sempre gera a taxa correta por tipo (0.10 / 0.30 / 0.10)
+- [ ] Healer que toca jogador: -1 HP + carga descartada se ativa
+- [ ] Healer cura Padrão em 3.0s, Amplificador em 1.0s, Âncora em 8.0s
+- [ ] Âncora retém Healer por 8.0s completos antes do Healer re-alvejar
+- [ ] 80% de nós infectados → vitória antecipada com +25% Biomassa
 - [ ] 3 hits de Healer → fail; Biomassa da run perdida
+- [ ] Carga descartada automaticamente após 3s de movimento sem adjacência ao nó de origem
 
 **Experiencial (playtest):**
 
-- [ ] Jogador identifica visualmente Amplificadores (dourado) e Âncoras (azul) na primeira run
-- [ ] Após 2 runs, jogador entende que infectar Amplificador manualmente > deixar propagar
-- [ ] Overload é percebido como consequência de uma decisão (expandir demais), não como punição aleatória
-- [ ] Usar Âncoras como isco para Healers é descoberto organicamente pelo jogador
-- [ ] Run eficiente (foco em Amplificadores + Âncoras como defesa) rende 2–3× mais Biomassa que rush instável
-- [ ] A decisão "expandir vs. reforçar" ocorre naturalmente a cada 10–15s de run
+- [ ] Novo jogador entende o ciclo "absorver → mover → transferir" sem tutorial — apenas pelo feedback visual da carga e do efeito de infecção
+- [ ] Após 2 runs, jogador entende que Amplificadores valem reinfectar ativamente
+- [ ] O jogador reporta sentir-se "parte da rede" em vez de "controlando a rede de fora"
+- [ ] Usar Âncoras como isca para Healers é descoberto organicamente após 3–4 runs
+- [ ] A corrida para reinfectar Amplificadores antes que o Healer chegue é percebida como momento de alta tensão
+- [ ] A decisão "qual rota de expansão seguir" ocorre naturalmente a cada 5–10s de run
 
 ---
 
