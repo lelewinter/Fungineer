@@ -1,99 +1,171 @@
-## ExtractionMain — Corrida de Extração zone (Zone 3).
-## Squad speedrun: 60 s timer, instant canister pickup, 3 route diamond layout.
-## Resources: Combustível Volátil (backpack items).
-## Bonus "+T" canisters add EXTRACTION_BONUS_TIME — never occupy backpack slots.
-## Run ends: timer=0 (success, keep resources) | all dead (fail) | voluntary EXIT.
+## ExtractionMain — Corrida de Extração (Zone 3) — Lane Runner.
+## 7 lanes preenchendo a tela. Mundo rola direita→esquerda automaticamente.
+## Jogador toca metade superior/inferior para subir/descer 1 lane.
+## 5 tipos de obstáculo-debuff: fumaça, lentidão, faísca, EMP, teia.
+## Timer 60s, coleta instantânea de canisters, +T bônus de tempo.
 extends Node2D
 
-# ── Map geometry ──────────────────────────────────────────────────────────────
-const _ROUTE_Y: Array[float] = [480.0, 1200.0, 1920.0]   # Safe / Medium / Dangerous
-const _ROUTE_H: Array[float] = [80.0,  80.0,   60.0]
-const _ROUTE_X_START: float = 120.0
-const _ROUTE_X_END: float   = GameConfig.ARENA_WIDTH - 120.0
-const _JUNCTION_X: Array   = [900.0, 2200.0]
-const _JUNCTION_W: float    = 80.0   # vertical corridor width
-const _ENTRY_X: float       = 200.0
-const _EXIT_X: float        = GameConfig.ARENA_WIDTH - 100.0
-const _EXIT_RADIUS: float   = 45.0
+# ── Lane layout ────────────────────────────────────────────────────────────────
+const _LANE_COUNT: int  = GameConfig.EXTRACTION_LANE_COUNT   # 7
+const _LANE_H: float    = GameConfig.EXTRACTION_LANE_H       # 122.0
+const _PLAYER_X: float  = 100.0
+const _LANE_START: int  = 3   # middle lane
 
-# ── Canister geometry ─────────────────────────────────────────────────────────
-const _PICK_RADIUS: float   = 22.0   # pickup distance
+# ── Scroll ─────────────────────────────────────────────────────────────────────
+const _SCROLL_START: float = GameConfig.EXTRACTION_SCROLL_START
+const _SCROLL_END: float   = GameConfig.EXTRACTION_SCROLL_END
 
-# ── Nodes ─────────────────────────────────────────────────────────────────────
+# ── Lane transition ────────────────────────────────────────────────────────────
+const _SWITCH_DUR: float = GameConfig.EXTRACTION_LANE_SWITCH_DUR
+
+# ── Obstacle / spawn ───────────────────────────────────────────────────────────
+const _SPAWN_X: float      = 540.0   # how far right of viewport obstacles spawn
+const _OBS_W_MIN: float    = 70.0
+const _OBS_W_MAX: float    = 130.0
+const _SPAWN_IVRL_S: float = GameConfig.EXTRACTION_SPAWN_IVRL_START
+const _SPAWN_IVRL_E: float = GameConfig.EXTRACTION_SPAWN_IVRL_END
+
+# ── Pickup ─────────────────────────────────────────────────────────────────────
+const _PICK_RADIUS: float = 24.0
+
+# ── Debuff durations ───────────────────────────────────────────────────────────
+const _DUR_SMOKE: float  = GameConfig.EXTRACTION_DEBUFF_SMOKE
+const _DUR_SLOW: float   = GameConfig.EXTRACTION_DEBUFF_SLOW
+const _DUR_EMP: float    = GameConfig.EXTRACTION_DEBUFF_EMP
+const _DUR_WIRE: float   = GameConfig.EXTRACTION_DEBUFF_WIRE
+const _SPARK_TICK: float = GameConfig.EXTRACTION_SPARK_TICK
+const _SPARK_DMG: float  = GameConfig.EXTRACTION_SPARK_DMG
+
+# ── Debuff types ───────────────────────────────────────────────────────────────
+# Shared with _Obstacle inner class via int constants (enum casting unreliable
+# across inner class boundaries in GDScript 4).
+const OBS_SMOKE: int = 0
+const OBS_SLOW: int  = 1
+const OBS_SPARK: int = 2
+const OBS_EMP: int   = 3
+const OBS_WIRE: int  = 4
+const OBS_COUNT: int = 5
+
+# ── Nodes ──────────────────────────────────────────────────────────────────────
 var _world: Node2D
 var _party: Party
 var _camera: Camera2D
-var _drag_controller: DragController
-var _drones: Array = []       # Array[ExtractionDrone]
-var _canisters: Array = []    # Array[_Canister]
+var _smoke_overlay: ColorRect   # right-side vision block during SMOKE debuff
 
-# ── Run state ─────────────────────────────────────────────────────────────────
-var _run_timer: float = GameConfig.EXTRACTION_RUN_TIMER
+# ── Collections ────────────────────────────────────────────────────────────────
+var _obstacles: Array = []   # Array[_Obstacle]
+var _canisters: Array = []   # Array[_Canister]
+
+# ── Player / lane state ────────────────────────────────────────────────────────
+var _lane: int    = _LANE_START   # current settled lane
+var _lane_t: int  = _LANE_START   # target lane
+var _lerp: float  = 1.0           # 0→1 transition progress
+var _player_y: float              # current lerped Y
+
+# ── Debuff state ───────────────────────────────────────────────────────────────
+var _debuff: int       = -1   # -1 = none, else OBS_* constant
+var _debuff_timer: float = 0.0
+var _spark_lane: int   = -1
+var _spark_acc: float  = 0.0
+
+# ── Run state ──────────────────────────────────────────────────────────────────
+var _run_timer: float       = GameConfig.EXTRACTION_RUN_TIMER
 var _backpack: Array[String] = []
-var _run_ended: bool = false
-var _pulse: float = 0.0
+var _run_ended: bool         = false
+var _pulse: float            = 0.0
 
-# ── Auto-scroll (danger wall) ──────────────────────────────────────────────────
-const _SCROLL_SPEED_START: float = 70.0   # px/s at run start
-const _SCROLL_SPEED_END: float   = 160.0  # px/s at timer zero
-var _scroll_x: float = -200.0             # starts off-screen left
-var _danger_wall: ColorRect               # visual danger wall node
+# ── Spawn state ────────────────────────────────────────────────────────────────
+var _spawn_acc: float = 0.0
 
-# ── HUD refs ──────────────────────────────────────────────────────────────────
+# ── HUD refs ───────────────────────────────────────────────────────────────────
 var _timer_lbl: Label
 var _slots_lbl: Label
-var _overlay_lbl: Label
+var _debuff_lbl: Label
 var _overlay_panel: ColorRect
+var _overlay_lbl: Label
 
 
-# ── Inner class: canister ─────────────────────────────────────────────────────
+# ══ Inner class: Obstacle ══════════════════════════════════════════════════════
+
+class _Obstacle extends Node2D:
+	## Scrolling obstacle that applies a debuff on contact.
+	var obs_type: int  = 0      # OBS_* constant from outer class
+	var lane: int      = 0
+	var obs_w: float   = 80.0
+	var hit: bool      = false  # debuff already applied
+
+	func setup(l: int, w: float, t: int, start_x: float) -> void:
+		lane   = l
+		obs_w  = w
+		obs_type = t
+		position = Vector2(start_x, l * 122.0)
+
+	func tick(delta: float, spd: float) -> void:
+		position.x -= spd * delta
+
+	func _draw() -> void:
+		var col: Color = _color()
+		# Main block (slight vertical inset for lane separator visibility)
+		draw_rect(Rect2(0.0, 3.0, obs_w, 116.0), col)
+		# Dark left edge (warning stripe)
+		draw_rect(Rect2(0.0, 3.0, 6.0, 116.0), Color(0.0, 0.0, 0.0, 0.4))
+		# Label
+		draw_string(ThemeDB.fallback_font,
+			Vector2(10.0, 67.0), _label(),
+			HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(1.0, 1.0, 1.0, 0.9))
+
+	func _color() -> Color:
+		match obs_type:
+			0: return Color(0.22, 0.22, 0.25, 0.90)   # SMOKE  — charcoal
+			1: return Color(0.10, 0.30, 0.90, 0.82)   # SLOW   — deep blue
+			2: return Color(1.00, 0.72, 0.04, 0.90)   # SPARK  — amber
+			3: return Color(0.68, 0.12, 0.92, 0.86)   # EMP    — violet
+			4: return Color(0.88, 0.10, 0.10, 0.84)   # WIRE   — red
+		return Color.WHITE
+
+	func _label() -> String:
+		match obs_type:
+			0: return "FUMAÇA"
+			1: return "LENTO"
+			2: return "FAÍSCA"
+			3: return "EMP"
+			4: return "TEIA"
+		return "?"
+
+
+# ══ Inner class: Canister ══════════════════════════════════════════════════════
 
 class _Canister extends Node2D:
-	var is_bonus: bool = false      # +T canister
-	var is_moving: bool = false
-	var _vel: Vector2 = Vector2.ZERO
-	var _bounds_x: Array = [0.0, 0.0]   # [min_x, max_x] bounce bounds
+	## Fuel canister that scrolls left; collected on proximity.
+	var is_bonus: bool = false
 	var collected: bool = false
 
-	func setup_static(pos: Vector2, bonus: bool) -> void:
-		global_position = pos
+	func setup(pos: Vector2, bonus: bool) -> void:
+		position = pos
 		is_bonus = bonus
 
-	func setup_moving(pos: Vector2, vel: Vector2, min_x: float, max_x: float) -> void:
-		global_position = pos
-		is_moving = true
-		_vel = vel
-		_bounds_x = [min_x, max_x]
-
-	func tick(delta: float) -> void:
-		if not is_moving or collected:
-			return
-		global_position.x += _vel.x * delta
-		if global_position.x <= _bounds_x[0] or global_position.x >= _bounds_x[1]:
-			_vel.x = -_vel.x
-			global_position.x = clampf(global_position.x, _bounds_x[0], _bounds_x[1])
+	func tick(delta: float, spd: float) -> void:
+		if not collected:
+			position.x -= spd * delta
 
 	func _draw() -> void:
 		if collected:
 			return
 		if is_bonus:
 			draw_circle(Vector2.ZERO, 11.0, Color(0.2, 0.85, 0.95, 0.9))
-			draw_string(ThemeDB.fallback_font, Vector2(-5, 5), "+T",
+			draw_string(ThemeDB.fallback_font, Vector2(-6, 5), "+T",
 				HORIZONTAL_ALIGNMENT_LEFT, -1, 10, Color.WHITE)
 		else:
 			draw_circle(Vector2.ZERO, 11.0, Color(0.95, 0.65, 0.1, 0.9))
-			draw_circle(Vector2.ZERO, 5.0, Color(1.0, 0.85, 0.3, 0.8))
+			draw_circle(Vector2.ZERO, 5.0,  Color(1.0, 0.85, 0.3, 0.8))
 
 
-# ── Lifecycle ──────────────────────────────────────────────────────────────────
+# ══ Lifecycle ══════════════════════════════════════════════════════════════════
 
 func _ready() -> void:
+	_player_y = _lane_center(_LANE_START)
 	_build_world()
 	_build_squad()
-	_build_canisters()
-	_build_drones()
-	_build_exit()
-	_build_danger_wall()
 	_build_hud()
 	GameState.start_run()
 	GameState.run_ended.connect(_on_run_ended)
@@ -108,51 +180,82 @@ func _process(delta: float) -> void:
 	_pulse += delta
 	_run_timer -= delta
 
-	# Advance danger wall
-	var t_ratio := clampf(1.0 - _run_timer / GameConfig.EXTRACTION_RUN_TIMER, 0.0, 1.0)
-	var scroll_speed := lerpf(_SCROLL_SPEED_START, _SCROLL_SPEED_END, t_ratio)
-	_scroll_x += scroll_speed * delta
-	_danger_wall.position.x = _scroll_x - _danger_wall.size.x
+	var t_ratio: float = clampf(1.0 - _run_timer / GameConfig.EXTRACTION_RUN_TIMER, 0.0, 1.0)
+	var scroll_spd: float = lerpf(_SCROLL_START, _SCROLL_END, t_ratio)
 
-	# Camera: follow party but never scroll left of the danger wall
-	var vp_half := GameConfig.VIEWPORT_WIDTH * 0.5
-	var cam_x := maxf(_party.global_position.x, _scroll_x + vp_half)
-	_camera.global_position = Vector2(cam_x, _party.global_position.y)
+	# ── Lane transition lerp ──────────────────────────────────────────────────
+	if _lerp < 1.0:
+		var eff_dur: float = _SWITCH_DUR * (3.0 if _debuff == OBS_SLOW else 1.0)
+		_lerp = minf(_lerp + delta / eff_dur, 1.0)
+		_player_y = lerpf(_lane_center(_lane), _lane_center(_lane_t), _lerp)
+		if _lerp >= 1.0:
+			_lane = _lane_t
 
-	# Kill: party caught by wall
-	if _party.global_position.x < _scroll_x - 10.0:
-		_end_run(false)
-		return
+	# Keep party at player position
+	_party.position = Vector2(_PLAYER_X, _player_y)
 
-	# Canister ticks + pickup
-	for can: _Canister in _canisters:
-		can.tick(delta)
+	# ── Debuff countdown ──────────────────────────────────────────────────────
+	if _debuff >= 0:
+		_debuff_timer -= delta
+		# SPARK: auto-clear when player leaves the sparking lane
+		if _debuff == OBS_SPARK and _lane == _lane_t and _lane != _spark_lane:
+			_clear_debuff()
+		elif _debuff_timer <= 0.0:
+			_clear_debuff()
+
+	# ── Spark damage tick ─────────────────────────────────────────────────────
+	if _debuff == OBS_SPARK and _lane == _spark_lane:
+		_spark_acc += delta
+		if _spark_acc >= _SPARK_TICK:
+			_spark_acc = 0.0
+			_deal_spark_damage()
+
+	# ── Smoke overlay pulse ───────────────────────────────────────────────────
+	if _debuff == OBS_SMOKE:
+		_smoke_overlay.modulate.a = 0.85 + 0.12 * sin(_pulse * 5.0)
+
+	# ── Obstacles: move, collide, cull ────────────────────────────────────────
+	for obs: _Obstacle in _obstacles.duplicate():
+		obs.tick(delta, scroll_spd)
+		obs.queue_redraw()
+		if not obs.hit and _check_obs_hit(obs):
+			obs.hit = true
+			_apply_debuff(obs.obs_type)
+		if obs.position.x + obs.obs_w < -20.0:
+			obs.queue_free()
+			_obstacles.erase(obs)
+
+	# ── Canisters: move, collect, cull ────────────────────────────────────────
+	for can: _Canister in _canisters.duplicate():
+		can.tick(delta, scroll_spd)
 		can.queue_redraw()
-		if can.collected:
-			continue
-		if _check_squad_pickup(can):
+		if not can.collected and _check_can_pickup(can):
 			_collect_canister(can)
+		if can.position.x < -20.0:
+			can.queue_free()
+			_canisters.erase(can)
 
-	# Timer end
+	# ── Spawn wave ────────────────────────────────────────────────────────────
+	var spawn_ivrl: float = lerpf(_SPAWN_IVRL_S, _SPAWN_IVRL_E, t_ratio)
+	_spawn_acc += delta
+	if _spawn_acc >= spawn_ivrl:
+		_spawn_acc = 0.0
+		_spawn_wave()
+		_maybe_spawn_canister()
+
+	# ── Timer end ─────────────────────────────────────────────────────────────
 	if _run_timer <= 0.0:
 		_run_timer = 0.0
 		_end_run(true)
 		return
 
-	# Check voluntary EXIT
-	if _party.global_position.x >= _EXIT_X - _EXIT_RADIUS:
-		_end_run(true)
-		return
-
-	# Check all dead — is_dead is a PROPERTY (not a method); call() would return null
-	# which `not null` evaluates to true, incorrectly marking dead chars as alive.
+	# ── All dead check ────────────────────────────────────────────────────────
+	# is_dead is a PROPERTY; .get() reads it correctly (call() returns null).
 	var all_dead := true
 	for ch in GameState.party:
 		if ch is Node and not (ch as Node).get("is_dead"):
 			all_dead = false
 			break
-	# GameState.end_run already fires via register_character_death when party empties,
-	# but guard here too. Empty party = no chars yet (guardian default) — don't fail.
 	if GameState.party.is_empty():
 		all_dead = false
 	if all_dead:
@@ -162,187 +265,103 @@ func _process(delta: float) -> void:
 	_refresh_hud()
 
 
-# ── Build helpers ──────────────────────────────────────────────────────────────
+func _unhandled_input(event: InputEvent) -> void:
+	if _run_ended:
+		return
+	if GameState.current_state != GameState.RunState.PLAYING:
+		return
+
+	var pressed := false
+	var press_y := 0.0
+
+	if event is InputEventScreenTouch and (event as InputEventScreenTouch).pressed:
+		pressed = true
+		press_y = (event as InputEventScreenTouch).position.y
+	elif event is InputEventMouseButton:
+		var mb := event as InputEventMouseButton
+		if mb.pressed and mb.button_index == MOUSE_BUTTON_LEFT:
+			pressed = true
+			press_y = mb.position.y
+
+	if not pressed:
+		return
+
+	# WIRE: input locked
+	if _debuff == OBS_WIRE:
+		return
+
+	var vp_mid: float = GameConfig.VIEWPORT_HEIGHT * 0.5
+	var go_up: bool   = press_y < vp_mid
+
+	# EMP: inverts up/down
+	if _debuff == OBS_EMP:
+		go_up = not go_up
+
+	_try_switch_lane(-1 if go_up else 1)
+
+
+# ══ Build helpers ══════════════════════════════════════════════════════════════
 
 func _build_world() -> void:
 	_world = Node2D.new()
 	_world.name = "World"
 	add_child(_world)
 
-	# Dark background
+	# Background
 	var bg := ColorRect.new()
 	bg.color = Color(0.05, 0.05, 0.07)
-	bg.size = Vector2(GameConfig.ARENA_WIDTH, GameConfig.ARENA_HEIGHT)
+	bg.size  = Vector2(GameConfig.VIEWPORT_WIDTH, GameConfig.VIEWPORT_HEIGHT)
 	_world.add_child(bg)
 
-	# Routes (colored floor strips)
-	var route_colors: Array = [
-		Color(0.12, 0.14, 0.18),  # Safe (dim blue-gray)
-		Color(0.12, 0.15, 0.13),  # Medium (dim green-gray)
-		Color(0.18, 0.11, 0.11),  # Dangerous (dim red-gray)
+	# Lane strips (alternating shades for readability)
+	var stripe_colors: Array[Color] = [
+		Color(0.09, 0.10, 0.13), Color(0.11, 0.12, 0.15),
+		Color(0.09, 0.10, 0.13), Color(0.12, 0.13, 0.16),
+		Color(0.09, 0.10, 0.13), Color(0.11, 0.12, 0.15),
+		Color(0.09, 0.10, 0.13),
 	]
-	for i in 3:
-		var route := ColorRect.new()
-		route.color = route_colors[i]
-		route.position = Vector2(_ROUTE_X_START, _ROUTE_Y[i])
-		route.size = Vector2(_ROUTE_X_END - _ROUTE_X_START, _ROUTE_H[i])
-		_world.add_child(route)
+	for i in _LANE_COUNT:
+		var strip := ColorRect.new()
+		strip.color    = stripe_colors[i]
+		strip.position = Vector2(0.0, i * _LANE_H)
+		strip.size     = Vector2(GameConfig.VIEWPORT_WIDTH, _LANE_H - 1.5)
+		_world.add_child(strip)
 
-	# Junction corridors (vertical connectors)
-	for jx: float in _JUNCTION_X:
-		var junc := ColorRect.new()
-		junc.color = Color(0.1, 0.12, 0.14)
-		junc.position = Vector2(jx, _ROUTE_Y[0] + _ROUTE_H[0])
-		junc.size = Vector2(_JUNCTION_W, _ROUTE_Y[2] - _ROUTE_Y[0])
-		_world.add_child(junc)
+	# Lane separators
+	for i in _LANE_COUNT - 1:
+		var sep := ColorRect.new()
+		sep.color    = Color(0.18, 0.18, 0.22, 0.35)
+		sep.position = Vector2(0.0, (i + 1) * _LANE_H - 1.5)
+		sep.size     = Vector2(GameConfig.VIEWPORT_WIDTH, 3.0)
+		_world.add_child(sep)
 
-	# Route labels
-	var route_names := ["ROTA SEGURA", "ROTA MEDIA", "ROTA PERIGOSA"]
-	for i in 3:
-		var lbl := Label.new()
-		lbl.text = route_names[i]
-		lbl.add_theme_font_size_override("font_size", 11)
-		lbl.modulate = Color(0.5, 0.5, 0.55, 0.6)
-		lbl.position = Vector2(_ROUTE_X_START + 8.0, _ROUTE_Y[i] + 4.0)
-		_world.add_child(lbl)
-
-	# Camera
+	# Camera (static — world fills viewport, only Y of party changes)
 	_camera = Camera2D.new()
 	_camera.name = "Camera"
-	_camera.limit_left = 0
-	_camera.limit_top = 0
-	_camera.limit_right = int(GameConfig.ARENA_WIDTH)
-	_camera.limit_bottom = int(GameConfig.ARENA_HEIGHT)
-	_camera.position_smoothing_enabled = true
-	_camera.position_smoothing_speed = 10.0
+	_camera.position = Vector2(
+		GameConfig.VIEWPORT_WIDTH  * 0.5,
+		GameConfig.VIEWPORT_HEIGHT * 0.5)
 	add_child(_camera)
 
 
 func _build_squad() -> void:
 	_party = Party.new()
 	_party.name = "Party"
-	# Start at entry point on medium route
-	_party.position = Vector2(_ENTRY_X, _ROUTE_Y[1] + _ROUTE_H[1] * 0.5)
+	_party.position = Vector2(_PLAYER_X, _player_y)
 	_world.add_child(_party)
 
-	# Always Guardian as leader
 	var guardian := Guardian.new()
 	_party.add_character(guardian)
 
-	# Add rescued characters if available (up to MAX_PARTY_SIZE)
-	if "Striker" in HubState.rescued_characters and GameState.party.size() < GameConfig.MAX_PARTY_SIZE:
+	if "Striker" in HubState.rescued_characters \
+			and GameState.party.size() < GameConfig.MAX_PARTY_SIZE:
 		_party.add_character(Striker.new())
-	if "Artificer" in HubState.rescued_characters and GameState.party.size() < GameConfig.MAX_PARTY_SIZE:
+	if "Artificer" in HubState.rescued_characters \
+			and GameState.party.size() < GameConfig.MAX_PARTY_SIZE:
 		_party.add_character(Artificer.new())
-	if "Medic" in HubState.rescued_characters and GameState.party.size() < GameConfig.MAX_PARTY_SIZE:
+	if "Medic" in HubState.rescued_characters \
+			and GameState.party.size() < GameConfig.MAX_PARTY_SIZE:
 		_party.add_character(Medic.new())
-
-	_drag_controller = DragController.new()
-	_drag_controller.name = "DragController"
-	_drag_controller.party_node = _party
-	add_child(_drag_controller)
-
-
-func _build_canisters() -> void:
-	var canisters_node := Node2D.new()
-	canisters_node.name = "Canisters"
-	_world.add_child(canisters_node)
-
-	# Safe route: 4 static canisters
-	var safe_y: float = (_ROUTE_Y[0] as float) + (_ROUTE_H[0] as float) * 0.5
-	for x: float in [560.0, 960.0, 1400.0, 1800.0]:
-		_spawn_canister(canisters_node, Vector2(x, safe_y), false, false)
-
-	# Medium route: 3 static + 3 moving, 2 bonus
-	var mid_y: float = (_ROUTE_Y[1] as float) + (_ROUTE_H[1] as float) * 0.5
-	_spawn_canister(canisters_node, Vector2(600.0, mid_y), false, false)
-	_spawn_canister(canisters_node, Vector2(1200.0, mid_y), false, true)   # bonus +T
-	_spawn_canister(canisters_node, Vector2(1800.0, mid_y), false, false)
-	_spawn_moving_canister(canisters_node, Vector2(800.0, mid_y),  760.0, 1080.0)
-	_spawn_moving_canister(canisters_node, Vector2(1500.0, mid_y), 1400.0, 1740.0)
-	_spawn_moving_canister(canisters_node, Vector2(2100.0, mid_y), 1960.0, 2300.0)
-
-	# Dangerous route: 5 static + 3 moving, 1 bonus
-	var danger_y: float = (_ROUTE_Y[2] as float) + (_ROUTE_H[2] as float) * 0.5
-	_spawn_canister(canisters_node, Vector2(600.0, danger_y), false, false)
-	_spawn_canister(canisters_node, Vector2(840.0, danger_y), false, false)
-	_spawn_canister(canisters_node, Vector2(1320.0, danger_y), false, true)   # bonus +T
-	_spawn_canister(canisters_node, Vector2(1800.0, danger_y), false, false)
-	_spawn_canister(canisters_node, Vector2(2280.0, danger_y), false, false)
-	_spawn_moving_canister(canisters_node, Vector2(1080.0, danger_y), 1000.0, 1240.0)
-	_spawn_moving_canister(canisters_node, Vector2(1560.0, danger_y), 1460.0, 1720.0)
-	_spawn_moving_canister(canisters_node, Vector2(2040.0, danger_y), 1920.0, 2200.0)
-
-
-func _spawn_canister(parent: Node, pos: Vector2, _moving: bool, bonus: bool) -> void:
-	var can := _Canister.new()
-	can.setup_static(pos, bonus)
-	parent.add_child(can)
-	_canisters.append(can)
-
-
-func _spawn_moving_canister(parent: Node, pos: Vector2, min_x: float, max_x: float) -> void:
-	var can := _Canister.new()
-	can.setup_moving(pos, Vector2(GameConfig.EXTRACTION_CANISTER_SPEED, 0.0), min_x, max_x)
-	parent.add_child(can)
-	_canisters.append(can)
-
-
-func _build_drones() -> void:
-	var drones_node := Node2D.new()
-	drones_node.name = "Drones"
-	_world.add_child(drones_node)
-
-	var leader := _get_leader()
-	var mid_y: float = (_ROUTE_Y[1] as float) + (_ROUTE_H[1] as float) * 0.5
-	var danger_y: float = (_ROUTE_Y[2] as float) + (_ROUTE_H[2] as float) * 0.5
-
-	# Medium route: 1 drone
-	_spawn_drone(drones_node, Vector2(1300.0, mid_y), Vector2(1100.0, mid_y), leader)
-
-	# Dangerous route: 2 drones
-	_spawn_drone(drones_node, Vector2(1000.0, danger_y), Vector2(840.0, danger_y), leader)
-	_spawn_drone(drones_node, Vector2(1800.0, danger_y), Vector2(1640.0, danger_y), leader)
-
-
-func _spawn_drone(parent: Node, a: Vector2, b: Vector2, leader: Node2D) -> void:
-	var drone := ExtractionDrone.new()
-	drone.setup(a, b, leader)
-	drone.died.connect(func(): _drones.erase(drone))
-	parent.add_child(drone)
-	_drones.append(drone)
-
-
-func _build_exit() -> void:
-	var exit_node := Node2D.new()
-	exit_node.name = "Exit"
-	# Exit spans all routes vertically, centered mid-route
-	exit_node.position = Vector2(_EXIT_X, _ROUTE_Y[1] + _ROUTE_H[1] * 0.5)
-	_world.add_child(exit_node)
-
-	var drawer := _ExitDrawer.new()
-	drawer.route_y = _ROUTE_Y
-	drawer.route_h = _ROUTE_H
-	drawer.exit_x = _EXIT_X
-	drawer.radius = _EXIT_RADIUS
-	_world.add_child(drawer)
-
-
-func _build_danger_wall() -> void:
-	# A tall red gradient wall that scrolls from left to right
-	_danger_wall = ColorRect.new()
-	_danger_wall.color = Color(0.85, 0.08, 0.08, 0.55)
-	_danger_wall.size = Vector2(80.0, GameConfig.ARENA_HEIGHT)
-	_danger_wall.position = Vector2(_scroll_x - 80.0, 0.0)
-	_danger_wall.z_index = 5
-	_world.add_child(_danger_wall)
-
-	# Thin bright edge on the right side of the wall
-	var edge := ColorRect.new()
-	edge.color = Color(1.0, 0.15, 0.15, 0.90)
-	edge.size = Vector2(4.0, GameConfig.ARENA_HEIGHT)
-	edge.position = Vector2(76.0, 0.0)   # right edge of the wall rect
-	_danger_wall.add_child(edge)
 
 
 func _build_hud() -> void:
@@ -350,18 +369,39 @@ func _build_hud() -> void:
 	layer.layer = 10
 	add_child(layer)
 
+	# Timer
 	_timer_lbl = Label.new()
 	_timer_lbl.add_theme_font_size_override("font_size", 32)
 	_timer_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_timer_lbl.position = Vector2(GameConfig.VIEWPORT_WIDTH * 0.5 - 60, 12)
-	_timer_lbl.size = Vector2(120, 44)
+	_timer_lbl.position = Vector2(GameConfig.VIEWPORT_WIDTH * 0.5 - 60.0, 12.0)
+	_timer_lbl.size     = Vector2(120.0, 44.0)
 	layer.add_child(_timer_lbl)
 
+	# Backpack slots
 	_slots_lbl = Label.new()
 	_slots_lbl.add_theme_font_size_override("font_size", 14)
-	_slots_lbl.position = Vector2(GameConfig.VIEWPORT_WIDTH - 130, 14)
-	_slots_lbl.size = Vector2(120, 30)
+	_slots_lbl.position = Vector2(GameConfig.VIEWPORT_WIDTH - 130.0, 14.0)
+	_slots_lbl.size     = Vector2(120.0, 30.0)
 	layer.add_child(_slots_lbl)
+
+	# Active debuff label
+	_debuff_lbl = Label.new()
+	_debuff_lbl.add_theme_font_size_override("font_size", 12)
+	_debuff_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_debuff_lbl.position = Vector2(GameConfig.VIEWPORT_WIDTH * 0.5 - 100.0, 58.0)
+	_debuff_lbl.size     = Vector2(200.0, 24.0)
+	_debuff_lbl.visible  = false
+	layer.add_child(_debuff_lbl)
+
+	# Smoke overlay (right 65% of screen — obscures incoming obstacles)
+	_smoke_overlay = ColorRect.new()
+	_smoke_overlay.color         = Color(0.05, 0.05, 0.06, 0.0)
+	_smoke_overlay.position      = Vector2(GameConfig.VIEWPORT_WIDTH * 0.35, 0.0)
+	_smoke_overlay.size          = Vector2(GameConfig.VIEWPORT_WIDTH * 0.65,
+										   GameConfig.VIEWPORT_HEIGHT)
+	_smoke_overlay.mouse_filter  = Control.MOUSE_FILTER_IGNORE
+	_smoke_overlay.z_index       = 9
+	layer.add_child(_smoke_overlay)
 
 	# End-run overlay
 	_overlay_panel = ColorRect.new()
@@ -373,40 +413,175 @@ func _build_hud() -> void:
 	_overlay_lbl = Label.new()
 	_overlay_lbl.add_theme_font_size_override("font_size", 28)
 	_overlay_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_overlay_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_overlay_lbl.vertical_alignment   = VERTICAL_ALIGNMENT_CENTER
 	_overlay_lbl.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_overlay_panel.add_child(_overlay_lbl)
 
 
-# ── Gameplay helpers ───────────────────────────────────────────────────────────
+# ══ Spawn helpers ══════════════════════════════════════════════════════════════
 
-func _get_leader() -> Node2D:
-	if _party.get_child_count() > 0:
-		return _party.get_child(0) as Node2D
-	return _party
+func _spawn_wave() -> void:
+	var sx: float = GameConfig.VIEWPORT_WIDTH + _SPAWN_X
+	var pattern: int = randi_range(0, 5)
+	match pattern:
+		0:  # Single lane
+			_spawn_obs(randi_range(0, _LANE_COUNT - 1), sx)
+		1:  # Two adjacent lanes
+			var base: int = randi_range(0, _LANE_COUNT - 2)
+			_spawn_obs(base,     sx)
+			_spawn_obs(base + 1, sx + randf_range(15.0, 50.0))
+		2:  # Three lanes, staggered
+			var first: int = randi_range(0, _LANE_COUNT - 1)
+			_spawn_obs(first, sx)
+			_spawn_obs(wrapi(first + 2, 0, _LANE_COUNT), sx + 80.0)
+			_spawn_obs(wrapi(first + 4, 0, _LANE_COUNT), sx + 160.0)
+		3:  # Wall with gap (4 blocked, 3 free corridor)
+			var gap_start: int = randi_range(0, _LANE_COUNT - 3)
+			for i in _LANE_COUNT:
+				if i < gap_start or i >= gap_start + 3:
+					_spawn_obs(i, sx + randf_range(0.0, 25.0))
+		4:  # Two separated pairs (forces two quick moves)
+			var l1: int = randi_range(0, _LANE_COUNT - 2)
+			var l2: int = randi_range(0, _LANE_COUNT - 2)
+			_spawn_obs(l1,     sx)
+			_spawn_obs(l1 + 1, sx)
+			_spawn_obs(l2,     sx + 220.0)
+			_spawn_obs(l2 + 1, sx + 220.0)
+		5:  # Dense wall with single-lane escape
+			var safe: int = randi_range(0, _LANE_COUNT - 1)
+			for i in _LANE_COUNT:
+				if i != safe:
+					_spawn_obs(i, sx + randf_range(0.0, 20.0))
 
 
-func _check_squad_pickup(can: _Canister) -> bool:
-	for member in GameState.party:
-		if member is Node2D:
-			if (member as Node2D).global_position.distance_to(can.global_position) <= _PICK_RADIUS:
-				return true
-	# Also check party node itself (leader position)
-	if _party.global_position.distance_to(can.global_position) <= _PICK_RADIUS:
-		return true
-	return false
+func _spawn_obs(lane_idx: int, x: float) -> void:
+	var obs     := _Obstacle.new()
+	var obs_type := randi_range(0, OBS_COUNT - 1)
+	var obs_w   := randf_range(_OBS_W_MIN, _OBS_W_MAX)
+	obs.setup(lane_idx, obs_w, obs_type, x)
+	_world.add_child(obs)
+	_obstacles.append(obs)
 
+
+func _maybe_spawn_canister() -> void:
+	if randf() > 0.65:
+		return
+	var lane_idx: int = randi_range(0, _LANE_COUNT - 1)
+	var is_bonus: bool = randf() < 0.12
+	var cx: float = GameConfig.VIEWPORT_WIDTH + _SPAWN_X + randf_range(60.0, 200.0)
+	var cy: float = _lane_center(lane_idx)
+	var can := _Canister.new()
+	can.setup(Vector2(cx, cy), is_bonus)
+	_world.add_child(can)
+	_canisters.append(can)
+
+
+# ══ Lane helpers ═══════════════════════════════════════════════════════════════
+
+func _lane_center(l: int) -> float:
+	return l * _LANE_H + _LANE_H * 0.5
+
+
+func _try_switch_lane(dir: int) -> void:
+	# Snap current transition before starting a new one
+	if _lerp < 1.0:
+		_lane    = _lane_t
+		_lerp    = 1.0
+		_player_y = _lane_center(_lane)
+
+	var new_t: int = clamp(_lane + dir, 0, _LANE_COUNT - 1)
+	if new_t == _lane:
+		return
+	_lane_t = new_t
+	_lerp   = 0.0
+
+
+# ══ Collision helpers ══════════════════════════════════════════════════════════
+
+func _check_obs_hit(obs: _Obstacle) -> bool:
+	# X overlap: player occupies [PLAYER_X-18, PLAYER_X+18]
+	if obs.position.x > _PLAYER_X + 18.0:
+		return false
+	if obs.position.x + obs.obs_w < _PLAYER_X - 18.0:
+		return false
+	# Lane match — use settled _lane so mid-transition dodges work
+	return obs.lane == _lane
+
+
+func _check_can_pickup(can: _Canister) -> bool:
+	return Vector2(_PLAYER_X, _player_y).distance_to(can.position) <= _PICK_RADIUS
+
+
+# ══ Debuff system ══════════════════════════════════════════════════════════════
+
+func _apply_debuff(obs_type: int) -> void:
+	# Don't stack — ignore if same type already active
+	if _debuff == obs_type:
+		return
+	_debuff = obs_type
+	match obs_type:
+		OBS_SMOKE:
+			_debuff_timer = _DUR_SMOKE
+			_smoke_overlay.modulate.a = 1.0
+			_smoke_overlay.color      = Color(0.05, 0.05, 0.06, 0.88)
+		OBS_SLOW:
+			_debuff_timer = _DUR_SLOW
+		OBS_SPARK:
+			_debuff_timer = 60.0   # stays until player leaves the lane
+			_spark_lane   = _lane
+			_spark_acc    = 0.0
+		OBS_EMP:
+			_debuff_timer = _DUR_EMP
+		OBS_WIRE:
+			_debuff_timer = _DUR_WIRE
+	_update_debuff_hud()
+
+
+func _clear_debuff() -> void:
+	if _debuff == OBS_SMOKE:
+		_smoke_overlay.color    = Color(0.05, 0.05, 0.06, 0.0)
+		_smoke_overlay.modulate = Color.WHITE
+	_debuff       = -1
+	_debuff_timer = 0.0
+	_spark_lane   = -1
+	_debuff_lbl.visible = false
+
+
+func _deal_spark_damage() -> void:
+	for ch in GameState.party:
+		if ch is Node and not (ch as Node).get("is_dead"):
+			if (ch as Node).has_method("take_damage"):
+				(ch as Node).call("take_damage", _SPARK_DMG)
+			break
+
+
+func _update_debuff_hud() -> void:
+	var names: Dictionary = {
+		OBS_SMOKE: "FUMAÇA — visão obstruída",
+		OBS_SLOW:  "LENTO — troca de lane lenta",
+		OBS_SPARK: "FAÍSCA — dano por segundo",
+		OBS_EMP:   "EMP — controles invertidos",
+		OBS_WIRE:  "TEIA — lane travada",
+	}
+	if _debuff in names:
+		_debuff_lbl.text    = names[_debuff]
+		_debuff_lbl.visible = true
+
+
+# ══ Canister collection ════════════════════════════════════════════════════════
 
 func _collect_canister(can: _Canister) -> void:
 	can.collected = true
-	can.visible = false
+	can.visible   = false
 	if can.is_bonus:
 		_run_timer += GameConfig.EXTRACTION_BONUS_TIME
 	else:
-		var cap := HubState.get_backpack_capacity()
+		var cap: int = HubState.get_backpack_capacity()
 		if _backpack.size() < cap:
 			_backpack.append("combustivel_volatil")
 
+
+# ══ Run end ════════════════════════════════════════════════════════════════════
 
 func _end_run(victory: bool) -> void:
 	if _run_ended:
@@ -431,15 +606,17 @@ func _end_run(victory: bool) -> void:
 
 
 func _on_run_ended(_victory: bool) -> void:
-	pass  # handled in _end_run directly
+	pass   # handled directly in _end_run
 
+
+# ══ HUD refresh ════════════════════════════════════════════════════════════════
 
 func _refresh_hud() -> void:
-	# Timer color: red below 10s
-	var t := _run_timer
-	var secs := int(t)
-	var frac := int((t - float(secs)) * 10.0)
+	var t: float   = _run_timer
+	var secs: int  = int(t)
+	var frac: int  = int((t - float(secs)) * 10.0)
 	_timer_lbl.text = "%d.%d" % [secs, frac]
+
 	if t <= 10.0:
 		_timer_lbl.modulate = Color(1.0, 0.2, 0.2)
 	elif t <= 20.0:
@@ -447,33 +624,10 @@ func _refresh_hud() -> void:
 	else:
 		_timer_lbl.modulate = Color(0.9, 0.95, 1.0)
 
-	var cap := HubState.get_backpack_capacity()
+	var cap: int = HubState.get_backpack_capacity()
 	_slots_lbl.text = "Comb: %d/%d" % [_backpack.size(), cap]
 
-	# Danger wall proximity warning
-	var dist := _party.global_position.x - _scroll_x
-	if dist < 200.0:
-		var warn_alpha := clampf(1.0 - dist / 200.0, 0.0, 1.0)
-		_timer_lbl.modulate = Color(1.0, 0.1 + 0.1 * sin(_pulse * 10.0), 0.1, warn_alpha).lerp(
-			_timer_lbl.modulate, 1.0 - warn_alpha)
-
-
-# ── Exit drawer ────────────────────────────────────────────────────────────────
-
-class _ExitDrawer extends Node2D:
-	var route_y: Array = []
-	var route_h: Array = []
-	var exit_x: float = 0.0
-	var radius: float = 45.0
-
-	func _draw() -> void:
-		# Vertical bar spanning all routes
-		var top_y: float = route_y[0] + route_h[0] * 0.3
-		var bot_y: float = route_y[2] + route_h[2] * 0.7
-		draw_line(Vector2(exit_x, top_y), Vector2(exit_x, bot_y),
-			Color(0.2, 0.9, 0.3, 0.7), 4.0)
-		draw_circle(Vector2(exit_x, route_y[1] + route_h[1] * 0.5), radius,
-			Color(0.2, 0.9, 0.3, 0.18))
-		draw_string(ThemeDB.fallback_font,
-			Vector2(exit_x - 18, route_y[1] + route_h[1] * 0.5 + 6),
-			"EXIT", HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(0.3, 1.0, 0.4, 0.9))
+	# Debuff countdown suffix
+	if _debuff >= 0 and _debuff_timer < 55.0:
+		_debuff_lbl.text = _debuff_lbl.text.split(" —")[0] \
+			+ " — %.1fs" % maxf(_debuff_timer, 0.0)
