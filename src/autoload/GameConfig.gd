@@ -155,6 +155,9 @@ const STEALTH_CAMERA_LENGTH: float = 150.0
 const STEALTH_CAMERA_HALF_ANGLE: float = 30.0  # degrees each side
 const STEALTH_CAMERA_ROTATION_SPEED: float = 40.0  # degrees per second
 const STEALTH_CONTACT_RADIUS: float = 18.0   # distance for drone to catch agent
+const STEALTH_EXTRACTION_PULSE_RADIUS: float = 150.0  # sound radius after hacking a terminal
+const STEALTH_GUARDIAN_VISION_LENGTH: float = 240.0   # terminal guardian cone length
+const STEALTH_GUARDIAN_HALF_ANGLE: float = 22.0       # terminal guardian cone half-width (degrees)
 
 # ── Circuit Zone (Circuito Quebrado) ──────────────────────────────────────────
 const CIRCUIT_RUN_TIMER: float = 90.0

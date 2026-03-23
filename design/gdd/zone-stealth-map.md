@@ -42,6 +42,20 @@ O mapa da Zona Stealth é construído sobre **linha de visão como recurso**. Ca
 
 O jogador lê o mapa intuitivamente: **lugares escuros são seguros, lugares iluminados são perigosos**. No contexto do escritório, isso se traduz em: corredores de serviço e salas sem uso são escuros e seguros; open spaces e corredores principais são iluminados e perigosos.
 
+### Regra de Isolamento de Terminal
+
+Todo terminal é posicionado no centro de uma **ilha de exposição**: área circular de ≥150px de raio sem sombra. A sombra mais próxima é a posição do jogador antes de partir para o terminal — não durante.
+
+### Regra de Guardião de Terminal
+
+Todo terminal tem um `TerminalGuardian` posicionado entre a sombra mais próxima e o terminal:
+- O cone do guardião cobre o caminho natural de aproximação (saída da sombra → terminal)
+- Para chegar ao terminal o jogador deve: (a) distrair o guardião com raio de som, ou (b) usar Sincronização Cinética com um drone que passe pelo ângulo morto do guardião, ou (c) aguardar uma janela criada por patrulhas convergentes
+
+### Regra de Patrulhas Convergentes
+
+Cada cluster de terminais (zona do mapa) deve ter ≥2 rotas de drone que se cruzam na área. A janela simultânea onde ambos estão no ponto mais distante dura ≤3s — exige leitura de dois ritmos.
+
 ---
 
 ## Linguagem dos Elementos do Mapa
@@ -188,6 +202,14 @@ Não se move. Cone de visão fixo, mas pode ter rotação lenta (variante girat�
 
 ---
 
+### Guardião de Terminal — "Sentinela"
+Drone hovering estático — diamante laranja-âmbar pulsante, tamanho de um punho. Não tem
+rota, não rotaciona. Cone de visão fixo apontado para o terminal que guarda. Olho branco
+central pisca indicando que está ativo. Um por terminal — o player aprende a reconhecer a
+cor laranja como "guarda objetivo". Quando detecta: dispara alarme (não persegue).
+
+---
+
 ### Drone-Recepcionista — "Atendente" *(único na recepção)*
 Estático atrás do balcão. Campo visual de 180° — não se move, mas vê metade da sala. Não persegue (não tem pernas) — chama reforços ao detectar. Único inimigo que pode ser "distraído" por o jogador fazer barulho do lado oposto do balcão (vira para investigar, abrindo passagem pelo lado cego).
 
@@ -241,11 +263,14 @@ Para que o jogador leia o mapa em frações de segundo (essencial no mobile):
 ## Acceptance Criteria — Layout
 
 - [ ] O jogador nunca fica preso sem rota de escape visível
-- [ ] Toda área aberta tem pelo menos uma zona de sombra a ≤ 80px de distância
+- [ ] Toda área aberta tem pelo menos uma zona de sombra a ≤ 80px de distância *(rotas de fuga; terminais são exceção deliberada)*
 - [ ] As 3 rotas (segura/média/perigosa) são visualmente identificáveis no início da run
-- [ ] A Praça Central é legível como "zona de alto risco, alta recompensa" ao primeiro olhar
+- [ ] O open space principal é legível como "zona de alto risco, alta recompensa" ao primeiro olhar
 - [ ] Um playtest sem instruções consegue completar uma run em ≤ 4 tentativas
-- [ ] Nenhum componente é coletável sem pelo menos 1 decisão tática de timing
+- [ ] Nenhum terminal é coletável sem pelo menos 1 ação tática ativa (distração, sinc, ou timing de 2 patrulhas)
+- [ ] Nenhum terminal está a ≤150px de uma zona de sombra
+- [ ] Cada terminal tem um TerminalGuardian (diamante laranja) visível antes de entrar na zona quente
+- [ ] As rotas de patrulha convergentes ao redor dos terminais têm janela simultânea legível em ≤8s de observação
 
 ---
 
