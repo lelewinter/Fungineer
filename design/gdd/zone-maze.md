@@ -1,8 +1,8 @@
 # Labirinto Dinâmico — Game Design Document
 
-**Version**: 1.0
-**Date**: 2026-03-22
-**Status**: Draft
+**Version**: 2.0
+**Date**: 2026-03-23
+**Status**: Revisado — Impulso de Abertura
 
 ---
 
@@ -48,10 +48,10 @@ uma cidade deixou para trás. O foguete não é novo — é a cidade, reconfigur
 
 ## 2. Player Fantasy
 
-O labirinto muda. Você vê a parede se fechando — 3 segundos. Você corre. Passa. A parede fecha atrás de você com um clique metálico. Há um Fragmento na alcova à esquerda. Você desvia, coleta, volta para o corredor principal — e agora uma parede na frente está abrindo em 2 segundos. Você espera. Passa. Um inimigo emerge da passagem recém-aberta. Você desvia. O labirinto é um sistema vivo, e você está aprendendo o ritmo. Na terceira run, você já sabe qual parede abrir primeiro, qual alcova tem o melhor Fragmento, qual caminho evitar no final. O mapa é a mecânica.
+O labirinto responde ao seu movimento. Você corre em direção à parede — e ela abre mais cedo para você. Você fica parado esperando — e ela recusa, fecha mais devagar. O sistema de FLOW foi projetado para otimizar o fluxo de carga em movimento. Parado, você não é carga — é obstáculo. Há um Fragmento na alcova à esquerda. Você entra correndo — a porta da alcova abre no momento que você chega. Você coleta e sai acelerando, a porta se fecha atrás de você no milímetro certo. Um inimigo emerge da passagem recém-aberta. Você não espera — você contorna em movimento. O labirinto é um sistema que recompensa quem nunca para. Na terceira run, você corre como se o chão estivesse se movendo junto com você.
 
-**Estética MDA primária**: Challenge (leitura de timing, planejamento de rota sob pressão dinâmica).
-**Estética secundária**: Discovery (memorizar o labirinto, encontrar rotas alternativas, acumular conhecimento entre runs).
+**Estética MDA primária**: Challenge (leitura de timing em movimento, planejamento de rota antecipado).
+**Estética secundária**: Discovery (descobrir que mover-se é mais eficiente que esperar, memorizar os ritmos das paredes).
 
 ---
 
@@ -71,54 +71,72 @@ O labirinto muda. Você vê a parede se fechando — 3 segundos. Você corre. Pa
 ### 3.2 Interpretação do Movimento (como arrastar funciona aqui)
 
 - **Input**: arrastar o dedo = mover o personagem
-- **Significado aqui**: mover é navegar — cada posição no labirinto tem implicações de timing. O movimento é tanto sobre "onde ir" quanto sobre "quando ir"
-- **Parar é uma tática**: esperar uma parede abrir é parar voluntariamente; esperar na posição certa na hora certa é a habilidade central
-- **Salas seguras**: algumas salas (sem saídas abertas no momento) são refúgios temporários — ficar parado aqui é seguro, mas custa tempo
+- **Significado aqui**: mover é o que abre o caminho. As paredes de FLOW foram projetadas para responder a presença cinética — carga em movimento. O algoritmo do sistema detecta velocidade de aproximação e antecipa a abertura. Ficar parado é invisível para o sistema
+- **Mover é mais eficiente que esperar**: aproximar-se de uma parede em movimento faz ela abrir mais cedo. Ficar estático esperando faz ela abrir no tempo padrão (ou até mais devagar)
+- **Parar tem custo**: parar por mais de 3s em frente a uma parede fechada faz o algoritmo "rejeitar" a presença — a abertura atrasa em 2s adicionais
+- **Salas seguras**: salas sem saídas abertas ainda existem como ponto de respiração, mas entrar e sair delas em movimento é mais eficiente que ficar parado dentro
 
-### 3.3 Mecânica Central — Paredes Dinâmicas
+### 3.3 Mecânica Central — Paredes Cinéticas
 
 #### Estados das Paredes
 
-Cada segmento de parede tem um estado cíclico com duração configurável:
+Cada segmento de parede tem um estado cíclico com duração base configurável, **modificável pela proximidade do jogador em movimento**:
 
-| Estado | Visual | Duração | Efeito |
+| Estado | Visual | Duração Base | Efeito |
 |--------|--------|---------|--------|
 | **Aberta** | Sem parede, passagem livre | Variável (3–8s) | Passagem permitida |
-| **Fechando** | Parede aparecendo + contador piscando (vermelho) | 3s de aviso | Passagem ainda permitida, mas ativa o aviso sonoro e visual |
-| **Fechada** | Parede sólida | Variável (5–12s) | Passagem bloqueada |
-| **Abrindo** | Parede sumindo + contador (verde) | 2s de aviso | Passagem disponível em 2s |
+| **Fechando** | Parede aparecendo + contador piscando (vermelho) | 3s de aviso | Passagem ainda permitida; movimento em direção à parede cancela o fechamento por 1s |
+| **Fechada** | Parede sólida | Variável (5–12s) | Passagem bloqueada; modificável por Impulso |
+| **Abrindo** | Parede sumindo + contador (verde) | 2s de aviso (base) → 0.5s (com Impulso) | Passagem disponível |
 
-**O ciclo completo de uma parede:**
+**O ciclo completo de uma parede (sem Impulso):**
 ```
 Fechada → [2s Abrindo] → Aberta → [3s Fechando (aviso)] → Fechada → ...
 ```
 
-A duração de Aberta e Fechada varia por parede e por run (procedural dentro de ranges definidos). Os timings do aviso (3s fechando, 2s abrindo) são sempre os mesmos — o jogador pode confiar neles.
+#### Mecânica de Impulso de Abertura (Nova)
+
+As paredes de FLOW respondem à **velocidade de aproximação** do jogador:
+
+**Limiar de Impulso**: quando o jogador está a menos de 100px de uma parede fechada e movendo-se **em direção a ela** a pelo menos 80% da velocidade máxima por 0.5s contínuos:
+
+- A parede entra em estado **Abrindo Antecipado** — abre 1.5s mais cedo que o timer normal indicaria
+- A animação de abertura é visualmente acelerada (faíscas elétricas — o sistema reagindo ao impacto cinético)
+- O contador da parede reflete a antecipação (pula para o timer de abertura imediata)
+
+**Penalidade de Estagnação**: quando o jogador está a menos de 150px de uma parede fechada e **parado ou movendo-se a menos de 30% da velocidade** por mais de 3s:
+
+- O contador da parede regride em 2s (a abertura atrasa)
+- Feedback visual: a parede pulsa levemente (o sistema "empurrando" o obstáculo estático)
+- Máximo de 1 penalidade de estagnação por tentativa de passagem
+
+**Sem Impulso Negativo no Fechamento**: a mecânica de Impulso só afeta o estado Fechada → Abrindo. O fechamento (Aberta → Fechando → Fechada) segue sempre o timer normal — para o jogador poder confiar no aviso de fechamento.
 
 #### Visibilidade dos Timers
 
-- Cada parede tem um **contador visual** em cima dela: um arco decrescente ou barra que indica quando muda de estado
-- Estado Aberta: contador mostra tempo restante até começar a fechar
-- Estado Fechada: contador mostra tempo restante até começar a abrir
+- Cada parede tem um **contador visual** em cima dela: um arco decrescente que indica quando muda de estado
+- Estado Aberta: contador mostra tempo até começar a fechar
+- Estado Fechada: contador mostra tempo restante até abrir (inclui antecipação por Impulso em tempo real)
 - Estado Fechando (aviso): contador vermelho piscante (3s)
-- Estado Abrindo (aviso): contador verde (2s)
-- O jogador pode ler todos os timers visíveis na tela simultaneamente — o planejamento é possível
+- Estado Abrindo (aviso): contador verde (2s base; pode ser encurtado por Impulso)
+- **Indicador de Impulso ativo**: quando o Impulso está sendo aplicado, a parede pulsa em ciano — feedback claro de que a aproximação está acelerando a abertura
 
 #### Ficar Preso em Parede Fechando
 
 - Se o personagem está no espaço de uma parede quando ela fecha:
   - **Aviso (3s)**: a parede pisca vermelho, som de alerta começa
-  - **1s antes de fechar**: se o personagem ainda está no espaço da parede → **recebe 1 hit de dano e é empurrado para o lado mais próximo** (definido pela posição exata do personagem no segmento)
+  - **Escape por movimento**: se o jogador se mover rapidamente para fora do espaço da parede durante o aviso, sem dano
+  - **1s antes de fechar**: se o personagem ainda está no espaço da parede → **recebe 1 hit de dano e é empurrado para o lado mais próximo**
   - A parede fecha normalmente após o empurrão
-- O jogador tem HP de 3 hits (como Circuito Quebrado e Infecção)
-- Ficar preso é consequência de má leitura de timing ou de decisão apressada, não de dificuldade injusta
+- O jogador tem HP de 3 hits
+- Ficar preso é consequência de hesitar em vez de continuar em movimento
 
-#### Salas Seguras
+#### Salas Seguras (Reformuladas)
 
-- Uma sala sem nenhuma saída aberta no momento = Sala Segura temporária
-- Ficar em uma Sala Segura: zero risco de dano, zero risco de armadilha
-- Custo: tempo parado enquanto espera uma parede abrir
-- As Salas Seguras são pontos de respiração — o jogador pode reorganizar o planejamento
+- Uma sala sem nenhuma saída aberta = Sala Cinética (não mais "segura" no mesmo sentido)
+- Ficar em uma Sala Cinética: zero dano, mas a penalidade de estagnação pode se aplicar às paredes ao redor se o jogador ficar estático por 3s+
+- O jogador que entra em uma Sala Cinética em movimento e imediatamente posiciona-se em direção à próxima saída ativa o Impulso antes mesmo que a parede comece a abrir
+- A Sala Cinética continua sendo ponto de respiração — mas o ritmo correto é entrar, planejar brevemente, sair em movimento
 
 ### 3.4 Layout do Labirinto
 
@@ -179,12 +197,49 @@ janela_segura = duracao_aberta - tempo_para_atravessar
 Variáveis:
   duracao_aberta         = tempo que a parede permanece aberta (3–8s, procedural)
   tempo_para_atravessar  = largura_parede / velocidade_jogador = 60px / 200px/s = 0.3s
-  aviso_fechamento       = 3s (always fixed)
+  aviso_fechamento       = 3s (sempre fixo)
 
 janela_real_segura = duracao_aberta - aviso_fechamento = 0s até 5s
 
-Parede com duracao_aberta = 3s: janela real = 0s → APENAS o tempo de aviso é a oportunidade
+Parede com duracao_aberta = 3s: janela real = 0s → apenas o tempo de aviso é a oportunidade
 Parede com duracao_aberta = 8s: janela real = 5s → confortável
+```
+
+### Ganho de Tempo por Impulso de Abertura
+
+```
+antecipacao_impulso = 1.5s (fixo quando impulso ativado)
+
+Condição:
+  distancia_jogador_parede <= 100px
+  velocidade_jogador >= 0.8 × velocidade_max = 160 px/s
+  duracao_condicao >= 0.5s
+
+Impacto no timing efetivo:
+  Sem impulso: jogador espera timer_fechada completo (~5–12s)
+  Com impulso: jogador inicia corrida enquanto parede ainda está fechada;
+               parede abre 1.5s antes do timer normal
+               → o "tempo de espera percebido" é zero se o timing for perfeito
+
+Exemplo:
+  Parede com 3s restantes de fechamento. Jogador corre em direção a ela em 160px/s:
+  timer_efetivo = 3s - 1.5s = 1.5s restantes quando o impulso ativa
+  → Jogador chega à parede em 100px / 160px/s = 0.625s
+  → Parede abre em 1.5s - 0.625s = 0.875s após o jogador já ter chegado
+  → Com antecipação: o jogador inicia o Impulso mais cedo e chega quase ao mesmo tempo que abre
+```
+
+### Penalidade de Estagnação
+
+```
+penalidade_estagnacao = +2s no timer_fechada atual
+
+Condição:
+  distancia_jogador_parede <= 150px
+  velocidade_jogador <= 0.3 × velocidade_max = 60 px/s
+  duracao_condicao >= 3s
+
+Máximo: 1 penalidade por tentativa de passagem (não acumula indefinidamente)
 ```
 
 ### Custo de Tempo por Alcova
@@ -279,18 +334,24 @@ O jogador deve ser capaz de evitar todos com boa navegação (inimigos têm velo
 
 | Parâmetro | Valor Base | Range Seguro | Categoria | Efeito no Gameplay |
 |-----------|------------|--------------|-----------|---------------------|
-| `duracao_aviso_fechamento` | 3s | 2–5s | Feel | Tempo para o jogador reagir antes da parede fechar; reduzir = mais punitivo |
-| `duracao_aviso_abertura` | 2s | 1–3s | Feel | Antecipação antes de poder passar; muito curto = jogador não planeja |
-| `duracao_aberta_min` | 3s | 2–5s | Curve | Mínimo de tempo com passagem disponível; abaixo de 2s = quase impossível passar |
-| `duracao_aberta_max` | 8s | 5–12s | Curve | Máximo de tempo aberta; paredes mais lentas criam run mais lenta |
-| `duracao_fechada_min` | 5s | 3–8s | Gate | Tempo mínimo de bloqueio; afeta quantas esperas o jogador enfrenta |
-| `duracao_fechada_max` | 12s | 8–20s | Gate | Tempo máximo de bloqueio; paredes com 20s fechadas criam frustração |
-| `chance_inimigo_abertura` | 30% | 15–50% | Gate | Frequência de encontros com Sentinelas; abaixo de 15% = sem tensão, acima de 50% = run sempre combativa |
-| `hp_jogador` | 3 | 2–5 | Gate | Tolerância a aprisionamentos e hits de Sentinela |
-| `n_fragmentos_rota_direta` | 2–3 | 1–4 | Curve | Recompensa mínima garantida para quem joga seguro |
-| `n_fragmentos_por_alcova` | 1–2 | 1–3 | Curve | Incentivo para desvios de rota |
-| `n_alcovas_por_mapa` | 4–6 | 3–8 | Curve | Quantidade de oportunidades opcionais de coleta |
-| `velocidade_sentinela` | 100 px/s | 70–140 px/s | Feel | Ameaça dos Sentinelas; nunca deve exceder velocidade do jogador |
+| `duracao_aviso_fechamento` | 3s | 2–5s | Feel | Janela de reação antes do fechamento |
+| `duracao_aviso_abertura` | 2s | 1–3s | Feel | Base sem impulso; encurtado pelo Impulso |
+| `duracao_aberta_min` | 3s | 2–5s | Curve | Mínimo de tempo com passagem disponível |
+| `duracao_aberta_max` | 8s | 5–12s | Curve | Máximo de tempo aberta |
+| `duracao_fechada_min` | 5s | 3–8s | Gate | Tempo mínimo de bloqueio |
+| `duracao_fechada_max` | 12s | 8–20s | Gate | Tempo máximo de bloqueio |
+| `impulso_distancia_ativacao` | 100px | 70–150px | Feel | Distância de aproximação que ativa o Impulso; menor = exige mais precisão de rota |
+| `impulso_velocidade_minima` | 160 px/s (80%) | 120–180px/s | Feel | Velocidade mínima para ativar o Impulso; muito alto = difícil de ativar |
+| `impulso_duracao_condicao` | 0.5s | 0.3–1.0s | Feel | Quanto tempo manter a condição antes do Impulso ativar; mais alto = menos acidental |
+| `impulso_antecipacao` | 1.5s | 0.5–2.5s | Curve | Ganho de tempo por Impulso; muito alto = trivializa o timing |
+| `estagnacao_duracao_trigger` | 3s | 2–5s | Gate | Tempo estático para disparar penalidade; muito baixo = frustrante |
+| `estagnacao_penalidade` | +2s | +1s a +4s | Gate | Atraso adicional por estagnação; muito alto = punitivo, muito baixo = sem efeito |
+| `chance_inimigo_abertura` | 30% | 15–50% | Gate | Frequência de Sentinelas emergindo de passagens |
+| `hp_jogador` | 3 | 2–5 | Gate | Tolerância a aprisionamentos e hits |
+| `n_fragmentos_rota_direta` | 2–3 | 1–4 | Curve | Recompensa garantida para rota direta |
+| `n_fragmentos_por_alcova` | 1–2 | 1–3 | Curve | Incentivo para desvios |
+| `n_alcovas_por_mapa` | 4–6 | 3–8 | Curve | Oportunidades opcionais de coleta |
+| `velocidade_sentinela` | 100 px/s | 70–140 px/s | Feel | Ameaça dos Sentinelas |
 
 ---
 
@@ -299,24 +360,26 @@ O jogador deve ser capaz de evitar todos com boa navegação (inimigos têm velo
 **Funcional (pass/fail para QA):**
 
 - [ ] Toda parede exibe um contador visual (arco ou barra) indicando tempo até a próxima mudança de estado
-- [ ] Estado de aviso de fechamento (3s) é visualmente distinto do estado Fechando e aciona feedback sonoro
-- [ ] Personagem que ainda ocupa o espaço de parede a 1s do fechamento recebe -1 HP e é empurrado para o lado correto
-- [ ] Parede fechada bloqueia fisicamente o personagem — não é possível atravessá-la
-- [ ] Fragmentos em alcovas são coletáveis apenas enquanto a parede da alcova está no estado Aberta
-- [ ] Chegar ao EXIT transfere todos os Fragmentos da mochila ao hub
+- [ ] Impulso de Abertura: quando jogador está a ≤100px da parede em movimento ≥160px/s por ≥0.5s → parede abre 1.5s antes do timer normal
+- [ ] Parede com Impulso ativo exibe pulso ciano claramente distinto do estado normal
+- [ ] Penalidade de Estagnação: quando jogador está a ≤150px da parede parado/lento por ≥3s → timer da parede aumenta em 2s (máximo 1 vez por tentativa)
+- [ ] Estado de aviso de fechamento (3s) aciona feedback sonoro e visual distinto
+- [ ] Personagem no espaço da parede a 1s do fechamento: -1 HP + empurrão para o lado correto
+- [ ] Parede fechada bloqueia fisicamente o personagem
+- [ ] Fragmentos em alcovas são coletáveis apenas enquanto a parede da alcova está aberta
+- [ ] Chegar ao EXIT transfere todos os Fragmentos ao hub
 - [ ] Fail state (0 HP) descarta todos os Fragmentos da run
 - [ ] Sentinelas emergem de passagens com ~30% de probabilidade por abertura
-- [ ] Sentinelas ficam presos em câmaras quando paredes fecham ao redor deles
-- [ ] EXIT está sempre acessível por pelo menos uma rota em qualquer estado das paredes (o gerador de mapa garante isso)
+- [ ] EXIT está sempre acessível por pelo menos uma rota
 
 **Experiencial (validado por playtest):**
 
-- [ ] Novo jogador entende o sistema de timing de paredes na primeira run sem tutorial — apenas pelo feedback visual dos contadores
-- [ ] O "quase preso" (receber empurrão mas sobreviver) é percebido como tenso, não como injusto
-- [ ] Após 2–3 runs no mesmo mapa, o jogador começa a memorizar quais paredes têm timings rápidos vs lentos
-- [ ] A escolha entre rota direta e rota alternativa é percebida como uma decisão real com trade-offs claros
-- [ ] Alcovas laterais são percebidas como oportunidades opcionais, não como obstáculos
-- [ ] Uma run completa (entrada ao EXIT) ocorre entre 40 e 100 segundos
+- [ ] Novo jogador entende que correr em direção à parede faz ela abrir mais cedo — sem tutorial
+- [ ] Após 1–2 runs, o jogador percebe que esperar parado é menos eficiente que aproximar-se em movimento
+- [ ] O pulso ciano da parede com Impulso comunica "você está fazendo certo" claramente
+- [ ] Jogador que domina o Impulso completa a run ~20–30s mais rápido que jogador que espera
+- [ ] A escolha entre rota direta e rota alternativa continua sendo decisão real
+- [ ] Uma run completa (entrada ao EXIT) ocorre entre 30 e 80 segundos (mais curta que v1 por conta do Impulso)
 
 ---
 
