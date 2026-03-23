@@ -215,8 +215,10 @@ class _MazeHUD:
 # ─────────────────────── Scene state ──────────────────────────────────────────
 var _player_pos: Vector2 = Vector2.ZERO
 var _player_hp: int = GameConfig.MAZE_PLAYER_HP
-var _drag_target: Vector2 = Vector2.ZERO
-var _dragging: bool = false
+var _move_dir: Vector2 = Vector2.ZERO    # direção atual de movimento (cardinal)
+var _want_dir: Vector2 = Vector2.ZERO    # próxima direção enfileirada pelo jogador
+var _swipe_origin: Vector2 = Vector2.ZERO
+var _is_swiping: bool = false
 
 var _backpack: Array[String] = []
 var _bag_cap: int = 3
@@ -437,6 +439,13 @@ func _end_run(victory: bool) -> void:
 	get_tree().change_scene_to_file("res://src/scenes/WorldMapScene.tscn")
 
 # ─────────────────────── Input ────────────────────────────────────────────────
+const _SWIPE_MIN: float = 15.0
+
+func _to_cardinal(d: Vector2) -> Vector2:
+	if abs(d.x) >= abs(d.y):
+		return Vector2(sign(d.x), 0.0)
+	return Vector2(0.0, sign(d.y))
+
 func _unhandled_input(event: InputEvent) -> void:
 	if _run_ended:
 		return
@@ -444,44 +453,58 @@ func _unhandled_input(event: InputEvent) -> void:
 		var mb := event as InputEventMouseButton
 		if mb.button_index == MOUSE_BUTTON_LEFT:
 			if mb.pressed:
-				_drag_target = event.position
-				_dragging = true
+				_swipe_origin = event.position
+				_is_swiping = true
 			else:
-				_dragging = false
-	elif event is InputEventMouseMotion and _dragging:
-		_drag_target = event.position
+				_is_swiping = false
+	elif event is InputEventMouseMotion and _is_swiping:
+		var d := event.position - _swipe_origin
+		if d.length() >= _SWIPE_MIN:
+			_want_dir = _to_cardinal(d)
+			_swipe_origin = event.position
 	elif event is InputEventScreenTouch:
 		if event.pressed:
-			_drag_target = event.position
-			_dragging = true
+			_swipe_origin = event.position
+			_is_swiping = true
 		else:
-			_dragging = false
+			_is_swiping = false
 	elif event is InputEventScreenDrag:
-		_drag_target = event.position
+		var d := event.position - _swipe_origin
+		if d.length() >= _SWIPE_MIN:
+			_want_dir = _to_cardinal(d)
+			_swipe_origin = event.position
+
+
+func _can_pass(pos: Vector2) -> bool:
+	for wall in _walls:
+		if wall.is_blocking() and wall.rect.grow(-2.0).has_point(pos):
+			return false
+	return _is_walkable(pos)
 
 
 func _physics_process(delta: float) -> void:
-	if not _dragging or _run_ended:
+	if _run_ended:
 		return
 	if GameState.current_state != GameState.RunState.PLAYING:
 		return
-	var dir := _drag_target - _player_pos
-	if dir.length() < 4.0:
-		return
-	_player_dir = dir.normalized()  # track for Pac-Man mouth
-	var new_pos := _player_pos + dir.normalized() * _PLAYER_SPEED * delta
-	# Block through closed walls
-	var blocked := false
-	for wall in _walls:
-		if wall.is_blocking() and wall.rect.grow(-2.0).has_point(new_pos):
-			blocked = true
-			break
-	# Block outside walkable area
-	if not blocked and not _is_walkable(new_pos):
-		blocked = true
-	if not blocked:
-		_player_pos = new_pos
-		queue_redraw()
+
+	# Tenta aplicar a direção enfileirada pelo jogador
+	if _want_dir != Vector2.ZERO:
+		var test := _player_pos + _want_dir * (_PLAYER_RADIUS + 2.0)
+		if _can_pass(test):
+			_move_dir = _want_dir
+			_player_dir = _move_dir
+			_want_dir = Vector2.ZERO
+
+	# Move em velocidade constante na direção atual
+	if _move_dir != Vector2.ZERO:
+		var new_pos := _player_pos + _move_dir * _PLAYER_SPEED * delta
+		if _can_pass(new_pos):
+			_player_pos = new_pos
+		else:
+			_move_dir = Vector2.ZERO  # parou na parede
+
+	queue_redraw()
 
 # ─────────────────────── Drawing ──────────────────────────────────────────────
 func _draw() -> void:

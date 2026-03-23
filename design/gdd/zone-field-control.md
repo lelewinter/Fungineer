@@ -1,8 +1,8 @@
 # Controle de Campo — Game Design Document
 
-**Version**: 1.0
-**Date**: 2026-03-22
-**Status**: Draft
+**Version**: 2.0
+**Date**: 2026-03-23
+**Status**: Revisado — Burst de Chegada (Captura Cinética)
 
 ---
 
@@ -16,10 +16,10 @@ Os **Sinais de Controle** são usados no foguete como o sistema de comunicaçõe
 
 ## 2. Player Fantasy
 
-Você controla o campo. Não individualmente, mas como um comandante que move seus recursos de uma região para outra enquanto o inimigo pressiona. Você captura a zona central (a mais valiosa) e imediatamente vê um Recapturador se aproximando. Você decide: defendo a central ou deixo ela ser disputada e uso o tempo para capturar duas menores? É xadrez jogado com o corpo. Cada reposicionamento é uma decisão estratégica mascarada de gesto simples. Quando a sirene final toca e você vê o medidor de Sinais acumulados, sente a satisfação de quem gerenciou um sistema, não de quem reagiu a um caos.
+Você é um sinal de rádio que nunca para de transmitir. Cada zona capturada é uma antena que precisa de energia constante — e a energia vem do movimento. Você chega à zona central em velocidade, e a antena acende no burst de chegada. Você sai correndo para a zona pequena à direita antes que o Recapturador chegue — e ela também acende ao seu toque. Você está sempre em movimento, sempre gerando presença, sempre empurrando sua energia para os pontos certos. Um comandante que fica parado num ponto é uma antena morta. Um comandante que circula é uma rede viva.
 
-**Estética MDA primária**: Challenge (gestão de presença, análise de trade-offs de cobertura).
-**Estética secundária**: Fantasy (comandante territorial, extensão da fantasía da Zona Hordas para um contexto mais estratégico).
+**Estética MDA primária**: Challenge (gestão de presença cinética, circulação ótima entre zonas).
+**Estética secundária**: Fantasy (comandante territorial que é o próprio sinal, não o operador do sinal).
 
 ---
 
@@ -38,9 +38,10 @@ Você controla o campo. Não individualmente, mas como um comandante que move se
 ### 3.2 Interpretação do Movimento (como arrastar funciona aqui)
 
 - **Input**: arrastar o dedo = mover o squad (igual à Zona Hordas)
-- **Significado aqui**: mover é redistribuir presença territorial. A posição do squad determina quais zonas estão sendo contestadas, capturadas ou defendidas
-- **Parar é a ação**: diferente da Corrida de Extração, aqui parar dentro de uma zona é o que gera valor. Mover demais = nenhuma zona sendo capturada ou gerando recursos
-- **Formação de squad importa**: com 4 personagens em formação, a área coberta pela formação pode sobrepor múltiplas zonas pequenas simultaneamente
+- **Significado aqui**: mover é energizar a rede. Cada chegada a uma zona nova gera um burst de captura. Ficar parado demais numa zona drena o potencial cinético do squad
+- **Chegada em movimento é recompensada**: entrar em uma zona com velocidade alta ativa a taxa de captura de burst (3× por 4s). Entrar devagar ou parado ativa apenas a taxa base (1×)
+- **Circulação é a estratégia ótima**: em vez de defender 1 zona, o squad que circula ativamente gera mais Sinais por segundo no total — o burst de cada chegada compensa o tempo de deslocamento
+- **Formação de squad importa**: com 4 personagens em formação, a área coberta pode sobrepor múltiplas zonas pequenas simultaneamente — um movimento único pode burstar 2 zonas ao mesmo tempo
 
 ### 3.3 Mecânica Central — Zonas de Captura
 
@@ -64,13 +65,25 @@ Cada zona de captura possui 5 estados possíveis:
 | Média | 120px | 10s | 1.0 Sinais/s | 1–2 zonas |
 | Central | 180px | 20s | 2.5 Sinais/s | 1 zona (sempre no centro) |
 
-#### Barra de Captura
+#### Barra de Captura e Taxa Cinética
 
 - A barra vai de 0% a 100%
-- **Subida**: enquanto houver pelo menos 1 personagem do jogador e nenhum inimigo dentro
+- **Subida — Taxa Burst**: quando o squad entra em uma zona com velocidade ≥80% da velocidade máxima → **3× a taxa de captura por 4 segundos** (antena acende com o impacto de chegada)
+- **Subida — Taxa Base**: enquanto o squad permanece na zona além dos 4s de burst → **1× a taxa normal**
+- **Subida — Taxa Decadente**: quando o squad está na mesma zona por mais de 8s sem se mover → **0.5× a taxa** (antena perde sinal por ausência de movimento)
 - **Congelamento**: enquanto houver personagens do jogador E inimigos dentro (estado Contestada)
-- **Descida**: quando apenas inimigos estão dentro (0.5× a velocidade de subida do jogador)
-- A barra de captura é visível visualmente na zona (arco ao redor do anel)
+- **Descida**: quando apenas inimigos estão dentro (0.5× a velocidade de subida base do jogador)
+- A barra de captura é visível na zona (arco ao redor do anel); indicador de burst ativo = anel pulsando
+
+#### Indicador de Estado Cinético da Zona
+
+| Estado | Visual | Condição |
+|--------|--------|----------|
+| **Burst ativo** | Anel pulsando rapidamente, cor vibrante | Squad chegou em velocidade alta (≤4s atrás) |
+| **Capturando normal** | Anel sólido, avançando | Squad presente, sem burst, sem decadência |
+| **Decadente** | Anel pulsando lentamente, cor apagada | Squad parado >8s |
+| **Contestada** | Anel roxo | Ambos presentes |
+| **Perdida** | Anel vermelho | Apenas inimigos |
 
 #### Cobertura de Squad por Zona
 
@@ -134,52 +147,60 @@ Se o jogador capturar e manter pelo menos 1 zona pequena por 90 segundos:
 
 ## 4. Formulas
 
-### Geração Total de Sinais por Run (cenário ideal)
+### Taxa de Captura com Sistema Cinético
 
 ```
-sinais_por_run_ideal = soma de (taxa_geracao_zona × tempo_capturada)
+taxa_captura(zona, estado_cinetico):
+  Burst ativo (0–4s após chegada em velocidade):   taxa_base × 3.0
+  Normal (4–8s após chegada):                       taxa_base × 1.0
+  Decadente (>8s sem movimento):                    taxa_base × 0.5
 
-Cenário máximo teórico (todas as zonas capturadas, mantidas por 90s):
-  3 × zonas_pequenas × 0.5 × 90 = 135
-  2 × zonas_medias   × 1.0 × 90 = 180
-  1 × zona_central   × 2.5 × 90 = 225
-  Total teórico máximo           = 540 Sinais
-
-Nota: o cenário máximo é impossível — capturar todas as zonas exige tempo
-e manter todas exige defesa de 6 frentes. O máximo realista é ~200–280 Sinais.
+taxa_base_zona_pequena  = 20%/s  (captura em 5s no base; 1.67s no burst)
+taxa_base_zona_media    = 10%/s  (captura em 10s no base; 3.3s no burst)
+taxa_base_zona_central  = 5%/s   (captura em 20s no base; 6.7s no burst)
 ```
 
-### Geração Realista por Estratégia
+### Geração Total de Sinais — Estratégias Comparadas
 
 ```
-Estratégia A — Foco na Central:
-  Captura central (20s), defende por 70s:
-  2.5 × 70 = 175 Sinais
-  + 1 zona pequena se oportunidade: 0.5 × 50 = 25
-  Total estimado: ~200 Sinais
+Estratégia A — Foco na Central (v1: campar):
+  Captura central (20s base), fica 70s parado:
+  2.5 × 4s(burst) = 10 + 2.5 × 4s(normal) = 10 + 2.5 × 62s(decadente×0.5) = 77.5
+  Total estimado: ~100 Sinais (prejudicado pela decadência)
 
-Estratégia B — Múltiplas Zonas Pequenas:
-  Captura 4 zonas pequenas (5s cada, ~25s total), defende por 65s:
-  4 × 0.5 × 65 = 130 Sinais
-  Total estimado: ~130 Sinais
+Estratégia B — Circulação entre 4 zonas pequenas (nova estratégia ótima):
+  Ciclo: chega em zona em velocidade (burst 4s → 2 Sinais), sai para próxima
+  Tempo de deslocamento entre zonas ~5s; ciclo por zona: ~9s
+  4 zonas × ciclo de 9s = 36s por rodada completa; ~2.5 rodadas em 90s
+  Burst por chegada: 3 × 0.5 × 4 = 6 Sinais por chegada
+  Total: 4 zonas × 2.5 rodadas × 6 = 60 Sinais de burst
+  + 4 zonas × 2.5 rodadas × 0.5 × 5s_normal = 25 Sinais de normal
+  Total estimado: ~85 Sinais
 
-Estratégia C — Central + 2 Médias:
-  Captura central (20s) + 2 médias (10s cada, podem ser paralelas = 20s total):
-  Primeiro 40s: capturando
-  Restante 50s: gerando
-  2.5 × 50 = 125 (central) + 2 × 1.0 × 50 = 100 (médias) = 225 Sinais
-  Total estimado: ~225 Sinais (estratégia ótima para squads grandes)
+Estratégia C — Central + Circulação ativa nas médias:
+  Captura central em burst (6.7s), sai para média 1 (burst 3.3s), volta à central (reburst),
+  vai para média 2 (burst), volta à central (reburst) — ciclo de ~30s
+  3 rebursts na central × 2.5 × 4s = 30 Sinais de central-burst
+  + 2 médias × 3 visitas × 1.0 × 4s burst = 24 Sinais de médias-burst
+  + Geração base entre bursts
+  Total estimado: ~200 Sinais (estratégia ótima: burst constante em zonas de alto valor)
+
+Nota: Circulação contínua ativa vence acampamento estático em todas as estratégias.
 ```
 
-### Tempo de Captura por Zona
+### Tempo de Captura por Zona com Burst
 
 ```
-tempo_captura(zona) = duracao_barra / taxa_subida
+tempo_captura(zona, com_burst):
+  zona_pequena  base:  100% em 5s  (20%/s)
+  zona_pequena  burst: 100% em 1.7s (60%/s por 4s → captura completa em ~1.7s)
+  zona_media    base:  100% em 10s (10%/s)
+  zona_media    burst: 100% em 3.3s (30%/s por 4s → captura completa em ~3.3s)
+  zona_central  base:  100% em 20s (5%/s)
+  zona_central  burst: 100% em 6.7s (15%/s por 4s = 60% em 4s; restante em 4s base = 6.7s total)
 
-taxa_subida_padrao:
-  zona_pequena  = 100% em 5s  (20%/s)
-  zona_media    = 100% em 10s (10%/s)
-  zona_central  = 100% em 20s (5%/s)
+Um squad que chega sempre em velocidade captura zonas 3× mais rápido.
+A vantagem do burst incentiva a circulação constante.
 
 Com múltiplos personagens dentro da zona, a taxa de captura não aumenta.
 O squad conta como "presença confirmada", não como multiplicador de velocidade.
@@ -251,10 +272,15 @@ Isso garante que há sempre uma decisão viável disponível, não uma punição
 | `n_zonas_captura` | 6 | 5–7 | Curve | Complexidade territorial; menos = mais fácil defender, mais = mais difícil cobrir tudo |
 | `n_zonas_pequenas` | 3–4 | 2–5 | Curve | Distribuição de zonas fáceis; mais = mais válido espalhar o squad |
 | `n_zonas_centrais` | 1 | 1 | Gate | Sempre exatamente 1 — é o landmark estratégico do mapa |
-| `taxa_geracao_zona_central` | 2.5 Sinais/s | 1.5–4.0 | Curve | Valor da zona central vs periféricas; muito alto = só vale defendê-la, muito baixo = irrelevante |
-| `tempo_captura_zona_pequena` | 5s | 3–8s | Feel | Ritmo de captura; muito rápido = sem tensão, muito lento = frustrante |
-| `tempo_captura_zona_central` | 20s | 15–30s | Gate | Investimento para a maior recompensa |
-| `taxa_descida_zona` | 0.5× taxa_subida | 0.3–0.8× | Feel | Quão rápido o jogador perde zonas sem defesa; mais rápido = punição mais imediata |
+| `taxa_geracao_zona_central` | 2.5 Sinais/s | 1.5–4.0 | Curve | Valor da zona central |
+| `tempo_captura_zona_pequena` | 5s | 3–8s | Feel | Tempo de captura base (sem burst) |
+| `tempo_captura_zona_central` | 20s | 15–30s | Gate | Tempo de captura base; burst reduz para ~6.7s |
+| `taxa_descida_zona` | 0.5× taxa_subida | 0.3–0.8× | Feel | Velocidade de perda de zona |
+| `burst_multiplicador` | 3.0× | 2.0–4.0× | Curve | Fator de aceleração na chegada; muito alto = trivializa captura, muito baixo = sem incentivo de movimento |
+| `burst_duracao` | 4s | 2–6s | Feel | Janela de burst após chegada; muito longa = incentiva acampamento no burst |
+| `burst_velocidade_minima` | 160 px/s (80%) | 120–180 px/s | Feel | Velocidade mínima para ativar o burst; muito alto = difícil de ativar em zonas próximas |
+| `decadencia_trigger` | 8s | 5–12s | Gate | Tempo parado antes do decaimento; muito baixo = punitivo para quem defende zonas |
+| `decadencia_fator` | 0.5× | 0.3–0.7× | Feel | Taxa de captura no decaimento; deve ser perceptível mas não dramático |
 | `hp_recapturador` | 70 | 50–120 | Curve | Tempo para o squad eliminar um Recapturador em combate |
 | `frequencia_spawn_recapturador_early` | 15s | 10–25s | Gate | Pressão na primeira fase da run |
 | `frequencia_spawn_recapturador_late` | 8s | 5–12s | Gate | Pressão na fase final; escala de dificuldade ao longo da run |
@@ -266,24 +292,27 @@ Isso garante que há sempre uma decisão viável disponível, não uma punição
 
 **Funcional (pass/fail para QA):**
 
-- [ ] Presença de pelo menos 1 personagem do jogador dentro de uma zona neutra inicia a barra de captura
-- [ ] A barra de captura congela (não sobe nem desce) quando personagens do jogador e Recapturador estão na mesma zona simultaneamente
-- [ ] Uma zona capturada gera a taxa correta de Sinais por segundo de acordo com o tamanho (0.5 / 1.0 / 2.5)
-- [ ] Recapturador identifica a zona Capturada com maior taxa de geração dentro de alcance e se move para ela
-- [ ] Timer de 90s encerra a run automaticamente; Sinais acumulados são transferidos ao hub
-- [ ] Todos os personagens mortos = fail state; Sinais acumulados na run são descartados
-- [ ] Não há EXIT nesta zona — a run só encerra por timer ou fail state
-- [ ] O sistema de Sinais usa contabilidade de fluxo (não slot de mochila)
-- [ ] Zona Contestada não gera Sinais enquanto inimigo estiver dentro
+- [ ] Squad entrando em zona com velocidade ≥160px/s → taxa de captura de 3× por 4s (burst ativo)
+- [ ] Squad entrando em zona com velocidade <160px/s → taxa de captura de 1× (sem burst)
+- [ ] Anel da zona pulsa visivelmente durante o estado de burst
+- [ ] Squad parado >8s na mesma zona → taxa de captura cai para 0.5× (decadência)
+- [ ] Anel da zona visual fica apagado durante decadência
+- [ ] A barra de captura congela quando jogador E Recapturador estão na mesma zona (Contestada)
+- [ ] Uma zona capturada gera a taxa correta de Sinais/s (0.5 / 1.0 / 2.5)
+- [ ] Recapturador identifica zona Capturada com maior taxa de geração e se move para ela
+- [ ] Timer de 90s encerra a run automaticamente; Sinais transferidos ao hub
+- [ ] Todos os personagens mortos = fail state; Sinais da run descartados
+- [ ] Não há EXIT; a run só encerra por timer ou fail state
+- [ ] Sistema de Sinais usa contabilidade de fluxo (não slot de mochila)
 
 **Experiencial (validado por playtest):**
 
-- [ ] Novo jogador entende que ficar parado dentro do anel gera recursos sem necessidade de tutorial textual
-- [ ] Após 1 run, o jogador percebe a diferença entre zonas pequenas e a zona central (tamanho e recompensa)
-- [ ] A pressão de múltiplos Recapturadores em zonas diferentes cria um dilema percebido ("qual zona defender?") e não confusão
-- [ ] A estratégia de "focar a zona central" e "espalhar por zonas pequenas" produzem resultados diferentes e ambos satisfatórios
-- [ ] O encerramento por timer (sem EXIT) é compreendido pelo jogador como a estrutura natural desta zona
-- [ ] Uma run completa gera entre 100 e 300 Sinais para um jogador de habilidade média
+- [ ] Novo jogador percebe visualmente que "chegar correndo" faz o anel acender mais rápido — sem tutorial
+- [ ] Após 2 runs, jogador testa conscientemente "chegar em velocidade vs chegar devagar" e percebe a diferença
+- [ ] Jogador que circula entre zonas supera significativamente jogador que acampa uma zona (≥30% mais Sinais)
+- [ ] O pulso do anel durante burst comunica "você fez certo" sem texto
+- [ ] A decisão "para onde ir agora" ocorre a cada 4–8s naturalmente durante a run
+- [ ] Uma run completa gera entre 100 e 250 Sinais para um jogador de habilidade média em circulação
 
 ---
 

@@ -163,10 +163,10 @@ func _build_resources() -> void:
 		Vector2(1600, 1060), Vector2(1600, 440),
 	]
 	for pos in positions:
-		var item := ResourceItem.new()
-		item.position = pos
-		item.setup(_agent, "ai_components")
-		_world.add_child(item)
+		var terminal := HackTerminal.new()
+		terminal.position = pos
+		terminal.setup(_agent, "ai_components")
+		_world.add_child(terminal)
 
 
 func _build_exit() -> void:

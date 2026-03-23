@@ -140,6 +140,8 @@ const RESOURCE_SPAWN_COUNT: int = 4
 const RESOURCE_ITEM_RADIUS: float = 14.0
 
 # ── Stealth Zone ─────────────────────────────────────────────────────────────
+const HACK_PUZZLE_TIME: float = 20.0         # seconds to solve the breach puzzle
+const HACK_TERMINAL_RADIUS: float = 48.0     # proximity to trigger puzzle
 const STEALTH_AGENT_SPEED_MAX: float = 200.0
 const STEALTH_SOUND_RADIUS_MIN: float = 20.0
 const STEALTH_SOUND_RADIUS_MAX: float = 180.0

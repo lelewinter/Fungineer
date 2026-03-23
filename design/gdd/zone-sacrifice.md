@@ -1,25 +1,25 @@
 # Zona de Sacrifício — Game Design Document
 
-**Version**: 1.0
-**Date**: 2026-03-22
-**Status**: Draft
+**Version**: 2.0
+**Date**: 2026-03-23
+**Status**: Revisado — Execução Urgente
 
 ---
 
 ## 1. Overview
 
-A Zona de Sacrifício é uma zona de tomada de decisão estratégica pura. O jogador se posiciona no centro de um mapa com 4–6 câmaras visíveis ao redor, cada uma contendo recursos com custos claramente sinalizados antes da entrada. Não há timer apertado, os inimigos são fracos, e a coleta é simples (1.5s padrão). O único desafio é decidir quais câmaras valem a pena visitar dado os custos que cada uma impõe. O recurso coletado é duplo — **Sucata Metálica E Componentes de IA** (os dois recursos base do MVP) em quantidades superiores às zonas originais, mas com custos que tornam impossível coletar tudo.
+A Zona de Sacrifício é uma zona de tomada de decisão estratégica com execução urgente. O jogador se posiciona no centro de um mapa com 4–6 câmaras visíveis ao redor, cada uma contendo recursos com custos claramente sinalizados antes da entrada. A fase de análise acontece no centro (sem pressão); mas ao entrar em uma câmara, a coleta torna-se urgente — um **contador de pressão** inicia e os dormentes acordam progressivamente se o jogador parar de mover. O recurso coletado é duplo — **Sucata Metálica E Componentes de IA** — em quantidades superiores, mas com custos que tornam impossível coletar tudo.
 
-Esta é a única zona do jogo onde **o desafio acontece antes do movimento**, não durante. Mover é o ato de confirmar uma decisão já tomada.
+Esta é a zona do jogo onde **a decisão é antes do movimento, mas a execução exige movimento constante**. A análise é calma; a coleta é urgente.
 
 ---
 
 ## 2. Player Fantasy
 
-Você está diante de 5 câmaras. Consegue ver tudo o que cada uma oferece — e tudo o que cada uma vai custar. A câmara da esquerda tem 8 Sucatas, mas vai spawnar 3 Bruisers. A câmara do centro tem 5 Componentes de IA, mas vai reduzir seu timer em 15 segundos. A câmara da direita é simples — 4 Sucatas, custo zero — mas ativa automaticamente o custo da câmara que está ao lado dela. Você olha para a composição do squad, pensa no que o foguete precisa, e decide. Depois de decidir, executar é trivial. A tensão foi toda na análise. Quando você sai da zona, a satisfação não é de quem sobreviveu — é de quem fez a escolha certa.
+Você está diante de 5 câmaras. Consegue ver tudo o que cada uma oferece. A câmara da esquerda tem 8 Sucatas, mas vai spawnar 3 Bruisers. A câmara do centro tem 5 Componentes, mas vai reduzir seu timer. Você decide. Entra. E então o depósito acorda. Um contador surge — 30 segundos. Você começa a coletar em movimento, nunca parando por mais de 1.5s em nenhum ponto. Os Bruisers dormem nos cantos mas um deles pisca — se você demorar mais 5 segundos parado, ele acorda. Você pega os 5 primeiros recursos e corre. A porta da câmara central está esperando. A decisão foi fria. A execução foi quente.
 
-**Estética MDA primária**: Challenge (análise estratégica, tomada de decisão com informação completa e custos assimétricos).
-**Estética secundária**: Expression (cada sessão revela o estilo de jogo do jogador — arrojado, conservador, oportunista).
+**Estética MDA primária**: Challenge (análise estratégica + execução urgente — dois modos de jogo distintos numa só run).
+**Estética secundária**: Expression (estilo de jogo revelado tanto na análise quanto no padrão de movimento dentro das câmaras).
 
 ---
 
@@ -37,9 +37,10 @@ Você está diante de 5 câmaras. Consegue ver tudo o que cada uma oferece — e
 ### 3.2 Interpretação do Movimento (como arrastar funciona aqui)
 
 - **Input**: arrastar o dedo = mover o squad
-- **Significado aqui**: mover é confirmar uma decisão. Entrar em uma câmara de recurso é aceitar seu custo — não há como entrar "só para ver". O custo é ativado no momento em que qualquer membro do squad cruza a entrada da câmara
-- **Parar é pensar**: ficar no centro e observar todas as câmaras antes de mover é a habilidade-chave desta zona
-- **Mover é irreversível**: ao entrar em uma câmara, o custo é aplicado. Não há desfazer.
+- **Significado aqui — fase de análise (câmara central)**: parar é pensar. O centro é o único lugar onde parar é totalmente seguro e produtivo. O jogador lê os painéis, analisa os trade-offs, decide
+- **Significado aqui — fase de execução (dentro das câmaras)**: mover é sobreviver. O contador de pressão da câmara desacelera se o jogador mantém movimento contínuo. Parar por mais de 1.5s acelera o despertar dos dormentes
+- **Entrar é irreversível**: ao entrar em uma câmara, o custo é aplicado. Não há desfazer
+- **Dois ritmos distintos**: a zona alterna intencionalmente entre ritmo lento (análise no centro) e ritmo rápido (execução na câmara) — o jogador deve saber em que modo está
 
 ### 3.3 Mecânica Central — Câmaras de Recurso e Custos
 
@@ -101,9 +102,24 @@ O gerador de mapa cria 4–6 câmaras seguindo uma distribuição de custos bala
 #### Coleta de Recursos dentro da Câmara
 
 - Os recursos ficam distribuídos pelo chão da câmara
-- Coleta: padrão de 1.5 segundos de pausa (sistema de mochila)
+- Coleta: padrão de 1.5 segundos de pausa (sistema de mochila) — mas nesta zona a pausa tem consequência
 - Se inimigos foram spawnados (custo de Inimigo): o jogador deve sobreviver ao combate automático do squad enquanto coleta os recursos
-- Recursos não coletados na câmara ficam lá — mas o jogador só tem incentivo para voltar à câmara central, não a câmaras visitadas
+- Recursos não coletados na câmara ficam lá — o jogador não tem incentivo para voltar
+
+#### Contador de Pressão (Nova Mecânica)
+
+Ao entrar em qualquer câmara de recurso, um **contador de pressão** de 30s inicia:
+
+- **0–30s**: câmara em estado normal; dormentes (se houver custo de Inimigo) dormem em posições fixas
+- **A cada 5s de pausa do jogador** (parado por >1.5s sem coletar): o contador de pressão acelera em 2s
+- **Contador zera**: todos os dormentes acordam simultaneamente e o custo de Inimigo é triplicado (mesmo para câmaras sem custo de Inimigo — os dormentes de manutenção do depósito acordam)
+- O contador é visível na UI da câmara como uma barra de "calor do depósito"
+
+**Calibração**:
+- Um jogador que coleta em movimento (sem pausas além das 1.5s de coleta) esvazia a câmara em ~20s sem alarmar os dormentes
+- Um jogador que hesita muito vai alarmar os dormentes na câmara e terá que lidar com combate enquanto coleta os recursos restantes
+
+**O timer de pressão é por câmara** — resetado ao voltar ao centro e ao entrar em uma nova câmara.
 
 ### 3.4 Coleta de Recursos
 
