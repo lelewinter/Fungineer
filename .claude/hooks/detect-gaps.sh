@@ -7,6 +7,7 @@
 # Exit on error for debugging (but don't fail the session)
 set +e
 
+GAPS_FOUND=0
 echo "=== Checking for Documentation Gaps ==="
 
 # --- Check 0: Fresh project detection (suggests /start) ---
@@ -62,6 +63,7 @@ SRC_FILES=$(echo "$SRC_FILES" | tr -d ' ')
 DESIGN_FILES=$(echo "$DESIGN_FILES" | tr -d ' ')
 
 if [ "$SRC_FILES" -gt 50 ] && [ "$DESIGN_FILES" -lt 5 ]; then
+  GAPS_FOUND=$((GAPS_FOUND + 1))
   echo "⚠️  GAP: Substantial codebase ($SRC_FILES source files) but sparse design docs ($DESIGN_FILES files)"
   echo "    Suggested action: /reverse-document design src/[system]"
   echo "    Or run: /project-stage-detect to get full analysis"
@@ -85,6 +87,7 @@ if [ -d "prototypes" ]; then
     done <<< "$PROTOTYPE_DIRS"
 
     if [ ${#UNDOCUMENTED_PROTOS[@]} -gt 0 ]; then
+      GAPS_FOUND=$((GAPS_FOUND + 1))
       echo "⚠️  GAP: ${#UNDOCUMENTED_PROTOS[@]} undocumented prototype(s) found:"
       for proto in "${UNDOCUMENTED_PROTOS[@]}"; do
         echo "    - prototypes/$proto/ (no README or CONCEPT doc)"
@@ -97,6 +100,7 @@ fi
 # --- Check 3: Core systems without architecture docs ---
 if [ -d "src/core" ] || [ -d "src/engine" ]; then
   if [ ! -d "docs/architecture" ]; then
+    GAPS_FOUND=$((GAPS_FOUND + 1))
     echo "⚠️  GAP: Core engine/systems exist but no docs/architecture/ directory"
     echo "    Suggested action: Create docs/architecture/ and run /architecture-decision"
   else
@@ -104,6 +108,7 @@ if [ -d "src/core" ] || [ -d "src/engine" ]; then
     ADR_COUNT=$(echo "$ADR_COUNT" | tr -d ' ')
 
     if [ "$ADR_COUNT" -lt 3 ]; then
+      GAPS_FOUND=$((GAPS_FOUND + 1))
       echo "⚠️  GAP: Core systems exist but only $ADR_COUNT ADR(s) documented"
       echo "    Suggested action: /reverse-document architecture src/core/[system]"
     fi
@@ -129,6 +134,7 @@ if [ -d "src/gameplay" ]; then
         design_doc_2="design/gdd/${system_name}.md"
 
         if [ ! -f "$design_doc_1" ] && [ ! -f "$design_doc_2" ]; then
+          GAPS_FOUND=$((GAPS_FOUND + 1))
           echo "⚠️  GAP: Gameplay system 'src/gameplay/$system_name/' ($file_count files) has no design doc"
           echo "    Expected: design/gdd/${system_name}-system.md or design/gdd/${system_name}.md"
           echo "    Suggested action: /reverse-document design src/gameplay/$system_name"
@@ -142,14 +148,17 @@ fi
 if [ "$SRC_FILES" -gt 100 ]; then
   # For projects with substantial code, check for production planning
   if [ ! -d "production/sprints" ] && [ ! -d "production/milestones" ]; then
+    GAPS_FOUND=$((GAPS_FOUND + 1))
     echo "⚠️  GAP: Large codebase ($SRC_FILES files) but no production planning found"
     echo "    Suggested action: /sprint-plan or create production/ directory"
   fi
 fi
 
 # --- Summary ---
-echo ""
-echo "💡 To get a comprehensive project analysis, run: /project-stage-detect"
+if [ "$GAPS_FOUND" -gt 0 ]; then
+  echo ""
+  echo "💡 To get a comprehensive project analysis, run: /project-stage-detect"
+fi
 echo "==================================="
 
 exit 0

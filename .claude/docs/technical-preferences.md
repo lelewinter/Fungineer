@@ -21,28 +21,13 @@
 
 ## Performance Budgets
 
-- **Target Framerate**: [TO BE CONFIGURED]
-- **Frame Budget**: [TO BE CONFIGURED]
-- **Draw Calls**: [TO BE CONFIGURED]
-- **Memory Ceiling**: [TO BE CONFIGURED]
+Not yet configured. Use `/perf-profile` to set targets.
 
 ## Testing
 
 - **Framework**: GUT (Godot Unit Testing)
-- **Minimum Coverage**: [TO BE CONFIGURED]
 - **Required Tests**: Balance formulas, gameplay systems, networking (if applicable)
 
-## Forbidden Patterns
+## Forbidden Patterns / Allowed Libraries / ADRs
 
-<!-- Add patterns that should never appear in this project's codebase -->
-- [None configured yet — add as architectural decisions are made]
-
-## Allowed Libraries / Addons
-
-<!-- Add approved third-party dependencies here -->
-- [None configured yet — add as dependencies are approved]
-
-## Architecture Decisions Log
-
-<!-- Quick reference linking to full ADRs in docs/architecture/ -->
-- [No ADRs yet — use /architecture-decision to create one]
+None configured. Use `/architecture-decision` to add entries as decisions are made.
