@@ -9,6 +9,15 @@ var _drag_active: bool = false
 var _velocity: Vector2 = Vector2.ZERO
 var _shadow_rects: Array = []  # Array[Rect2] — populated by StealthMain
 var _sprite: Sprite2D = null
+var _input_locked: bool = false  # true while BreachPuzzle is open
+
+
+## Lock or unlock drag input (called by HackTerminal when puzzle opens/closes).
+func set_input_locked(locked: bool) -> void:
+	_input_locked = locked
+	if locked:
+		_drag_active = false
+		_move_target = global_position
 
 
 func setup(shadow_rects: Array) -> void:
@@ -30,6 +39,8 @@ func _load_sprite() -> void:
 
 
 func _input(event: InputEvent) -> void:
+	if _input_locked:
+		return
 	if GameState.current_state != GameState.RunState.PLAYING:
 		return
 	if event is InputEventMouseButton:
