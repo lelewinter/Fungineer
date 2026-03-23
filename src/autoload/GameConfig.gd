@@ -166,15 +166,22 @@ const CIRCUIT_SENTINEL_CONTACT_RADIUS: float = 20.0
 const CIRCUIT_PLAYER_HP: int = 3
 const CIRCUIT_PLATE_RADIUS: float = 30.0
 
-# ── Extraction Zone (Corrida de Extração) ─────────────────────────────────────
-const EXTRACTION_RUN_TIMER: float = 60.0
-const EXTRACTION_BONUS_TIME: float = 10.0         # seconds added by bonus canister
-const EXTRACTION_CANISTER_SPEED: float = 70.0     # px/s for moving canisters
-const EXTRACTION_DRONE_SPEED: float = 50.0
-const EXTRACTION_DRONE_RANGE: float = 150.0
-const EXTRACTION_DRONE_PROJECTILE_SPEED: float = 100.0
-const EXTRACTION_DRONE_FIRE_INTERVAL: float = 2.0
-const EXTRACTION_DRONE_HP: float = 50.0
+# ── Extraction Zone (Corrida de Extração) — Lane Runner ───────────────────────
+const EXTRACTION_RUN_TIMER: float        = 60.0
+const EXTRACTION_BONUS_TIME: float       = 10.0   # seconds added by bonus canister
+const EXTRACTION_LANE_COUNT: int         = 7
+const EXTRACTION_LANE_H: float           = 122.0  # VIEWPORT_HEIGHT / 7
+const EXTRACTION_SCROLL_START: float     = 180.0  # px/s at run start
+const EXTRACTION_SCROLL_END: float       = 380.0  # px/s at timer zero
+const EXTRACTION_LANE_SWITCH_DUR: float  = 0.15   # seconds per lane transition
+const EXTRACTION_SPAWN_IVRL_START: float = 1.8    # seconds between obstacle waves (start)
+const EXTRACTION_SPAWN_IVRL_END: float   = 0.85   # seconds between obstacle waves (end)
+const EXTRACTION_DEBUFF_SMOKE: float     = 2.5
+const EXTRACTION_DEBUFF_SLOW: float      = 3.0
+const EXTRACTION_DEBUFF_EMP: float       = 2.0
+const EXTRACTION_DEBUFF_WIRE: float      = 1.5
+const EXTRACTION_SPARK_TICK: float       = 0.5    # damage every N seconds in spark lane
+const EXTRACTION_SPARK_DMG: float        = 8.0
 
 # ── Field Control Zone (Controle de Campo) ────────────────────────────────────
 const FIELD_RUN_TIMER: float = 90.0
