@@ -17,9 +17,21 @@
 extends Node2D
 
 const ESCALATION_INTERVAL: float = 20.0
-const DRONE_CAP: int = 8
-const ALARM_STAGE2_DELAY: float = 8.0    # was 15 — less time to escape
-const EXPOSURE_KILL_TIME: float  = 3.0   # seconds of continuous detection before death
+const DRONE_CAP: int = 12               # raised — more drones from converging routes
+const ALARM_STAGE2_DELAY: float = 8.0   # was 15 — less time to escape
+const EXPOSURE_KILL_TIME: float  = 3.0  # seconds of continuous detection before death
+
+## [terminal_pos, guardian_pos] pairs — one guardian per terminal.
+## Guardians are placed between the nearest shadow zone and the terminal,
+## so the player must bypass them before reaching the objective.
+const _TERMINAL_DATA: Array = [
+	[Vector2(1160, 1300), Vector2(1160, 1100)],  # guardian watches from north
+	[Vector2(2040, 1300), Vector2(2040, 1100)],  # guardian watches from north
+	[Vector2(1360, 870),  Vector2(1160, 870)],   # guardian watches from west (left alley exit)
+	[Vector2(1840, 870),  Vector2(2060, 870)],   # guardian watches from east
+	[Vector2(1600, 1060), Vector2(1380, 1060)],  # guardian watches from right-alley exit
+	[Vector2(1600, 440),  Vector2(1380, 440)],   # guardian watches from right-alley exit
+]
 
 var _world: Node2D
 var _agent: StealthAgent
@@ -27,6 +39,7 @@ var _camera: Camera2D
 var _shadow_rects: Array = []  # Array[Rect2]
 var _drones: Array = []        # Array[PatrolDrone]
 var _sec_cameras: Array = []   # Array[SecurityCamera]
+var _guardians: Array = []     # Array[TerminalGuardian]
 var _hud: StealthHUD
 var _game_over_screen: GameOverScreen
 var _victory_screen: VictoryScreen
@@ -60,6 +73,7 @@ func _ready() -> void:
 	_build_agent()
 	_build_enemies()
 	_build_resources()
+	_build_guardians()
 	_build_exit()
 	_build_ui()
 	_build_alarm_ui()
@@ -135,9 +149,15 @@ func _build_agent() -> void:
 
 func _build_enemies() -> void:
 	var drone_defs: Array = [
-		[Vector2(450, 720), Vector2(1150, 720)],
-		[Vector2(450, 285), Vector2(720, 285)],
-		[Vector2(880, 285), Vector2(1150, 285)],
+		# Original left-side patrols
+		[Vector2(450,  720),  Vector2(1150, 720)],
+		[Vector2(450,  285),  Vector2(720,  285)],
+		[Vector2(880,  285),  Vector2(1150, 285)],
+		# Converging routes — cover the terminal cluster area
+		[Vector2(900,  1200), Vector2(2200, 1200)],  # horizontal sweep near lower terminals
+		[Vector2(1300, 750),  Vector2(2100, 750)],   # horizontal sweep near mid terminals
+		[Vector2(1500, 350),  Vector2(1900, 350)],   # short route near upper terminal
+		[Vector2(1600, 750),  Vector2(1600, 1380)],  # vertical, crosses two terminal zones
 	]
 	for d in drone_defs:
 		_spawn_drone_at(d[0], d[1])
@@ -157,16 +177,27 @@ func _build_enemies() -> void:
 
 
 func _build_resources() -> void:
-	var positions: Array[Vector2] = [
-		Vector2(1160, 1300), Vector2(2040, 1300),
-		Vector2(1360, 870),  Vector2(1840, 870),
-		Vector2(1600, 1060), Vector2(1600, 440),
-	]
-	for pos in positions:
+	for data in _TERMINAL_DATA:
+		var tpos: Vector2 = data[0]
 		var terminal := HackTerminal.new()
-		terminal.position = pos
+		terminal.position = tpos
 		terminal.setup(_agent, "ai_components")
+		## Capture tpos for the closure — extraction pulse on successful hack
+		terminal.hacked.connect(func(_type: String): _on_extraction_pulse(tpos))
 		_world.add_child(terminal)
+
+
+func _build_guardians() -> void:
+	for data in _TERMINAL_DATA:
+		var tpos: Vector2 = data[0]
+		var gpos: Vector2 = data[1]
+		var look_angle_deg: float = rad_to_deg((tpos - gpos).angle())
+		var guardian := TerminalGuardian.new()
+		guardian.position = gpos
+		guardian.setup(_agent, _shadow_rects, look_angle_deg)
+		guardian.detected.connect(_on_alarm_triggered)
+		_world.add_child(guardian)
+		_guardians.append(guardian)
 
 
 func _build_exit() -> void:
@@ -386,6 +417,23 @@ func _set_drone_speed_mult(mult: float) -> void:
 		(drone as PatrolDrone).speed_multiplier = mult
 
 
+# ── Extraction pulse ────────────────────────────────────────────────────────────
+
+## Called when the agent successfully hacks a terminal.
+## Sends nearby drones to investigate the terminal position and spawns a
+## visible sound ring so the player can read the danger radius.
+func _on_extraction_pulse(terminal_pos: Vector2) -> void:
+	for drone in _drones:
+		var d := drone as PatrolDrone
+		if d.global_position.distance_to(terminal_pos) <= GameConfig.STEALTH_EXTRACTION_PULSE_RADIUS:
+			d.trigger_investigate(terminal_pos)
+
+	var ring := _PulseRing.new()
+	ring.position = terminal_pos
+	ring.init(GameConfig.STEALTH_EXTRACTION_PULSE_RADIUS)
+	_world.add_child(ring)
+
+
 # ── Handlers ───────────────────────────────────────────────────────────────────
 
 func _on_agent_caught() -> void:
@@ -408,6 +456,35 @@ func _go_to_hub() -> void:
 # ══════════════════════════════════════════════════════════════════════════════
 # Inner drawing classes
 # ══════════════════════════════════════════════════════════════════════════════
+
+## Expanding ring drawn at a terminal's position after a successful hack.
+## Communicates the extraction pulse sound radius to the player.
+class _PulseRing extends Node2D:
+	var _radius: float = 0.0
+	var _max_radius: float = 150.0
+	var _alpha: float = 0.9
+	var _speed: float = 0.0
+
+	func init(max_r: float) -> void:
+		_max_radius = max_r
+		_speed = max_r / 0.55  # expand in 0.55 seconds
+
+	func _process(delta: float) -> void:
+		_radius += _speed * delta
+		_alpha = 0.85 * (1.0 - _radius / _max_radius)
+		if _radius >= _max_radius:
+			queue_free()
+			return
+		queue_redraw()
+
+	func _draw() -> void:
+		if _alpha <= 0.01:
+			return
+		draw_arc(Vector2.ZERO, _radius, 0.0, TAU, 48,
+			Color(1.0, 0.65, 0.1, _alpha), 3.0)
+		draw_arc(Vector2.ZERO, _radius * 0.5, 0.0, TAU, 32,
+			Color(1.0, 0.65, 0.1, _alpha * 0.4), 1.5)
+
 
 class _GridDrawer extends Node2D:
 	func _draw() -> void:

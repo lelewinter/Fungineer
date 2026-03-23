@@ -5,7 +5,7 @@
 class_name PatrolDrone
 extends Node2D
 
-enum State { PATROL, ALERTED, CHASE }
+enum State { PATROL, ALERTED, CHASE, INVESTIGATE }
 
 var waypoint_a: Vector2 = Vector2.ZERO
 var waypoint_b: Vector2 = Vector2.ZERO
@@ -16,6 +16,8 @@ var _alert_bar: float = 0.0
 var _look_dir: Vector2 = Vector2.RIGHT
 var _patrol_target: Vector2 = Vector2.ZERO
 var _chase_lose_timer: float = 0.0
+var _investigate_target: Vector2 = Vector2.ZERO
+var _investigate_timer: float = 0.0
 var speed_multiplier: float = 1.0
 
 signal agent_caught()
@@ -35,6 +37,24 @@ func is_chasing() -> bool:
 	return _state == State.CHASE
 
 
+## Sends the drone to investigate a sound origin. Ignored if already chasing.
+func trigger_investigate(origin: Vector2) -> void:
+	if _state == State.CHASE:
+		return
+	_state = State.INVESTIGATE
+	_investigate_target = origin
+	_investigate_timer = 0.0
+
+
+## Immediately starts chasing the agent (used by extraction pulse).
+func force_chase() -> void:
+	if _state == State.CHASE:
+		return
+	_state = State.CHASE
+	_chase_lose_timer = 0.0
+	entered_chase.emit()
+
+
 func _process(delta: float) -> void:
 	if _agent == null or GameState.current_state != GameState.RunState.PLAYING:
 		return
@@ -46,6 +66,9 @@ func _process(delta: float) -> void:
 			_check_detection(delta)
 		State.CHASE:
 			_do_chase(delta)
+		State.INVESTIGATE:
+			_do_investigate(delta)
+			_check_detection(delta)
 	queue_redraw()
 
 
@@ -98,6 +121,19 @@ func _do_chase(delta: float) -> void:
 			_alert_bar = 0.0
 
 
+func _do_investigate(delta: float) -> void:
+	var dir := _investigate_target - global_position
+	if dir.length() < 12.0:
+		# Arrived — search in place for 4s, then resume patrol
+		_investigate_timer += delta
+		if _investigate_timer >= 4.0:
+			_state = State.PATROL
+			_investigate_timer = 0.0
+	else:
+		_look_dir = dir.normalized()
+		global_position += _look_dir * GameConfig.STEALTH_PATROL_SPEED * speed_multiplier * delta
+
+
 func _is_in_vision_cone(target: Vector2) -> bool:
 	var to_target := target - global_position
 	if to_target.length() > GameConfig.STEALTH_VISION_LENGTH:
@@ -116,8 +152,9 @@ func _agent_is_in_shadow() -> bool:
 func _draw() -> void:
 	var state_color := Color(0.65, 0.65, 0.7)
 	match _state:
-		State.ALERTED: state_color = Color(1.0, 0.82, 0.1)
-		State.CHASE:   state_color = Color(1.0, 0.2, 0.2)
+		State.ALERTED:     state_color = Color(1.0, 0.82, 0.1)
+		State.CHASE:       state_color = Color(1.0, 0.2, 0.2)
+		State.INVESTIGATE: state_color = Color(0.9, 0.55, 0.1)
 
 	# Vision cone (filled)
 	var half_rad := deg_to_rad(GameConfig.STEALTH_VISION_HALF_ANGLE)
