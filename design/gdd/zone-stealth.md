@@ -1,8 +1,8 @@
 # Zona Stealth — Game Design Document
 
-**Version**: 1.0
-**Date**: 2026-03-21
-**Status**: Draft — Brainstorm Approved
+**Version**: 2.0
+**Date**: 2026-03-23
+**Status**: Revisado — Sincronização Cinética
 
 ---
 
@@ -22,10 +22,13 @@ a jogada certa.
 ## 2. Player Fantasy
 
 Você é o cientista infiltrando a cidade da IA sozinho. Cada passo é calculado.
-Você espera na sombra enquanto um drone passa a centímetros. Você faz barulho
-do outro lado da rua para desviar uma patrulha, corre para pegar o componente,
-e desaparece antes que o drone volte. Cada componente coletado é uma pequena
-vitória contra a máquina perfeita — conquistada com inteligência, não força.
+Você espera na sombra enquanto um drone passa a centímetros — e então você começa
+a andar ao lado dele, na mesma velocidade e direção, e o algoritmo de detecção
+interpreta você como eco do próprio drone. Você está literalmente se escondendo
+dentro do movimento do inimigo. Você usa barulho do outro lado da rua para
+desviar uma câmera, corre para pegar o componente, e sincroniza com o próximo
+drone para sair. Cada componente coletado é conquistado com inteligência cinética —
+você não parou, você se moveu certo.
 
 ---
 
@@ -74,6 +77,7 @@ enxergar as estrelas com os mesmos sensores que ARGOS usava para caçar humanos.
   - Dedo próximo = movimento lento / silencioso
   - Dedo distante = movimento rápido / barulhento
   - Dedo parado / solto = personagem para completamente
+- **Terceira dimensão do input**: direção de movimento. A Sincronização Cinética (seção 3.5) usa a direção além da velocidade
 
 ### 3.3 Sistemas de Detecção
 
@@ -130,7 +134,26 @@ Quatro sistemas de detecção operam simultaneamente:
 - O jogador pode usar o raio de som **intencionalmente** como isca:
   - Mover rápido em uma direção → gerar barulho → drone investigador se desvia
   - Enquanto drone investiga: abrir janela de passagem em outra rota
-- Essa é a única forma de "manipular" inimigos sem atacá-los
+- Essa é uma das formas de "manipular" inimigos sem atacá-los
+
+### 3.7 Sincronização Cinética (Nova Mecânica)
+
+O sistema ARGOS foi calibrado para minimizar falsos positivos. O algoritmo de detecção de Marcus Chen compara a velocidade e direção de entidades em seu campo de visão contra a velocidade e direção de entidades autorizadas conhecidas (os próprios drones). **Entidades que se movem de forma indistinguível de um drone autorizado são classificadas como eco — e ignoradas.**
+
+**Condição de Sincronização**: o jogador está a ≤80px de um drone, movendo-se na mesma direção (≤20° de desvio angular) e na mesma velocidade (±30px/s da velocidade do drone) por pelo menos **1.5 segundos** contínuos.
+
+**Efeito**: o jogador entra em estado **Sincronizado**:
+- O cone de visão do drone sincronizado não detecta o jogador
+- Outros drones ainda detectam normalmente (o eco só vale para o drone "anfitrião")
+- O raio de som **ainda funciona** — o jogador sincronizado que faz barulho atrai outros drones mesmo sem ser visto pelo anfitrião
+- O estado Sincronizado é quebrado se:
+  - O jogador se afastar >80px do drone
+  - O desvio de velocidade ou direção ultrapassar os limiares por >0.5s
+  - O jogador parar completamente
+
+**Indicador Visual**: quando sincronizado, o sprite do jogador ganha um leve contorno da cor do drone — "fundido" visualmente com ele. É imediatamente legível.
+
+**Por que isso adiciona movimento**: sincronizar com um drone em movimento exige que o jogador **ative e mantenha movimento** — não é possível sincronizar parado. O jogador que aprender a usar Sincronização terá uma fuga de movimento onde jogadores novatos teriam uma espera parada.
 
 ### 3.7 Coleta de Componentes
 
@@ -194,6 +217,28 @@ O inimigo entra em estado Buscando quando:
 alcance_perda_visao = 300px
 ```
 
+### Sincronização Cinética
+
+```
+Condição de Sincronização (todos devem ser verdadeiros simultaneamente):
+  distancia(jogador, drone) <= 80px
+  angulo_diferença_direcao <= 20°
+  abs(velocidade_jogador - velocidade_drone) <= 30px/s
+  duracao_condicao >= 1.5s
+
+Velocidade típica dos drones: 80px/s (constante)
+Velocidade alvo do jogador para sincronizar: 50–110px/s (±30px/s de 80)
+
+Estado Sincronizado:
+  cone_visao_drone_anfitriao = ignorado pelo sistema de detecção
+  raio_som = ativo normalmente (não cancelado)
+  outros_drones = detectam normalmente
+
+Quebra de Sincronização:
+  Se qualquer condição falhar por > 0.5s → estado Sincronizado termina
+  Cooldown de re-sincronização: 0s (pode sincronizar imediatamente novamente)
+```
+
 ---
 
 ## 5. Edge Cases
@@ -234,6 +279,10 @@ alcance_perda_visao = 300px
 | `tempo_investigacao` | 4s | 2–6s | Quanto tempo o drone investigador fica na origem do som |
 | `quantidade_componentes` | 6–8 por mapa | 4–12 | Densidade de recursos no mapa |
 | `slots_mochila` | (ver sistema de recursos) | — | Compartilhado com outras zonas |
+| `sinc_distancia_max` | 80px | 60–120px | Raio de sincronização; muito largo = trivial, muito estreito = impraticável em movimento |
+| `sinc_tolerancia_angulo` | 20° | 10–35° | Tolerância de direção para sincronizar; muito estreito = impossível manter em curvas |
+| `sinc_tolerancia_velocidade` | 30px/s | 15–50px/s | Tolerância de velocidade; muito estreito = exige precisão de dedo impraticável |
+| `sinc_duracao_trigger` | 1.5s | 0.8–2.5s | Tempo para ativar sincronização; muito curto = ativa por acidente, muito longo = impraticável |
 
 ---
 
@@ -242,11 +291,14 @@ alcance_perda_visao = 300px
 - [ ] Novo jogador entende que pode usar barulho como distração sem tutorial
 - [ ] Em 100% dos casos, entrar em sombra torna o jogador invisível para cones de visão e câmeras
 - [ ] O raio de som é visível e atualiza em tempo real conforme a velocidade muda
-- [ ] É possível completar uma run sem ser detectado nenhuma vez
+- [ ] Sincronização Cinética: quando condições são atendidas por 1.5s → sprite do jogador ganha contorno da cor do drone
+- [ ] Drone sincronizado não detecta o jogador dentro do cone de visão enquanto Sincronização ativa
+- [ ] Raio de som permanece ativo durante Sincronização (outros drones ainda detectam barulho)
+- [ ] Sincronização termina quando jogador se afasta >80px, desvia direção >20° por >0.5s, ou para
+- [ ] É possível completar uma run sem ser detectado nenhuma vez (via sombra + sincronização)
 - [ ] É possível ser detectado, escapar da perseguição, e completar a run com sucesso
-- [ ] O jogador consegue distinguir visualmente: zona iluminada vs sombra, cone ativo vs câmera varrendo
 - [ ] Ao chegar ao EXIT com perseguição ativa, o jogo comunica claramente que a saída está bloqueada
-- [ ] Uma run completa (entrar, coletar, sair) ocorre entre 60 e 120 segundos
+- [ ] Uma run completa ocorre entre 60 e 120 segundos
 
 ---
 
