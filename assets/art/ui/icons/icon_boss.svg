@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+  <defs>
+    <radialGradient id="skull_fill" cx="45%" cy="38%" r="58%">
+      <stop offset="0%" stop-color="#D02020"/>
+      <stop offset="65%" stop-color="#9A0C12"/>
+      <stop offset="100%" stop-color="#620408"/>
+    </radialGradient>
+    <radialGradient id="jaw_fill" cx="50%" cy="30%" r="60%">
+      <stop offset="0%" stop-color="#B81818"/>
+      <stop offset="100%" stop-color="#780610"/>
+    </radialGradient>
+    <filter id="skull_glow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="1.8" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- Red danger glow aura -->
+  <ellipse cx="16" cy="14" rx="12" ry="12" fill="#FF1010" opacity="0.1" filter="url(#skull_glow)"/>
+
+  <!-- Shadow/depth -->
+  <path d="M8,19.5 C8,11.5 11.5,5.5 16,5.5 C20.5,5.5 24,11.5 24,19.5 L21.5,19.5 L21.5,23.5 L10.5,23.5 L10.5,19.5 Z"
+        fill="#330006" opacity="0.5" transform="translate(0.5,1.5)"/>
+
+  <!-- Skull cranium -->
+  <path d="M8,19.5 C8,11.5 11.5,5.5 16,5.5 C20.5,5.5 24,11.5 24,19.5 L21.5,19.5 L21.5,23.5 L10.5,23.5 L10.5,19.5 Z"
+        fill="url(#skull_fill)"/>
+
+  <!-- Cranium outline -->
+  <path d="M8,19.5 C8,11.5 11.5,5.5 16,5.5 C20.5,5.5 24,11.5 24,19.5 L21.5,19.5 L21.5,23.5 L10.5,23.5 L10.5,19.5 Z"
+        fill="none" stroke="#450008" stroke-width="1"/>
+
+  <!-- Cranium highlight -->
+  <path d="M9.5,14 C9.8,10 12,7.5 15,6.5" fill="none" stroke="#FF7777" stroke-width="1.4" stroke-linecap="round" opacity="0.6"/>
+
+  <!-- Jaw teeth (3 teeth) -->
+  <rect x="10.5" y="23.5" width="3.5" height="4.5" rx="0.8" fill="url(#jaw_fill)"/>
+  <rect x="14.25" y="23.5" width="3.5" height="4.5" rx="0.8" fill="url(#jaw_fill)"/>
+  <rect x="18" y="23.5" width="3.5" height="4.5" rx="0.8" fill="url(#jaw_fill)"/>
+  <!-- Tooth outlines -->
+  <rect x="10.5" y="23.5" width="10.5" height="4.5" rx="0.8" fill="none" stroke="#450008" stroke-width="0.8"/>
+  <line x1="14" y1="23.5" x2="14" y2="28" stroke="#450008" stroke-width="0.8"/>
+  <line x1="17.75" y1="23.5" x2="17.75" y2="28" stroke="#450008" stroke-width="0.8"/>
+
+  <!-- Eye sockets (dark holes) -->
+  <ellipse cx="12.5" cy="16.5" rx="3" ry="3.2" fill="#1A0004"/>
+  <ellipse cx="19.5" cy="16.5" rx="3" ry="3.2" fill="#1A0004"/>
+  <ellipse cx="12.5" cy="16.5" rx="3" ry="3.2" fill="none" stroke="#450008" stroke-width="0.8"/>
+  <ellipse cx="19.5" cy="16.5" rx="3" ry="3.2" fill="none" stroke="#450008" stroke-width="0.8"/>
+
+  <!-- Eye socket inner glow (dangerous red) -->
+  <ellipse cx="12.5" cy="16.8" rx="1.5" ry="1.6" fill="#550010" opacity="0.7"/>
+  <ellipse cx="19.5" cy="16.8" rx="1.5" ry="1.6" fill="#550010" opacity="0.7"/>
+
+  <!-- Nose cavity -->
+  <path d="M15,20 L16,18.5 L17,20 L16.6,21.2 L15.4,21.2 Z" fill="#1A0004" stroke="#450008" stroke-width="0.6"/>
+</svg>

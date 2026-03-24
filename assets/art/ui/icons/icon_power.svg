@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+  <defs>
+    <linearGradient id="bolt" x1="0.35" y1="0" x2="0.65" y2="1">
+      <stop offset="0%" stop-color="#FFE850"/>
+      <stop offset="45%" stop-color="#FFB820"/>
+      <stop offset="100%" stop-color="#E86808"/>
+    </linearGradient>
+    <filter id="bolt_glow" x="-50%" y="-30%" width="200%" height="160%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="2" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- Glow aura -->
+  <polygon points="19.5,2.5 9.5,17.5 15.5,17.5 11.5,30 23,14.5 17,14.5"
+           fill="#FFAA10" opacity="0.28" filter="url(#bolt_glow)"/>
+
+  <!-- Drop shadow -->
+  <polygon points="19.5,2.5 9.5,17.5 15.5,17.5 11.5,30 23,14.5 17,14.5"
+           fill="#703000" opacity="0.45" transform="translate(1.5,2)"/>
+
+  <!-- Main bolt body -->
+  <polygon points="19.5,2.5 9.5,17.5 15.5,17.5 11.5,30 23,14.5 17,14.5"
+           fill="url(#bolt)"/>
+
+  <!-- Outline -->
+  <polygon points="19.5,2.5 9.5,17.5 15.5,17.5 11.5,30 23,14.5 17,14.5"
+           fill="none" stroke="#B06000" stroke-width="0.9"/>
+
+  <!-- Left-edge highlight (lit side of bolt) -->
+  <line x1="15.5" y1="6" x2="11.5" y2="15.5" stroke="#FFF4A0" stroke-width="1.8" opacity="0.48" stroke-linecap="round"/>
+  <!-- Inner core highlight -->
+  <line x1="16.5" y1="4.5" x2="13" y2="13" stroke="#FFFFFF" stroke-width="0.9" opacity="0.35" stroke-linecap="round"/>
+</svg>

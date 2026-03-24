@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="38%" r="62%">
+      <stop offset="0%" stop-color="#1C1430"/>
+      <stop offset="100%" stop-color="#090611"/>
+    </radialGradient>
+    <linearGradient id="border_gold" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#E8C030"/>
+      <stop offset="100%" stop-color="#8A5A08"/>
+    </linearGradient>
+    <!-- Gem faces -->
+    <linearGradient id="gem_top" x1="0.5" y1="0" x2="0.5" y2="1">
+      <stop offset="0%" stop-color="#FFE868"/>
+      <stop offset="100%" stop-color="#D4A018"/>
+    </linearGradient>
+    <linearGradient id="gem_left" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#C08010"/>
+      <stop offset="100%" stop-color="#A86808"/>
+    </linearGradient>
+    <linearGradient id="gem_right" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#906008"/>
+      <stop offset="100%" stop-color="#704800"/>
+    </linearGradient>
+    <filter id="gem_glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="2.2" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- Drop shadow -->
+  <rect x="2.5" y="3.5" width="28" height="28" rx="5" fill="#503000" opacity="0.3"/>
+
+  <!-- Background -->
+  <rect x="1" y="1" width="30" height="30" rx="5" fill="url(#bg)"/>
+
+  <!-- Gold outer border (filled state) -->
+  <rect x="1" y="1" width="30" height="30" rx="5" fill="none" stroke="url(#border_gold)" stroke-width="1.5"/>
+  <rect x="3.5" y="3.5" width="25" height="25" rx="3.5" fill="none" stroke="#3A2200" stroke-width="0.8"/>
+
+  <!-- Corner brackets in gold -->
+  <polyline points="4,10 4,4 10,4" fill="none" stroke="#D4A020" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  <polyline points="22,4 28,4 28,10" fill="none" stroke="#D4A020" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  <polyline points="4,22 4,28 10,28" fill="none" stroke="#D4A020" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  <polyline points="22,28 28,28 28,22" fill="none" stroke="#D4A020" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Gem glow aura -->
+  <polygon points="16,8 21,12 24,16 21,20 16,24 11,20 8,16 11,12" fill="#D4A018" opacity="0.22" filter="url(#gem_glow)"/>
+
+  <!-- Gem — top crown face (brightest) -->
+  <polygon points="16,9 20.5,12.5 16,15.5 11.5,12.5" fill="url(#gem_top)"/>
+  <!-- Gem — left face -->
+  <polygon points="16,15.5 11.5,12.5 8.5,16 11.5,19.5 16,16.5" fill="url(#gem_left)"/>
+  <!-- Gem — right face -->
+  <polygon points="16,15.5 20.5,12.5 23.5,16 20.5,19.5 16,16.5" fill="url(#gem_right)"/>
+  <!-- Gem — bottom face (darkest) -->
+  <polygon points="16,16.5 11.5,19.5 16,23 20.5,19.5" fill="#5A3A00"/>
+
+  <!-- Outline -->
+  <polygon points="16,9 20.5,12.5 23.5,16 20.5,19.5 16,23 11.5,19.5 8.5,16 11.5,12.5" fill="none" stroke="#7A5000" stroke-width="0.7"/>
+
+  <!-- Specular highlight (top-left of gem) -->
+  <polygon points="16,9 20.5,12.5 16,12.8 13,11" fill="#FFFFFF" opacity="0.35"/>
+  <ellipse cx="13.5" cy="11.5" rx="1.5" ry="1" fill="#FFFFFF" opacity="0.55" transform="rotate(-20 13.5 11.5)"/>
+</svg>
