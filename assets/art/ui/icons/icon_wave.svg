@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+  <defs>
+    <linearGradient id="wave_col" x1="0.5" y1="0" x2="0.5" y2="1">
+      <stop offset="0%" stop-color="#FFB830"/>
+      <stop offset="100%" stop-color="#E07010"/>
+    </linearGradient>
+    <radialGradient id="enemy_col" cx="50%" cy="40%" r="55%">
+      <stop offset="0%" stop-color="#FFB020"/>
+      <stop offset="100%" stop-color="#C06010"/>
+    </radialGradient>
+    <filter id="wave_glow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="0.9" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- Wave arc 3 — outermost, faintest -->
+  <path d="M3.5,20 Q7,8 16,7 Q25,8 28.5,20"
+        fill="none" stroke="#D06010" stroke-width="1.6" opacity="0.28" stroke-linecap="round"/>
+
+  <!-- Wave arc 2 -->
+  <path d="M5.5,20 Q9,11 16,10 Q23,11 26.5,20"
+        fill="none" stroke="#E08020" stroke-width="1.7" opacity="0.55" stroke-linecap="round"/>
+
+  <!-- Wave arc 1 — closest, brightest -->
+  <path d="M7.5,20 Q11,14 16,13 Q21,14 24.5,20"
+        fill="none" stroke="url(#wave_col)" stroke-width="2.2" opacity="1" stroke-linecap="round" filter="url(#wave_glow)"/>
+
+  <!-- Enemy dots row (approaching threats) -->
+  <!-- Far-left, smallest -->
+  <circle cx="3.5" cy="25" r="1.8" fill="#B05010" opacity="0.45"/>
+  <!-- Left -->
+  <circle cx="8.5" cy="25" r="2.4" fill="#D07018" opacity="0.72"/>
+  <!-- Center — largest/closest -->
+  <circle cx="16" cy="25.5" r="3.4" fill="url(#enemy_col)"/>
+  <circle cx="16" cy="25.5" r="3.4" fill="none" stroke="#804010" stroke-width="0.8"/>
+  <!-- Right -->
+  <circle cx="23.5" cy="25" r="2.4" fill="#D07018" opacity="0.72"/>
+  <!-- Far-right, smallest -->
+  <circle cx="28.5" cy="25" r="1.8" fill="#B05010" opacity="0.45"/>
+
+  <!-- Enemy eyes on center dot -->
+  <circle cx="15" cy="25" r="0.7" fill="#FFFFFF" opacity="0.8"/>
+  <circle cx="17" cy="25" r="0.7" fill="#FFFFFF" opacity="0.8"/>
+</svg>
