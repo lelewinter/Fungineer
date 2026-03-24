@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+  <defs>
+    <linearGradient id="heart_fill" x1="0.35" y1="0" x2="0.65" y2="1">
+      <stop offset="0%" stop-color="#FF4D66"/>
+      <stop offset="55%" stop-color="#CC1133"/>
+      <stop offset="100%" stop-color="#880020"/>
+    </linearGradient>
+    <filter id="h_shadow" x="-20%" y="-10%" width="150%" height="150%">
+      <feDropShadow dx="0" dy="2.5" stdDeviation="1.8" flood-color="#440011" flood-opacity="0.55"/>
+    </filter>
+    <filter id="h_glow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="1.5" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- Soft glow behind heart -->
+  <path d="M16,26.5 C16,26.5 4,18.5 4,11 C4,7.7 6.7,5 10,5 C12.4,5 14.5,6.3 16,8.2 C17.5,6.3 19.6,5 22,5 C25.3,5 28,7.7 28,11 C28,18.5 16,26.5 16,26.5 Z"
+        fill="#FF2244" opacity="0.18" filter="url(#h_glow)"/>
+
+  <!-- Heart shadow -->
+  <path d="M16,26.5 C16,26.5 4,18.5 4,11 C4,7.7 6.7,5 10,5 C12.4,5 14.5,6.3 16,8.2 C17.5,6.3 19.6,5 22,5 C25.3,5 28,7.7 28,11 C28,18.5 16,26.5 16,26.5 Z"
+        fill="#440011" opacity="0.5" transform="translate(0,2.5)" filter="url(#h_shadow)"/>
+
+  <!-- Heart body -->
+  <path d="M16,26.5 C16,26.5 4,18.5 4,11 C4,7.7 6.7,5 10,5 C12.4,5 14.5,6.3 16,8.2 C17.5,6.3 19.6,5 22,5 C25.3,5 28,7.7 28,11 C28,18.5 16,26.5 16,26.5 Z"
+        fill="url(#heart_fill)"/>
+
+  <!-- Stroke outline -->
+  <path d="M16,26.5 C16,26.5 4,18.5 4,11 C4,7.7 6.7,5 10,5 C12.4,5 14.5,6.3 16,8.2 C17.5,6.3 19.6,5 22,5 C25.3,5 28,7.7 28,11 C28,18.5 16,26.5 16,26.5 Z"
+        fill="none" stroke="#770018" stroke-width="1"/>
+
+  <!-- Top-left specular highlight arc -->
+  <path d="M8.5,10 C9.2,7.8 11.2,6.8 13.5,7.5" fill="none" stroke="#FF99AA" stroke-width="1.6" stroke-linecap="round" opacity="0.75"/>
+
+  <!-- Small specular blob -->
+  <ellipse cx="10" cy="10.5" rx="2.2" ry="1.5" fill="#FF8899" opacity="0.38" transform="rotate(-25 10 10.5)"/>
+</svg>
