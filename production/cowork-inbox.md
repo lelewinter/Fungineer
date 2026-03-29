@@ -9,12 +9,12 @@ PENDING
 
 ## Tarefa
 
-### Task 005 — Em ZoneRoom.gd, conectar o sinal pressed do Button RAID para emitir sinal raid_requested(zone_name: String). WorldMapScene.gd escuta esse sinal de todas as instâncias e armazena a zona selecionada em uma variável _pending_zone.
+### Task 006 — Criar cena ConfirmRaidDialog.tscn como CanvasLayer com PanelContainer centralizado. Conteúdo: Label com nome da zona, Label com descrição curta da zona, Button "CONFIRMAR" e Button "CANCELAR". Aceita dados via método setup(zone_name: String, zone_description: String). Emite sinais confirmed e cancelled.
 
-**Tela afetada:** WorldMapScene
-**Descrição completa:** Em ZoneRoom.gd, conectar o sinal pressed do Button RAID para emitir sinal raid_requested(zone_name: String). WorldMapScene.gd escuta esse sinal de todas as instâncias e armazena a zona selecionada em uma variável _pending_zone.
-**Como verificar:** Ao tocar no botão RAID de qualquer sala, o sinal é emitido e _pending_zone é atualizado com o nome correto da zona (verificável via print no output do Godot).
+**Tela afetada:** ConfirmRaidDialog
+**Descrição completa:** Criar cena ConfirmRaidDialog.tscn como CanvasLayer com PanelContainer centralizado. Conteúdo: Label com nome da zona, Label com descrição curta da zona, Button "CONFIRMAR" e Button "CANCELAR". Aceita dados via método setup(zone_name: String, zone_description: String). Emite sinais confirmed e cancelled.
+**Como verificar:** ConfirmRaidDialog instanciado e chamado com setup() exibe nome e descrição da zona, com dois botões funcionais.
 
-⚠️ NÃO commite ainda. Task 5/10 do batch 1.
+⚠️ NÃO commite ainda. Task 6/10 do batch 1.
 
 Implemente a mudança acima. Siga os padrões do projeto (GDScript, snake_case, data-driven).

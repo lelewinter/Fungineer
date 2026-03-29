@@ -13,7 +13,7 @@ extends PanelContainer
 @export var zone_name: String = ""
 
 ## Emitted when the RAID button is pressed.
-signal raid_pressed(zone_name: String)
+signal raid_requested(zone_name: String)
 
 @onready var _bg: ColorRect = $ColorRect
 @onready var _raid_btn: Button = $HBoxContainer/RaidButton
@@ -31,4 +31,4 @@ func _update_visuals() -> void:
 
 
 func _on_raid_pressed() -> void:
-	raid_pressed.emit(zone_name)
+	raid_requested.emit(zone_name)
