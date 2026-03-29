@@ -5,76 +5,80 @@
 ---
 
 ## Status
-DONE
+PENDING
 
 ## Tarefa
 
-**BUG CRÍTICO: Clicar RAIDAR não entra nas zonas de batalha.**
+**FIX: WorldMap aparece minúsculo no canto do browser — corrigir stretch mode do projeto.**
 
-Confirmado visualmente em 2026-03-28: clicar RAIDAR fecha o painel mas o jogo permanece no WorldMap.
+**Diagnóstico confirmado visualmente em 2026-03-28:**
 
-**Causa raiz confirmada:**
+O projeto usa `window/stretch/aspect="expand"` em `project.godot`. Com este modo, o canvas cresce para preencher o browser inteiro (2560×911 CSS pixels), mas o WorldMapScene desenha o conteúdo com constantes fixas `VW=480, VH=854`. Resultado: o conteúdo do mapa fica apenas no canto superior esquerdo (480×854 pixels) de um canvas de 2560×911, deixando ~80% da tela preta e inutilizável.
 
-O `ColorRect` do painel de detalhes usa `MOUSE_FILTER_IGNORE` por padrão. Isso permite que o clique passe pelo painel até `_unhandled_input` no Node2D pai. O `tap_pos` em coordenadas do jogo cai dentro do rect da zona CAMPO (floor=1, col=0) — exatamente onde o botão RAIDAR aparece visualmente. Isso faz `_show_detail(campo)` substituir `_selected_zone` antes que o signal `pressed` do Button dispare, causando `change_scene_to_file` para a cena errada.
+A cena de batalha (Main.tscn) usa Camera2D com arena de 3200×2400 e funciona bem com `expand`. Mas o WorldMap não se adapta ao viewport expandido.
 
-**Cálculo que confirma o overlap:**
-- CAMPO inner rect: x(16–149), y(330–564) em game coords
-- Botão RAIDAR estimado em x(86–270), y(~437) — overlap em x(86–149), y(~437) ✓
+**Solução dupla:**
 
----
+### Parte 1 — Trocar stretch aspect para `keep_height` em `project.godot`
 
-### Passo 1 — Restaurar o arquivo local do git HEAD
+No arquivo `project.godot`, trocar:
+```
+window/stretch/aspect="expand"
+```
+por:
+```
+window/stretch/aspect="keep_height"
+```
 
-O arquivo local `src/scenes/WorldMapScene.gd` está truncado (576 linhas vs 617 no git HEAD). Restaura antes de editar:
+Com `keep_height`, o game escala para preencher a altura do browser mantendo o aspect ratio. Em um browser 2560×911, o viewport de jogo será ~511×911 CSS pixels (correto para o WorldMap 480×854).
+
+### Parte 2 — Adaptar WorldMapScene.gd para usar o viewport real
+
+Após trocar o stretch mode, o WorldMap ainda usa `const VW = 480.0` e `const VH = 854.0` hard-coded. Com `keep_height`, o viewport pode ser ligeiramente diferente de 480×854 (pode ser mais largo se o browser for muito largo). Porém, `keep_height` mantém a altura em 854, então VH=854 ainda é correto. A largura pode variar.
+
+Para segurança, no início de `_ready()` em `WorldMapScene.gd`, adicionar:
+```gdscript
+# Ajusta VW/VH ao viewport real para suportar diferentes tamanhos de tela
+var vp_size := get_viewport().get_visible_rect().size
+```
+E trocar as constantes `VW` e `VH` para variáveis que pegam o valor do viewport:
+
+- Trocar `const VW: float = 480.0` por `var VW: float = 480.0`
+- Trocar `const VH: float = 854.0` por `var VH: float = 854.0`
+- No início de `_ready()`, antes de `_build_detail_panel()`, adicionar:
+```gdscript
+VW = get_viewport().get_visible_rect().size.x
+VH = get_viewport().get_visible_rect().size.y
+```
+
+Isso garante que o WorldMap preenche o viewport disponível independente do stretch mode.
+
+**Cuidado:** As constantes `COL_X`, `COL_W`, `SURFACE_Y`, `FLOOR_H` também usam valores derivados de VW/VH (via cálculos inline em `_draw()`, `_build_detail_panel()`, etc.) — não são constantes separadas que precisam de mudança, pois são calculadas ao longo do código usando VW e VH. Verificar que todas as referências a `VW` e `VH` usam as variáveis (não valores literais 480/854 escondidos no código).
+
+### Verificação esperada
+
+Após o fix, recarregar https://lelewinter.github.io/Fungineer/ deve mostrar o WorldMap preenchendo a maioria da tela do browser, não só um canto.
+
+### Commit esperado
 
 ```bash
-git show HEAD:src/scenes/WorldMapScene.gd > src/scenes/WorldMapScene.gd
-wc -l src/scenes/WorldMapScene.gd
-# Deve mostrar 617
-```
+git add project.godot src/scenes/WorldMapScene.gd
+git commit -m "fix: stretch keep_height + viewport-relative WorldMap layout
 
-### Passo 2 — Aplicar o fix de mouse_filter
+WorldMap was rendering in only ~20% of the browser window because
+expand stretch mode grew the canvas to 2560x911 but WorldMapScene
+used hardcoded VW=480/VH=854 constants for all drawing.
 
-Em `src/scenes/WorldMapScene.gd`, dentro de `_build_detail_panel()`, logo após definir a position do `panel` (ColorRect), adiciona:
-
-```gdscript
-panel.mouse_filter = Control.MOUSE_FILTER_STOP
-```
-
-A seção modificada deve ficar assim:
-
-```gdscript
-var panel := ColorRect.new()
-panel.color = Color(0.07, 0.06, 0.05, 0.97)
-panel.size = Vector2(340, 240)
-panel.position = Vector2(VW * 0.5 - 170, VH * 0.5 - 120)
-panel.mouse_filter = Control.MOUSE_FILTER_STOP   # ← ADICIONAR ESTA LINHA
-_detail_layer.add_child(panel)
-```
-
-### Passo 3 — Verificar sintaxe e commit
-
-```bash
-# Confirma que o arquivo tem 618 linhas (617 + 1 nova)
-wc -l src/scenes/WorldMapScene.gd
-
-git add src/scenes/WorldMapScene.gd
-git commit -m "fix: panel mouse_filter stops click propagation to _unhandled_input
-
-Clicking RAIDAR was not entering battle scenes because the ColorRect
-panel used MOUSE_FILTER_IGNORE (default), allowing the click to pass
-through to _unhandled_input. The click fell within the CAMPO zone rect
-(floor=1, col=0), causing _show_detail(campo) to overwrite _selected_zone
-before the Button pressed signal fired, then change_scene_to_file failed.
-
-Fix: panel.mouse_filter = Control.MOUSE_FILTER_STOP blocks the click.
+Fix: switch to keep_height stretch (fills browser height, black bars
+on sides) and read actual viewport size in WorldMapScene._ready() so
+the map scales correctly to the available space.
 
 Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>"
 git push
 ```
 
 ## Resultado
-Arquivo `src/scenes/WorldMapScene.gd` restaurado do git HEAD (617 linhas). Adicionada linha `panel.mouse_filter = Control.MOUSE_FILTER_STOP` em `_build_detail_panel()` após `panel.position`, bloqueando propagação do clique para `_unhandled_input`. Arquivo ficou com 618 linhas. Commit `6af0ab4` criado e pushed para main.
+_Aguardando execução._
 
 ---
 
@@ -91,8 +95,5 @@ Arquivo `src/scenes/WorldMapScene.gd` restaurado do git HEAD (617 linhas). Adici
 
 ## Histórico
 
-- **2026-03-28**: Copiados 9 arquivos zone_*.png para assets/art/zones/ (commit a73afc9). Sistema de background de zonas já presente no código (commit aa5c3c2).
-- **2026-03-28**: Watcher fixes aplicados, imagens bloqueadas (commit 5ba9507).
-- **2026-03-28**: SFX de UI adicionados (Click_01.wav, Click_02.wav, Confirm_01.wav) ao WorldMapScene e HubScene (commit e46fc7b).
-- **2026-03-28**: Música de fundo implementada (commit 4b6a2d8).
-- **2026-03-28**: Bug crítico RAIDAR corrigido — `panel.mouse_filter = MOUSE_FILTER_STOP` em `_build_detail_panel()` impede clique de passar pelo ColorRect para `_unhandled_input` (commit 6af0ab4).
+- **2026-03-28**: Copiados 9 arquivos zone_*.png para assets/art/zones/ (commit a73afc9). Sistema de background de zonas já presente no código.
+- **2026-03-28**: Fix RAIDAR — adicionado `panel.mouse_filter = Control.MOUSE_FILTER_STOP` em `_build_detail_panel()` para evitar propagação de clique para `_unhandled_input` (commit 6af0ab4). Confirmado funcionando: batalha inicia corretamente via JS click em CSS (256, 507).
