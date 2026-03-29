@@ -1,3 +1,9 @@
+---
+tags: [fungineer, game-design, gdd]
+date: 2026-03-23
+tipo: game-design-doc
+---
+
 # Labirinto Dinâmico — Game Design Document
 
 **Version**: 2.0
@@ -314,10 +320,4 @@ Rota alternativa (12 paredes): 0.3 × 12 = 3.6 inimigos esperados
 - [ ] Novo jogador entende que correr em direção à parede abre mais cedo — sem tutorial
 - [ ] Após 1–2 runs, jogador percebe que esperar parado é menos eficiente que aproximar em movimento
 - [ ] Pulso ciano comunica "você está fazendo certo" claramente
-- [ ] Jogador que domina o Impulso completa a run ~20–30s mais rápido que jogador que espera
-- [ ] Escolha entre rota direta e rota alternativa continua sendo decisão real
-- [ ] Run completa (ENTRADA ao EXIT) ocorre entre 30 e 80s
-
----
-
-*Relacionado: `design/gdd/game-concept.md`, `design/gdd/resource-system.md`, `design/gdd/zone-circuit.md`*
+- [ ] Jogador que domina o Impul

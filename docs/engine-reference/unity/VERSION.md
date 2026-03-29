@@ -1,3 +1,9 @@
+---
+tags: [fungineer, engine, referencia, unity]
+date: 2026-03-28
+tipo: referencia-engine
+---
+
 # Unity Engine — Version Reference
 
 | Field | Value |

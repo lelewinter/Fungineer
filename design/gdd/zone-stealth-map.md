@@ -1,3 +1,9 @@
+---
+tags: [fungineer, game-design, gdd]
+date: 2026-03-22
+tipo: game-design-doc
+---
+
 # Zona Stealth — Design de Mapa e Layout
 
 **Version**: 1.1

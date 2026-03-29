@@ -1,3 +1,9 @@
+---
+tags: [fungineer, game-design, gdd]
+date: 2026-03-23
+tipo: game-design-doc
+---
+
 # Zona de Sacrifício — Game Design Document
 
 **Version**: 2.0
@@ -225,8 +231,4 @@ Após 2 câmaras -15s: 90 - 30 - 31 = 29s (apertado)
 - [ ] ≥60% dos playtestadores expressam preferência estratégica (arrojado vs conservador) após 3 runs
 - [ ] Câmara de Cadeia surpreende na primeira vez, mas o mecanismo é entendido imediatamente após
 - [ ] Run apenas com câmaras sem custo percebida como "segura mas insatisfatória"
-- [ ] Run completa (entrada ao EXIT) ocorre entre 30 e 70 segundos para a maioria
-
----
-
-*Relacionado: `design/gdd/game-concept.md`, `design/gdd/resource-system.md`, `design/gdd/mvp-game-brief.md`, `design/gdd/hub-and-characters.md`, `design/gdd/enemies-horda-zone.md`*
+- [ ] Run completa (entrada ao EXIT) ocorr

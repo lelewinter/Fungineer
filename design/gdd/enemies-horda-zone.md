@@ -1,3 +1,9 @@
+---
+tags: [fungineer, game-design, gdd]
+date: 2026-03-22
+tipo: game-design-doc
+---
+
 # Inimigos — Zona Hordas
 
 **Version**: 1.0
@@ -215,10 +221,4 @@ Cor-âncora = **legibilidade de ameaça** (aprendida em ~3 runs sem tutoriais):
 - **Laranja/enferrujado** = quantidade, básicos (Runner)
 - **Cinza/prata** = resistência, tanques (Bruiser, Shielder)
 - **Verde-oxidado** = ameaças de distância (Spitter)
-- **Bronze** = inimigos que usam o terreno (Crawler)
-- **Preto** = ameaças explosivas ou alto impacto (Bomber, Boss)
-- **Azul-aço** = precisão/controle (Sniper)
-
----
-
-*Relacionado: `design/gdd/mvp-game-brief.md`, `design/art-direction.md`*
+- **Bronze** = inimigos qu

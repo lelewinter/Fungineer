@@ -1,3 +1,9 @@
+---
+tags: [fungineer, exemplo, workflow]
+date: 2026-03-28
+tipo: exemplo
+---
+
 # Collaborative Session Examples
 
 This directory contains realistic, end-to-end session transcripts showing how the Game Studio Agent Architecture works in practice. Each example demonstrates the **collaborative workflow** where agents ask questions, present options, and wait for user approval rather than autonomously generating content.

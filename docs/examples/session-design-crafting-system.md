@@ -1,3 +1,9 @@
+---
+tags: [fungineer, exemplo, workflow]
+date: 2026-03-28
+tipo: exemplo
+---
+
 # Example Session: Designing the Crafting System
 
 **Context:** Solo indie dev, week 2 of project, needs to design the crafting system mentioned in the game pillars.

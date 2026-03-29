@@ -1,3 +1,9 @@
+---
+tags: [fungineer, design]
+date: 2026-03-21
+tipo: design
+---
+
 # Orbs — Visão Geral das Mecânicas
 
 **Data**: 2026-03-21

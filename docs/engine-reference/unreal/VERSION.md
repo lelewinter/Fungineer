@@ -1,3 +1,9 @@
+---
+tags: [fungineer, engine, referencia, unreal]
+date: 2026-03-28
+tipo: referencia-engine
+---
+
 # Unreal Engine — Version Reference
 
 | Field | Value |

@@ -1,3 +1,9 @@
+---
+tags: [fungineer, documentacao, tecnico]
+date: 2026-03-28
+tipo: documentacao
+---
+
 # Collaborative Design Principle
 
 **Last Updated:** 2026-02-13

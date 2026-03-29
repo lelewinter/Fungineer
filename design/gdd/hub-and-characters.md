@@ -1,3 +1,9 @@
+---
+tags: [fungineer, game-design, gdd]
+date: 2026-03-21
+tipo: game-design-doc
+---
+
 # Hub e Personagens — Game Design Document
 
 **Version**: 1.0
@@ -281,10 +287,4 @@ Falhar numa run NÃO reduz confiança.
 - [ ] Ao atingir threshold de confiança, nova missão aparece automaticamente
 - [ ] O hub fica visualmente mais "habitado" conforme mais sobreviventes chegam
 - [ ] A tela de transição ao voltar de run mostra claramente o que foi ganho/perdido
-- [ ] Ex-Executivo nunca aparece na tela de seleção de squad (exceto missão especial)
-- [ ] Completar a missão de um personagem dispara diálogo de reação in-character
-
----
-
-*Relacionado: `design/gdd/game-concept.md`, `design/gdd/mvp-game-brief.md`, `design/gdd/zone-stealth.md`,
-`design/narrative/world-lore.md`, `design/narrative/narrative-arc.md`*
+- [ ] Ex-Executivo nunca aparece na tela de seleção de squad (exceto mis

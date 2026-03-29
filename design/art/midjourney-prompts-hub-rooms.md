@@ -1,3 +1,9 @@
+---
+tags: [fungineer, arte, art-direction]
+date: 2026-03-28
+tipo: art-direction
+---
+
 # Midjourney Prompts — Salas do Hub (Bunker)
 
 **Como usar:**

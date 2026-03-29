@@ -1,3 +1,9 @@
+---
+tags: [fungineer, arte, art-direction]
+date: 2026-03-22
+tipo: art-direction
+---
+
 # Hub — Direção de Arte: Salas do Bunker
 ## Do Protótipo ao Jogo Finalizado
 

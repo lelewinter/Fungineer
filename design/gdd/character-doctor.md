@@ -1,3 +1,9 @@
+---
+tags: [fungineer, game-design, gdd]
+date: 2026-03-21
+tipo: game-design-doc
+---
+
 # O Doutor — Character Design Document
 
 **Version**: 1.0
@@ -192,8 +198,4 @@ velocidade_aliado = velocidade_doutor × fator_vel
 - [ ] Silhueta distinguível de aliados e inimigos em 375px de largura
 - [ ] Na Zona Stealth, opção de levar squad desabilitada com feedback claro
 - [ ] Morte do Doutor sempre termina a run, independente de aliados vivos
-- [ ] Animação de coleta de recurso legível em tela mobile sem ser intrusiva
-
----
-
-*Relacionado: `design/gdd/hub-and-characters.md`, `design/gdd/mvp-game-brief.md`, `design/gdd/zone-stealth.md`*
+- [ 

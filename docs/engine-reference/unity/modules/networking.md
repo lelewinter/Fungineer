@@ -1,3 +1,9 @@
+---
+tags: [fungineer, engine, referencia, unity, modulo]
+date: 2026-03-28
+tipo: referencia-engine
+---
+
 # Unity 6.3 — Networking Module Reference
 
 **Last verified:** 2026-02-13

@@ -1,3 +1,9 @@
+---
+tags: [fungineer, game-design, gdd]
+date: 2026-03-21
+tipo: game-design-doc
+---
+
 # Mapa-Mundo — Game Design Document
 
 **Version**: 1.0
@@ -174,9 +180,4 @@ Exemplo: 10 runs completadas → Zona Hordas no Estágio 1 (passou de 6). Próxi
 | Deterioração visual (estágios 0–2) | Sim | — |
 | Modificador de dificuldade por estágio | Sim | — |
 | Zona Fechada (Estágio 3) | Não | Sim |
-| Missão de reabertura | Não | Sim |
-| Zonas 3–5 no mapa | Não | Sim |
-
----
-
-*Relacionado: `design/gdd/game-concept.md`, `design/gdd/hub-and-characters.md`, `design/gdd/resource-system.md`*
+| Missão de reaber

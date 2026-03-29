@@ -1,3 +1,9 @@
+---
+tags: [fungineer, engine, referencia, godot]
+date: 2026-03-28
+tipo: referencia-engine
+---
+
 # Godot Engine — Version Reference
 
 | Field | Value |

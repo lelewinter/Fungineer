@@ -1,3 +1,9 @@
+---
+tags: [fungineer, documentacao, tecnico]
+date: 2026-03-28
+tipo: documentacao
+---
+
 # Claude Code Game Studios -- Complete Workflow Guide
 
 > **How to go from zero to a shipped game using the Agent Architecture.**
