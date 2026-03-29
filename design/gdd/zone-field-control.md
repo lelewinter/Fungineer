@@ -1,3 +1,9 @@
+---
+tags: [fungineer, game-design, gdd]
+date: 2026-03-23
+tipo: game-design-doc
+---
+
 # Controle de Campo — Game Design Document
 
 **Version**: 2.0
@@ -243,9 +249,4 @@ Zona pequena: perde em 10s (2× o tempo de captura base)
 - [ ] Após 2 runs, jogador testa conscientemente chegada em velocidade vs devagar
 - [ ] Jogador que circula supera acampador em ≥30% mais Sinais
 - [ ] Pulso do anel durante burst comunica "você fez certo" sem texto
-- [ ] Decisão "para onde ir agora" ocorre a cada 4–8s naturalmente
-- [ ] Run de habilidade média em circulação gera entre 100 e 250 Sinais
-
----
-
-*Relacionado: `design/gdd/game-concept.md`, `design/gdd/resource-system.md`, `design/gdd/mvp-game-brief.md`, `design/gdd/enemies-horda-zone.md`*
+- [ ] Decisão "para onde ir agora" ocorre a cada 4

@@ -1,3 +1,9 @@
+---
+tags: [fungineer, game-design, gdd]
+date: 2026-03-21
+tipo: game-design-doc
+---
+
 # Orbit Rescue — MVP Game Brief
 
 **Version**: 1.0
@@ -194,13 +200,4 @@ Single currency: **Tech Fragments**
 
 ---
 
-## Out of Scope for MVP
-
-- Multiple maps
-- More than 1 meta currency
-- Deep armor trees
-- Story / narrative
-- Multiplayer
-- More than 1 boss
-- Sound design (placeholder OK)
-- Achievements / daily missions
+## Out of

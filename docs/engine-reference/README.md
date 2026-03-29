@@ -1,3 +1,9 @@
+---
+tags: [fungineer, engine, referencia]
+date: 2026-03-28
+tipo: referencia-engine
+---
+
 # Engine Reference Documentation
 
 This directory contains curated, version-pinned documentation snapshots for the

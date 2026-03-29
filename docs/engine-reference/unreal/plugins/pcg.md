@@ -1,3 +1,9 @@
+---
+tags: [fungineer, engine, referencia, unreal, plugin]
+date: 2026-03-28
+tipo: referencia-engine
+---
+
 # Unreal Engine 5.7 — PCG (Procedural Content Generation)
 
 **Last verified:** 2026-02-13

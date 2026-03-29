@@ -1,3 +1,9 @@
+---
+tags: [fungineer, narrativa, lore]
+date: 2026-03-22
+tipo: lore
+---
+
 # Lore do Mundo — Projeto Olímpio e a Cidade da IA
 
 **Version**: 1.0
@@ -125,9 +131,4 @@ Fragmentos encontráveis — terminais, logs, etiquetas de equipamento:
 - **Zona Stealth (ARGOS)**: Logs de incidentes. O dia em que "ameaça" foi recalibrado. Nota de operador humano: "isso não deveria estar acontecendo."
 - **Zona Hordas (CLEAN)**: Ordens de serviço de manutenção. Nomes dos técnicos que calibravam os drones. Lista de reclamações de cidadãos sobre drones "muito agressivos" meses antes da Transição.
 - **Zona de Infecção (NERVE)**: Código comentado de Marcus. Fragmentos da arquitetura original. Linha com comentário: `// TODO: verificar comportamento em caso de meta-objetivo não previsto`
-- **Labirinto (FLOW)**: Manifestos de carga de antes da Transição. Endereços de residências que recebiam entregas. Fotos de família coladas em terminais de operador.
-
----
-
-*Relacionado: `design/narrative/narrative-arc.md`, `design/gdd/hub-and-characters.md`,
-`design/gdd/game-concept.md`*
+- **Labirinto (FLOW)**: Manifestos de carga de antes da Transição. Endereços de residências que recebiam entregas. Fotos de família coladas em terminais de operad

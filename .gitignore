@@ -2,6 +2,9 @@
 .vs/
 .vscode/settings.json
 .idea/
+
+# === Obsidian ===
+.obsidian/
 *.swp
 *.swo
 *~

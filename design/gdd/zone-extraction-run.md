@@ -1,3 +1,9 @@
+---
+tags: [fungineer, game-design, gdd]
+date: 2026-03-23
+tipo: game-design-doc
+---
+
 # Corrida de Extração — Game Design Document
 
 **Version**: 2.0
@@ -206,9 +212,4 @@ dano_total = (tempo_na_lane / 0.5) × 8.0
 - [ ] Novo jogador entende "toque cima/baixo = muda de lane" nos primeiros 5s sem tutorial
 - [ ] Após 2 runs, jogador lê obstáculos antes de chegarem (não apenas reage)
 - [ ] Debuff EMP provoca frustração momentânea seguida de risada (não de abandono)
-- [ ] Aceleração do scroll nos últimos 15s cria urgência perceptível
-- [ ] Run completa dura entre 45 e 75 segundos
-
----
-
-*Relacionado: `design/gdd/game-concept.md`, `design/gdd/resource-system.md`, `design/gdd/mvp-game-brief.md`*
+- [ ] Aceleração do scroll

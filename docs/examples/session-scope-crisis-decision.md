@@ -1,3 +1,9 @@
+---
+tags: [fungineer, exemplo, workflow]
+date: 2026-03-28
+tipo: exemplo
+---
+
 # Example Session: Scope Crisis - Strategic Decision Making
 
 **Context:** Solo indie dev, week 8 of project (month 2), approaching Alpha milestone.

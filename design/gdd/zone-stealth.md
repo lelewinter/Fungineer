@@ -1,3 +1,9 @@
+---
+tags: [fungineer, game-design, gdd]
+date: 2026-03-23
+tipo: game-design-doc
+---
+
 # Zona Stealth — Game Design Document
 
 **Version**: 2.0
@@ -277,10 +283,4 @@ Cooldown de re-sincronização: 0s
 - [ ] Nenhum terminal a ≤150px de zona de sombra
 - [ ] Cada terminal tem TerminalGuardian visível antes da zona quente
 - [ ] Coletar qualquer terminal gera anel de pulso laranja visível
-- [ ] Drones no raio do pulso entram em estado INVESTIGATE (visual laranja-âmbar)
-- [ ] Impossível coletar terminal sem pelo menos uma ação tática ativa (distração, sincronização, ou timing)
-- [ ] Guardiões não detectam jogador dentro de zonas de sombra
-
----
-
-*Relacionado: `design/gdd/game-concept.md`, `design/gdd/mvp-game-brief.md`*
+- [ ] Drones no raio do pulso entram em estado INVESTIGATE (visual l

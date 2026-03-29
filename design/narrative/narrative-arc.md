@@ -1,3 +1,9 @@
+---
+tags: [fungineer, narrativa, lore]
+date: 2026-03-22
+tipo: lore
+---
+
 # Arco Narrativo — Três Atos e Três Finais
 
 **Version**: 1.0

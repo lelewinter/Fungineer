@@ -1,3 +1,9 @@
+---
+tags: [fungineer, game-design, gdd]
+date: 2026-03-21
+tipo: game-design-doc
+---
+
 # Sistema de Recursos — Game Design Document
 
 **Version**: 1.0

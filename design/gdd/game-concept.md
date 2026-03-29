@@ -1,3 +1,9 @@
+---
+tags: [fungineer, game-design, gdd]
+date: 2026-03-21
+tipo: game-design-doc
+---
+
 # Game Concept: Orbs (Working Title)
 
 *Created: 2026-03-21*

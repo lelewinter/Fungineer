@@ -1,3 +1,9 @@
+---
+tags: [fungineer, documentacao, tecnico]
+date: 2026-03-21
+tipo: documentacao
+---
+
 # Technical Architecture — Orbit Rescue MVP
 
 **Version**: 1.0

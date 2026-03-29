@@ -1,3 +1,9 @@
+---
+tags: [fungineer, arquitetura, adr, decisao]
+date: 2026-03-21
+tipo: adr
+---
+
 # ADR-001: Engine Choice — Godot 4.6
 
 **Date**: 2026-03-21

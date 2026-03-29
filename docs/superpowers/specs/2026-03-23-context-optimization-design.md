@@ -1,3 +1,9 @@
+---
+tags: [fungineer, ia, superpowers, claude-code]
+date: 2026-03-28
+tipo: spec
+---
+
 # Context Optimization — Design Spec
 **Date:** 2026-03-23
 **Status:** Approved
@@ -195,6 +201,4 @@ Replace with: "The `session-start.sh` hook will emit a single alert line pointin
 - [ ] CLAUDE.md Doc Map has 7 rows covering all previously-included docs plus Collaboration Protocol
 - [ ] validate-commit.sh warning output contains no `===` lines
 - [ ] validate-assets.sh warning output contains no `===` lines
-- [ ] All validation logic preserved (commit JSON check, asset naming, push branch guard still fire correctly)
-- [ ] context-management.md contains a "Lazy Loading" section
-- [ ] context-management.md does not describe session-start as previewing active.md
+- [ ] All validation logic preserved (commit JSON check, ass

@@ -1,3 +1,9 @@
+---
+tags: [fungineer, engine, referencia, godot]
+date: 2026-03-28
+tipo: referencia-engine
+---
+
 # Godot — Deprecated APIs
 
 Last verified: 2026-02-12

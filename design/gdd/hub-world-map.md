@@ -1,3 +1,9 @@
+---
+tags: [fungineer, game-design, gdd]
+date: 2026-03-22
+tipo: game-design-doc
+---
+
 # Hub — Mapa-Mundo (Corte Transversal)
 
 **Version**: 1.0
@@ -205,9 +211,4 @@ Bunker (corte)
 - [ ] Cômodos sem personagem têm visual escuro — cômodos habitados têm luz e atividade
 - [ ] Os dois túneis MVP (Hordas e Stealth) são visualmente distintos em atmosfera no ponto de entrada
 - [ ] A câmara do foguete em zoom out é o ponto focal visual imediato do bunker
-- [ ] Um novo jogador encontra o acesso ao mapa-mundo (Posto de Vigia) sem instrução em ≤ 30s
-- [ ] A tela de preparação de run (corredor de entrada) está a ≤ 1 toque do mapa-mundo
-
----
-
-*Relacionado: `design/gdd/hub-and-characters.md`, `design/art-direction.md`, `design/gdd/game-concept.md`*
+- [ ] Um novo jogador encontra o acesso ao mapa-mundo (Posto de Vigia) sem instrução em ≤ 30

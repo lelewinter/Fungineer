@@ -1,3 +1,9 @@
+---
+tags: [fungineer, engine, referencia, unity]
+date: 2026-03-28
+tipo: referencia-engine
+---
+
 # Unity 6.3 LTS — Breaking Changes
 
 **Last verified:** 2026-02-13

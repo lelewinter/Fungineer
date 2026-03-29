@@ -1,3 +1,9 @@
+---
+tags: [fungineer, engine, referencia, godot, modulo]
+date: 2026-03-28
+tipo: referencia-engine
+---
+
 # Godot Rendering — Quick Reference
 
 Last verified: 2026-02-12 | Engine: Godot 4.6

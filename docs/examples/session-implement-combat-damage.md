@@ -1,3 +1,9 @@
+---
+tags: [fungineer, exemplo, workflow]
+date: 2026-03-28
+tipo: exemplo
+---
+
 # Example Session: Implementing Combat Damage Calculation
 
 **Context:** Solo indie dev, week 4 of project, implementing gameplay systems.
