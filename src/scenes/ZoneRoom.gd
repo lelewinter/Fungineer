@@ -40,6 +40,12 @@ func _update_visuals() -> void:
 		return
 	_bg.color = Color(accent_color.r, accent_color.g, accent_color.b, 0.30)
 
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(0.051, 0.051, 0.051)  # #0D0D0D
+	style.border_color = accent_color
+	style.set_border_width_all(2)
+	add_theme_stylebox_override("panel", style)
+
 
 func _update_labels() -> void:
 	if not is_node_ready():
