@@ -64,8 +64,9 @@ def trigger_claude_code():
     )
 
     try:
+        claude_path = r"C:\Users\leeew\.local\bin\claude.exe"
         result = subprocess.run(
-            ["claude", "--print", "--dangerously-skip-permissions", prompt],
+            [claude_path, "--print", "--dangerously-skip-permissions", prompt],
             cwd=str(PROJECT_DIR),
             capture_output=True,
             text=True,
@@ -186,7 +187,3 @@ if __name__ == "__main__":
     else:
         try:
             import watchdog  # noqa
-            run_with_watchdog()
-        except ImportError:
-            log.warning("watchdog não instalado — usando polling. Execute: pip install watchdog")
-            run_polling()

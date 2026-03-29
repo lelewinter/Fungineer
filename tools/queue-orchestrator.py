@@ -69,7 +69,9 @@ def write_file(path: str, content: str):
 # ── Parser do task-queue.md ───────────────────────────────────────────────────
 
 def parse_tasks(content: str) -> list[dict]:
-    """Extrai tasks do task-queue.md."""
+    """Extrai tasks do task-queue.md, ignorando comentários HTML."""
+    # Remove blocos de comentário HTML <!-- ... --> antes de parsear
+    content = re.sub(r"<!--.*?-->", "", content, flags=re.DOTALL)
     tasks = []
     blocks = re.split(r"---TASK---", content)
     for block in blocks[1:]:  # ignora cabeçalho
@@ -343,16 +345,4 @@ def main():
             new_batch = batch_num + 1
             set_metadata("Batch atual", new_batch)
             set_metadata("Último commit", new_batch)
-            request_visual_verification(new_batch, batch_tasks_done)
-            batch_tasks_done = []
-
-            # Aguarda verificação
-            approved, corrections = wait_for_verification()
-            if not approved and corrections:
-                inject_corrections(corrections, new_batch)
-
-        time.sleep(2)
-
-
-if __name__ == "__main__":
-    main()
+            request_
