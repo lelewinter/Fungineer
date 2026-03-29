@@ -9,27 +9,36 @@ DONE
 
 ## Tarefa
 
-### Task 010 — Fundo escuro e bordas accent nas salas
+### Task C0101 — [CORREÇÃO] As salas do andar 1 (Infecção, Labirinto, Circuito) não exibem o botão RAID. A altura das ZoneRoom nesse andar está menor que nos outros dois. Garantir que todas as ZoneRoom tenham altura mínima igual e que o botão RAID seja visível em todas as salas dos 3 andares. Verificar via custom_minimum_size ou size_flags no VBoxContainer/HBoxContainer.
 
 **Tela afetada:** WorldMapScene
-**Descrição completa:** Criar fundo geral de WorldMapScene com ColorRect representando estrutura de bunker/instalação industrial (cor `#0D0D0D`), com HSeparator entre andares. Aplicar theme_override nos PanelContainer das salas para bordas com a cor do accent da zona.
-**Como verificar:** O mapa exibe visual de instalação escura com salas tendo borda na cor do accent, sem fundo branco ou padrão do Godot.
+**Descrição completa:** [CORREÇÃO] As salas do andar 1 (Infecção, Labirinto, Circuito) não exibem o botão RAID. A altura das ZoneRoom nesse andar está menor que nos outros dois. Garantir que todas as ZoneRoom tenham altura mínima igual e que o botão RAID seja visível em todas as salas dos 3 andares. Verificar via custom_minimum_size ou size_flags no VBoxContainer/HBoxContainer.
+**Como verificar:** Abrir o jogo → WorldMapScene → todas as 9 salas exibem o botão RAID, incluindo Infecção, Labirinto e Circuito no andar inferior.
+
 
 ⚠️ ESTA É A TASK 10/10 DO BATCH 1.
 Após implementar, faça commit e push com a mensagem:
 ```
-feat: batch 1 — 10 tasks implementadas (WorldMapScene restructure)
+feat: batch 1 — 10 tasks implementadas
 
 Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
 ```
 
+
+Implemente a mudança acima. Siga os padrões do projeto (GDScript, snake_case, data-driven).
+
 ## Resultado
 
-Implementado em 2026-03-29:
-- `WorldMapScene.gd`: adicionado `ColorRect` com cor `#0D0D0D` como primeiro filho em `_ready()`, cobrindo a tela toda (`PRESET_FULL_RECT`), representando o fundo de bunker/instalação industrial.
-- `WorldMapScene.gd`: adicionado `HSeparator` entre cada andar no `VBoxContainer` de `_build_room_layout()`, com cor `Color(0.15, 0.15, 0.15)`.
-- `ZoneRoom.gd`: em `_update_visuals()`, aplicado `StyleBoxFlat` via `add_theme_stylebox_override("panel", style)` com `bg_color = #0D0D0D` e `border_color = accent_color` (2px), substituindo o estilo padrão branco do Godot.
+Corrigido o problema de altura das ZoneRoom no andar 1 (Infecção, Labirinto, Circuito):
+
+1. **ZoneRoom.tscn** — adicionado `custom_minimum_size = Vector2(0, 120)` ao PanelContainer raiz, garantindo que toda instância de ZoneRoom tenha altura mínima suficiente para exibir o botão RAID.
+
+2. **WorldMapScene.gd** — nos painéis de sala (Control criado por código):
+   - Adicionado `size_flags_vertical = Control.SIZE_EXPAND_FILL` para garantir que o painel se expanda verticalmente dentro do HBoxContainer do andar.
+   - Adicionado `custom_minimum_size = Vector2(0.0, 120.0)` para impor altura mínima igual em todas as salas dos 3 andares.
+
+Resultado: todas as 9 salas exibem o botão RAID com altura mínima consistente.
 
 ## Histórico
 
-- **2026-03-29** — Task 010 concluída: fundo escuro `#0D0D0D` (ColorRect) adicionado ao WorldMapScene, separadores horizontais entre andares, e bordas accent-color via StyleBoxFlat no PanelContainer de cada ZoneRoom.
+- **2026-03-29** — Task C0101 concluída: corrigida altura das ZoneRoom no andar 1. Adicionado `custom_minimum_size = Vector2(0, 120)` em ZoneRoom.tscn e `size_flags_vertical = SIZE_EXPAND_FILL` + `custom_minimum_size` nos panels em WorldMapScene.gd. Commit: "feat: batch 1 — 10 tasks implementadas".

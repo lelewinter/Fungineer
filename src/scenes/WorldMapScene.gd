@@ -115,6 +115,8 @@ func _build_room_layout() -> void:
 			var zone_id: int = FLOOR_LAYOUT[floor_idx][col_idx]
 			var panel := Control.new()
 			panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
+			panel.custom_minimum_size = Vector2(0.0, 120.0)
 			panel.mouse_filter = Control.MOUSE_FILTER_STOP
 			# Capture loop vars for the closure
 			var fi := floor_idx
