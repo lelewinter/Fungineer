@@ -58,6 +58,12 @@ func _ready() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_STOP  # catch background taps to close panel
 
+	var bg := ColorRect.new()
+	bg.color = Color("#0D0D0D")
+	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(bg)
+
 	_build_room_layout()
 	_build_detail_panel()
 	_load_zone_bg_images()
@@ -93,6 +99,12 @@ func _build_room_layout() -> void:
 
 	_room_panels = []
 	for floor_idx: int in FLOOR_LAYOUT.size():
+		if floor_idx > 0:
+			var sep := HSeparator.new()
+			sep.add_theme_color_override("color", Color(0.15, 0.15, 0.15))
+			sep.add_theme_constant_override("separation", 2)
+			vbox.add_child(sep)
+
 		var hbox := HBoxContainer.new()
 		hbox.size_flags_vertical = Control.SIZE_EXPAND_FILL
 		hbox.add_theme_constant_override("separation", 0)
