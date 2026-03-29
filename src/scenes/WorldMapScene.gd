@@ -118,6 +118,7 @@ func _build_room_layout() -> void:
 			var _zd: Dictionary = Zones.ZONES[zone_id] if zone_id >= 0 else Zones.ROCKET_BAY
 			zone_room.accent_color = _zd["accent_color"]
 			zone_room.zone_name = _zd["zone_name"]
+			zone_room.room_subtitle = _zd["room_subtitle"]
 			zone_room.raid_requested.connect(_on_zone_raid_requested)
 			panel.add_child(zone_room)
 
