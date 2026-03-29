@@ -5,6 +5,7 @@
 extends Control
 
 const _ZONE_ROOM_SCENE := preload("res://src/scenes/ZoneRoom.tscn")
+const _CONFIRM_DIALOG_SCENE := preload("res://src/scenes/ConfirmRaidDialog.tscn")
 
 const VW: float = 480.0
 const VH: float = 854.0
@@ -50,6 +51,7 @@ var _room_panels: Array = []
 
 ## Name of the zone whose RAID button was last pressed.
 var _pending_zone: String = ""
+var _confirm_dialog: ConfirmRaidDialog = null
 
 
 func _ready() -> void:
@@ -386,9 +388,38 @@ func _draw_stock_panel(top_y: float) -> void:
 
 # ── Room input ───────────────────────────────────────────────────────────────────
 
-## Called when any ZoneRoom's RAID button is pressed; stores the zone name.
+## Called when any ZoneRoom's RAID button is pressed; shows confirmation dialog.
 func _on_zone_raid_requested(zname: String) -> void:
 	_pending_zone = zname
+	var zone_data := _find_zone_by_name(zname)
+	if zone_data.is_empty():
+		return
+	_confirm_dialog = _CONFIRM_DIALOG_SCENE.instantiate() as ConfirmRaidDialog
+	_confirm_dialog.setup(zone_data["zone_name"], zone_data["subtitle"])
+	_confirm_dialog.confirmed.connect(_on_raid_confirmed)
+	_confirm_dialog.cancelled.connect(_on_raid_cancelled)
+	add_child(_confirm_dialog)
+
+
+func _on_raid_confirmed() -> void:
+	var zone_data := _find_zone_by_name(_pending_zone)
+	if zone_data.is_empty() or zone_data["scene_path"].is_empty():
+		return
+	get_tree().change_scene_to_file(zone_data["scene_path"])
+
+
+func _on_raid_cancelled() -> void:
+	if is_instance_valid(_confirm_dialog):
+		_confirm_dialog.queue_free()
+		_confirm_dialog = null
+	_pending_zone = ""
+
+
+func _find_zone_by_name(zname: String) -> Dictionary:
+	for zd: Dictionary in Zones.ZONES:
+		if zd["zone_name"] == zname:
+			return zd
+	return {}
 
 
 func _on_room_input(event: InputEvent, _floor_idx: int, _col_idx: int, zone_id: int) -> void:
