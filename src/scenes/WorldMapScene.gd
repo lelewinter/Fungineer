@@ -108,10 +108,18 @@ var _zone_dialogue_lbl: Label
 var _raid_btn: Button
 var _selected_zone: Dictionary = {}
 var _pulse: float = 0.0
+var _music: AudioStreamPlayer
 
 
 func _ready() -> void:
 	_build_detail_panel()
+
+	_music = AudioStreamPlayer.new()
+	_music.stream = load("res://assets/audio/music/menu.wav")
+	_music.volume_db = -8.0
+	add_child(_music)
+	_music.finished.connect(_music.play)
+	_music.play()
 
 
 func _process(delta: float) -> void:

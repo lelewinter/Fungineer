@@ -19,6 +19,7 @@ var _game_over_screen: GameOverScreen
 var _victory_screen: VictoryScreen
 var _rescue_screen: RescueScreen
 var _power_offer_screen: PowerOfferScreen
+var _music: AudioStreamPlayer
 
 
 func _ready() -> void:
@@ -27,6 +28,7 @@ func _ready() -> void:
 	_build_ui()
 	_connect_signals()
 	_start_run()
+	_setup_music()
 
 
 # ── Scene Construction ─────────────────────────────────────────────────────────
@@ -236,6 +238,15 @@ func _on_run_ended(victory: bool, fragments: int) -> void:
 		_victory_screen.show_screen(GameState.run_time, fragments)
 	else:
 		_game_over_screen.show_screen(GameState.run_time)
+
+
+func _setup_music() -> void:
+	_music = AudioStreamPlayer.new()
+	_music.stream = load("res://assets/audio/music/battle.wav")
+	_music.volume_db = -10.0
+	add_child(_music)
+	_music.finished.connect(_music.play)
+	_music.play()
 
 
 func _go_to_hub() -> void:

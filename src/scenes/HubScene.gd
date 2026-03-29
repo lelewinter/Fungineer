@@ -36,6 +36,7 @@ var _char_card: CanvasLayer  # character info card overlay
 var _notification_panel: ColorRect
 var _notification_label: Label
 var _notification_timer: float = 0.0
+var _music: AudioStreamPlayer
 
 const survivor_colors: Array = [
 	Color(0.3, 0.7, 1.0),   # Dr. Valério
@@ -65,6 +66,13 @@ func _ready() -> void:
 	_refresh_stock(HubState.stock)
 	_refresh_rocket()
 	_refresh_characters()
+
+	_music = AudioStreamPlayer.new()
+	_music.stream = load("res://assets/audio/music/menu.wav")
+	_music.volume_db = -8.0
+	add_child(_music)
+	_music.finished.connect(_music.play)
+	_music.play()
 
 
 # ── Background ────────────────────────────────────────────────────────────────
