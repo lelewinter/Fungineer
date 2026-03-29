@@ -4,6 +4,8 @@
 ## Tap an unlocked zone room to raid.
 extends Control
 
+const _ZONE_ROOM_SCENE := preload("res://src/scenes/ZoneRoom.tscn")
+
 const VW: float = 480.0
 const VH: float = 854.0
 const SURFACE_Y: float = 72.0
@@ -20,16 +22,6 @@ const FLOOR_LAYOUT: Array = [
 	[5, 6, 2],
 ]
 
-const ZONE_DATA: Array = [
-	{id=0, name="HORDAS",     subtitle="Zona de combate",     resource="Sucata Metalica",     scene="res://src/scenes/Main.tscn",             color=Color(0.9, 0.3, 0.25)},
-	{id=1, name="STEALTH",    subtitle="Zona de infiltracao", resource="Comp. de IA",          scene="res://src/scenes/StealthMain.tscn",      color=Color(0.25, 0.6, 0.9)},
-	{id=2, name="CIRCUITO",   subtitle="Zona de puzzle",      resource="Nucleo Logico",        scene="res://src/scenes/CircuitMain.tscn",      color=Color(0.4, 0.9, 0.5)},
-	{id=3, name="EXTRACAO",   subtitle="Zona de velocidade",  resource="Combustivel Volatil",  scene="res://src/scenes/ExtractionMain.tscn",   color=Color(0.95, 0.75, 0.1)},
-	{id=4, name="CAMPO",      subtitle="Zona de controle",    resource="Sinais de Controle",   scene="res://src/scenes/FieldControlMain.tscn", color=Color(0.7, 0.3, 0.9)},
-	{id=5, name="INFECCAO",   subtitle="Zona de propagacao",  resource="Biomassa Adapt.",      scene="res://src/scenes/InfectionMain.tscn",    color=Color(0.3, 0.8, 0.4)},
-	{id=6, name="LABIRINTO",  subtitle="Zona de navegacao",   resource="Frag. Estruturais",    scene="res://src/scenes/MazeMain.tscn",         color=Color(0.8, 0.5, 0.2)},
-	{id=7, name="SACRIFICIO", subtitle="Zona de decisao",     resource="Sucata + Comp. IA",    scene="res://src/scenes/SacrificeMain.tscn",    color=Color(0.9, 0.2, 0.55)},
-]
 
 const ZONE_DIALOGUE: Dictionary = {
 	0: "\"Patrulha de IA no Setor 7. Têm sucata lá... valem o risco? Bom, claro que valem!\"\n— Dr. Valério",
@@ -106,6 +98,15 @@ func _build_room_layout() -> void:
 			panel.gui_input.connect(func(ev: InputEvent) -> void:
 				_on_room_input(ev, fi, ci, zi)
 			)
+
+			var zone_room := _ZONE_ROOM_SCENE.instantiate() as ZoneRoom
+			zone_room.set_anchors_preset(Control.PRESET_FULL_RECT)
+			zone_room.mouse_filter = Control.MOUSE_FILTER_PASS
+			var _zd: Dictionary = Zones.ZONES[zone_id] if zone_id >= 0 else Zones.ROCKET_BAY
+			zone_room.accent_color = _zd["accent_color"]
+			zone_room.zone_name = _zd["zone_name"]
+			panel.add_child(zone_room)
+
 			hbox.add_child(panel)
 			floor_panels.append(panel)
 
@@ -208,10 +209,10 @@ func _draw_room_panel(floor_idx: int, col_idx: int) -> void:
 	var zone_name := ""
 
 	if zone_id >= 0:
-		var zd: Dictionary = ZONE_DATA[zone_id]
-		zone_col = zd["color"] as Color
+		var zd: Dictionary = Zones.ZONES[zone_id]
+		zone_col = zd["accent_color"] as Color
 		zone_unlocked = HubState.zones_unlocked[zone_id]
-		zone_name = zd["name"]
+		zone_name = zd["zone_name"]
 
 	# Outer wall fill
 	draw_rect(outer, Color(0.088, 0.08, 0.075))
@@ -258,7 +259,7 @@ func _draw_room_panel(floor_idx: int, col_idx: int) -> void:
 		# Rocket bay (no zone)
 		draw_string(ThemeDB.fallback_font,
 			inner.position + Vector2(6.0, 20.0),
-			"BAIA DO FOGUETE",
+			Zones.ROCKET_BAY["zone_name"],
 			HORIZONTAL_ALIGNMENT_LEFT, -1, 10, Color(0.7, 0.55, 0.3))
 		_draw_rocket_indicator(inner)
 
@@ -397,7 +398,7 @@ func _on_room_input(event: InputEvent, _floor_idx: int, _col_idx: int, zone_id: 
 		return  # Rocket bay — no zone to raid
 	if not HubState.zones_unlocked[zone_id]:
 		return
-	_show_detail(ZONE_DATA[zone_id])
+	_show_detail(zone_id, Zones.ZONES[zone_id])
 
 
 # ── Detail panel ─────────────────────────────────────────────────────────────────
@@ -455,17 +456,17 @@ func _build_detail_panel() -> void:
 	vbox.add_child(cancel)
 
 
-func _show_detail(zone: Dictionary) -> void:
+func _show_detail(zone_id: int, zone: Dictionary) -> void:
 	_sfx.stream = load("res://assets/audio/sfx/ui/Click_01.wav")
 	_sfx.play()
 	_selected_zone = zone
-	_zone_name_lbl.text = zone["name"]
+	_zone_name_lbl.text = zone["zone_name"]
 	_zone_res_lbl.text = "Recurso: " + zone["resource"]
-	var stage: int = HubState.zone_deterioration[zone["id"]] \
-		if zone["id"] < HubState.zone_deterioration.size() else 0
+	var stage: int = HubState.zone_deterioration[zone_id] \
+		if zone_id < HubState.zone_deterioration.size() else 0
 	var stage_texts := ["Estagio: Estavel", "Estagio: Deteriorando (+25% inimigos)", "Estagio: Critico (+50% inimigos)"]
 	_zone_stage_lbl.text = stage_texts[stage]
-	_zone_dialogue_lbl.text = ZONE_DIALOGUE.get(zone["id"], "")
+	_zone_dialogue_lbl.text = ZONE_DIALOGUE.get(zone_id, "")
 	_detail_layer.visible = true
 
 
@@ -481,4 +482,4 @@ func _start_raid() -> void:
 	if _selected_zone.is_empty():
 		return
 	_detail_layer.visible = false
-	get_tree().change_scene_to_file(_selected_zone["scene"])
+	get_tree().change_scene_to_file(_selected_zone["scene_path"])
