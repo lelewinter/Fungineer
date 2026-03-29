@@ -169,6 +169,7 @@ func _ready() -> void:
 	_build_hud()
 	GameState.start_run()
 	GameState.run_ended.connect(_on_run_ended)
+	AudioManager.play_music_for_scene("extracao")
 
 
 func _process(delta: float) -> void:

@@ -208,6 +208,7 @@ func _ready() -> void:
 	_build_graph()
 	_player_pos = Vector2(240.0, 400.0)
 	_drag_target = _player_pos
+	AudioManager.play_music_for_scene("infeccao")
 
 	var hud := _InfectHUD.new()
 	hud.setup(self)

@@ -186,6 +186,7 @@ func _ready() -> void:
 	GameState.start_run()
 	_bag_cap = HubState.get_backpack_capacity()
 	_run_timer = GameConfig.SACRIFICE_RUN_TIMER
+	AudioManager.play_music_for_scene("sacrificio")
 
 	# Squad composition (guardian + rescued)
 	_squad_size = 1 + HubState.rescued_characters.size()

@@ -165,6 +165,7 @@ func _ready() -> void:
 	_squad_size = 1 + HubState.rescued_characters.size()
 	_squad_max_hp = float(_squad_size) * _SQUAD_HP_PER
 	_squad_hp = _squad_max_hp
+	AudioManager.play_music_for_scene("campo")
 
 	_build_zones()
 	_player_pos = Vector2(240.0, 500.0)  # Start below center zone

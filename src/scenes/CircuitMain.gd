@@ -148,6 +148,7 @@ func _ready() -> void:
 	_build_exit()
 	_build_hud()
 	GameState.start_run()
+	AudioManager.play_music_for_scene("circuito")
 
 
 func _process(delta: float) -> void:

@@ -108,22 +108,12 @@ var _zone_dialogue_lbl: Label
 var _raid_btn: Button
 var _selected_zone: Dictionary = {}
 var _pulse: float = 0.0
-var _music: AudioStreamPlayer
-var _sfx: AudioStreamPlayer
 
 
 func _ready() -> void:
 	_build_detail_panel()
 
-	_music = AudioStreamPlayer.new()
-	_music.stream = load("res://assets/audio/music/menu.wav")
-	_music.volume_db = -8.0
-	add_child(_music)
-	_music.finished.connect(_music.play)
-	_music.play()
-
-	_sfx = AudioStreamPlayer.new()
-	add_child(_sfx)
+	AudioManager.play_music_for_scene("world_map")
 
 	# Zone background images — pixel art 1024x1024 per room
 	_add_zone_bg(0, 0, "res://assets/art/zones/zone_hordas.png")
@@ -590,8 +580,7 @@ func _build_detail_panel() -> void:
 
 
 func _show_detail(zone: Dictionary) -> void:
-	_sfx.stream = load("res://assets/audio/sfx/ui/Click_01.wav")
-	_sfx.play()
+	AudioManager.play_sfx("click")
 	_selected_zone = zone
 	_zone_name_lbl.text = zone["name"]
 	_zone_res_lbl.text = "Recurso: " + zone["resource"]
@@ -604,14 +593,12 @@ func _show_detail(zone: Dictionary) -> void:
 
 
 func _on_cancel_pressed() -> void:
-	_sfx.stream = load("res://assets/audio/sfx/ui/Click_02.wav")
-	_sfx.play()
+	AudioManager.play_sfx("click_2")
 	_detail_layer.visible = false
 
 
 func _start_raid() -> void:
-	_sfx.stream = load("res://assets/audio/sfx/ui/Confirm_01.wav")
-	_sfx.play()
+	AudioManager.play_sfx("confirm")
 	if _selected_zone.is_empty():
 		return
 	_detail_layer.visible = false

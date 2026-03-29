@@ -79,6 +79,7 @@ func _ready() -> void:
 	_build_alarm_ui()
 	_connect_signals()
 	GameState.start_run()
+	AudioManager.play_music_for_scene("stealth")
 
 
 # ── Map layout ─────────────────────────────────────────────────────────────────

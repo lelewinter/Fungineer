@@ -272,6 +272,7 @@ func _ready() -> void:
 	_build_layout()
 	_player_pos = _room_center(_ENTRY_COL, _ENTRY_ROW)
 	_exit_rect = _room_rect(_EXIT_COL, _EXIT_ROW)
+	AudioManager.play_music_for_scene("labirinto")
 
 	var hud := _MazeHUD.new()
 	hud.setup(self)
