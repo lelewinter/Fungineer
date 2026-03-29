@@ -11,94 +11,70 @@ DONE
 
 **BUG CRÍTICO: Clicar RAIDAR não entra nas zonas de batalha.**
 
-Observação no browser: clicar RAIDAR fecha o painel mas permanece no WorldMap. Nenhuma mensagem `print("[Main]...")` aparece no console do browser, indicando que `_start_raid()` retorna cedo (linha `if _selected_zone.is_empty(): return`).
+Confirmado visualmente em 2026-03-28: clicar RAIDAR fecha o painel mas o jogo permanece no WorldMap.
 
-**Causa raiz provável:**
+**Causa raiz confirmada:**
 
-O `ColorRect` do painel de detalhes usa `MOUSE_FILTER_IGNORE` por padrão. Isso permite que o clique passe pelo painel até `_unhandled_input`. Na função `_unhandled_input`, o `tap_pos` em coordenadas do jogo (game space) cai dentro do rect da zona CAMPO (floor=1, col=0) — que é exatamente onde o botão RAIDAR aparece visualmente. Isso faz `_show_detail(campo)` substituir `_selected_zone` antes que o signal `pressed` do Button dispare.
+O `ColorRect` do painel de detalhes usa `MOUSE_FILTER_IGNORE` por padrão. Isso permite que o clique passe pelo painel até `_unhandled_input` no Node2D pai. O `tap_pos` em coordenadas do jogo cai dentro do rect da zona CAMPO (floor=1, col=0) — exatamente onde o botão RAIDAR aparece visualmente. Isso faz `_show_detail(campo)` substituir `_selected_zone` antes que o signal `pressed` do Button dispare, causando `change_scene_to_file` para a cena errada.
 
 **Cálculo que confirma o overlap:**
-- Panel em game coords: posição (70, 307), tamanho (340, 240)
-- VBox começa em (86, 323); botão RAIDAR estimado em y≈458–494 em game coords
-- CAMPO inner rect: (16, 330) a (149, 564)  ← contém os pontos x=86–149, y=458–494 do botão RAIDAR ✓
+- CAMPO inner rect: x(16–149), y(330–564) em game coords
+- Botão RAIDAR estimado em x(86–270), y(~437) — overlap em x(86–149), y(~437) ✓
 
-**O que fazer:**
+---
 
-### Fix 1 — Bloquear clicks no painel com `mouse_filter`
+### Passo 1 — Restaurar o arquivo local do git HEAD
 
-Em `src/scenes/WorldMapScene.gd`, na função `_build_detail_panel()`, logo após criar o `panel` (ColorRect), adiciona:
+O arquivo local `src/scenes/WorldMapScene.gd` está truncado (576 linhas vs 617 no git HEAD). Restaura antes de editar:
+
+```bash
+git show HEAD:src/scenes/WorldMapScene.gd > src/scenes/WorldMapScene.gd
+wc -l src/scenes/WorldMapScene.gd
+# Deve mostrar 617
+```
+
+### Passo 2 — Aplicar o fix de mouse_filter
+
+Em `src/scenes/WorldMapScene.gd`, dentro de `_build_detail_panel()`, logo após definir a position do `panel` (ColorRect), adiciona:
 
 ```gdscript
 panel.mouse_filter = Control.MOUSE_FILTER_STOP
 ```
 
-Isso faz o painel consumir os eventos de clique, impedindo que cheguem ao `_unhandled_input`.
+A seção modificada deve ficar assim:
 
-Localização no arquivo (git HEAD, ~linha 546):
 ```gdscript
 var panel := ColorRect.new()
 panel.color = Color(0.07, 0.06, 0.05, 0.97)
 panel.size = Vector2(340, 240)
 panel.position = Vector2(VW * 0.5 - 170, VH * 0.5 - 120)
-# ADICIONAR AQUI:
-panel.mouse_filter = Control.MOUSE_FILTER_STOP
+panel.mouse_filter = Control.MOUSE_FILTER_STOP   # ← ADICIONAR ESTA LINHA
 _detail_layer.add_child(panel)
 ```
 
-### Fix 2 — Verificar arquivo local
-
-O arquivo local `src/scenes/WorldMapScene.gd` pode estar truncado (575 linhas vs 588 no git HEAD). Antes de editar, restaura do git HEAD:
+### Passo 3 — Verificar sintaxe e commit
 
 ```bash
-git show HEAD:src/scenes/WorldMapScene.gd > src/scenes/WorldMapScene.gd
-```
-
-Confirma que tem 588 linhas:
-```bash
+# Confirma que o arquivo tem 618 linhas (617 + 1 nova)
 wc -l src/scenes/WorldMapScene.gd
-```
 
-### Fix 3 — Testar outras zonas também
-
-Após o fix do mouse_filter, verifica se as cenas das zonas carregam corretamente. As cenas são:
-- HORDAS → `src/scenes/Main.tscn`
-- STEALTH → `src/scenes/StealthMain.tscn`
-- CIRCUITO → `src/scenes/CircuitMain.tscn`
-- EXTRACAO → `src/scenes/ExtractionMain.tscn`
-- CAMPO → `src/scenes/FieldControlMain.tscn`
-- INFECCAO → `src/scenes/InfectionMain.tscn`
-- LABIRINTO → `src/scenes/MazeMain.tscn`
-- SACRIFICIO → `src/scenes/SacrificeMain.tscn`
-
-Se alguma cena tiver erro de parse ou script quebrado, o `change_scene_to_file` falha silenciosamente e o jogo fica no WorldMap. Verifica com:
-```bash
-# Procura erros óbvios de sintaxe nos GDScript das cenas
-grep -n "class_name\|extends\|func _ready" src/scenes/*.gd | head -30
-```
-
-### Fix 4 — Commit e push
-
-```bash
 git add src/scenes/WorldMapScene.gd
 git commit -m "fix: panel mouse_filter stops click propagation to _unhandled_input
 
 Clicking RAIDAR was not entering battle scenes because the ColorRect
-panel used MOUSE_FILTER_IGNORE (default), allowing the click in game
-coordinates to pass through to _unhandled_input. The click fell within
-the CAMPO zone rect (floor=1, col=0), causing _show_detail(campo) to
-overwrite _selected_zone before Button pressed signal fired.
+panel used MOUSE_FILTER_IGNORE (default), allowing the click to pass
+through to _unhandled_input. The click fell within the CAMPO zone rect
+(floor=1, col=0), causing _show_detail(campo) to overwrite _selected_zone
+before the Button pressed signal fired, then change_scene_to_file failed.
 
-Fix: panel.mouse_filter = Control.MOUSE_FILTER_STOP blocks clicks.
+Fix: panel.mouse_filter = Control.MOUSE_FILTER_STOP blocks the click.
 
 Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>"
 git push
 ```
 
 ## Resultado
-Executado em 2026-03-28.
-- Os 9 arquivos `zone_*.png` já estavam renomeados corretamente em `C:\Users\leeew\Downloads\`.
-- Copiados para `assets/art/zones/`: zone_hordas, zone_sacrificio, zone_extracao, zone_campo, zone_foguete, zone_stealth, zone_infeccao, zone_labirinto, zone_circuito.
-- Commit `a73afc9` e push feitos com sucesso.
+Arquivo `src/scenes/WorldMapScene.gd` restaurado do git HEAD (617 linhas). Adicionada linha `panel.mouse_filter = Control.MOUSE_FILTER_STOP` em `_build_detail_panel()` após `panel.position`, bloqueando propagação do clique para `_unhandled_input`. Arquivo ficou com 618 linhas. Commit `6af0ab4` criado e pushed para main.
 
 ---
 
@@ -114,6 +90,9 @@ Executado em 2026-03-28.
 ---
 
 ## Histórico
-- 2026-03-28 — Zone bg code: `_add_zone_bg()` + chamadas em WorldMapScene.gd commitados; pasta zones/ criada. Imagens bloqueadas (PNGs em Downloads sem nomes corretos).
-- 2026-03-28 — Watcher fixes aplicados; SFX de clique/confirmação em WorldMap e HubScene commitados.
-- 2026-03-28 — 9 imagens de zona copiadas de Downloads para assets/art/zones/ e commitadas (commit a73afc9).
+
+- **2026-03-28**: Copiados 9 arquivos zone_*.png para assets/art/zones/ (commit a73afc9). Sistema de background de zonas já presente no código (commit aa5c3c2).
+- **2026-03-28**: Watcher fixes aplicados, imagens bloqueadas (commit 5ba9507).
+- **2026-03-28**: SFX de UI adicionados (Click_01.wav, Click_02.wav, Confirm_01.wav) ao WorldMapScene e HubScene (commit e46fc7b).
+- **2026-03-28**: Música de fundo implementada (commit 4b6a2d8).
+- **2026-03-28**: Bug crítico RAIDAR corrigido — `panel.mouse_filter = MOUSE_FILTER_STOP` em `_build_detail_panel()` impede clique de passar pelo ColorRect para `_unhandled_input` (commit 6af0ab4).
