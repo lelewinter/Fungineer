@@ -109,6 +109,7 @@ var _raid_btn: Button
 var _selected_zone: Dictionary = {}
 var _pulse: float = 0.0
 var _music: AudioStreamPlayer
+var _sfx: AudioStreamPlayer
 
 
 func _ready() -> void:
@@ -120,6 +121,9 @@ func _ready() -> void:
 	add_child(_music)
 	_music.finished.connect(_music.play)
 	_music.play()
+
+	_sfx = AudioStreamPlayer.new()
+	add_child(_sfx)
 
 
 func _process(delta: float) -> void:
@@ -551,11 +555,13 @@ func _build_detail_panel() -> void:
 
 	var cancel := Button.new()
 	cancel.text = "Cancelar"
-	cancel.pressed.connect(func(): _detail_layer.visible = false)
+	cancel.pressed.connect(_on_cancel_pressed)
 	vbox.add_child(cancel)
 
 
 func _show_detail(zone: Dictionary) -> void:
+	_sfx.stream = load("res://assets/audio/sfx/ui/Click_01.wav")
+	_sfx.play()
 	_selected_zone = zone
 	_zone_name_lbl.text = zone["name"]
 	_zone_res_lbl.text = "Recurso: " + zone["resource"]
@@ -567,7 +573,15 @@ func _show_detail(zone: Dictionary) -> void:
 	_detail_layer.visible = true
 
 
+func _on_cancel_pressed() -> void:
+	_sfx.stream = load("res://assets/audio/sfx/ui/Click_02.wav")
+	_sfx.play()
+	_detail_layer.visible = false
+
+
 func _start_raid() -> void:
+	_sfx.stream = load("res://assets/audio/sfx/ui/Confirm_01.wav")
+	_sfx.play()
 	if _selected_zone.is_empty():
 		return
 	_detail_layer.visible = false

@@ -37,6 +37,7 @@ var _notification_panel: ColorRect
 var _notification_label: Label
 var _notification_timer: float = 0.0
 var _music: AudioStreamPlayer
+var _sfx: AudioStreamPlayer
 
 const survivor_colors: Array = [
 	Color(0.3, 0.7, 1.0),   # Dr. Valério
@@ -73,6 +74,9 @@ func _ready() -> void:
 	add_child(_music)
 	_music.finished.connect(_music.play)
 	_music.play()
+
+	_sfx = AudioStreamPlayer.new()
+	add_child(_sfx)
 
 
 # ── Background ────────────────────────────────────────────────────────────────
@@ -408,6 +412,8 @@ func _build_character_card() -> void:
 
 
 func _show_character_card(char_id: String) -> void:
+	_sfx.stream = load("res://assets/audio/sfx/ui/Click_01.wav")
+	_sfx.play()
 	if char_id == "doctor":
 		return
 	var name_label: Label = _char_card.get_node("NameLabel")
@@ -432,4 +438,6 @@ func _on_card_backdrop_input(event: InputEvent) -> void:
 # ── Navigation ────────────────────────────────────────────────────────────────
 
 func _go_to_world_map() -> void:
+	_sfx.stream = load("res://assets/audio/sfx/ui/Confirm_01.wav")
+	_sfx.play()
 	get_tree().change_scene_to_file("res://src/scenes/WorldMapScene.tscn")
