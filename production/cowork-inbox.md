@@ -9,7 +9,7 @@ DONE
 
 ## Tarefa
 
-Corrige o watcher para disparar automaticamente, sem precisar de mensagem manual.
+Teste de watcher automático. Cria o arquivo `production/watcher-test.txt` com o conteúdo `watcher ok - {data e hora atual}`, faz commit e push.
 
 **Problema:** `tools/cowork-watcher.py` usa watchdog mas só dispara em eventos de modificação de arquivo. Se o inbox já está `PENDING` quando o watcher inicia, nada acontece. Além disso, quando há uma sessão interativa aberta, o `claude --print` pode conflitar.
 
@@ -155,6 +155,16 @@ git push
 
 **Sucesso:** push feito, WorldMapScene mostra as imagens pixel art como fundo de cada card de zona.
 
+## Resultado
+Executado em 2026-03-28.
+- `WorldMapScene.gd`: código de zone backgrounds aplicado — `_add_zone_bg()` adicionado, chamadas para 9 zonas em `_ready()`. Função tem null-check (`ResourceLoader.exists`) — não crasha sem as imagens.
+- `assets/art/zones/`: pasta criada e trackeada com `.gitkeep`.
+- ⚠️ BLOQUEADO (imagens): os 23 PNGs em Downloads têm nomes UUID/Gemini — sem mapeamento zona→arquivo não é possível renomear. Renomeie manualmente e copie para `assets/art/zones/` com os nomes: `zone_hordas.png`, `zone_sacrificio.png`, `zone_extracao.png`, `zone_campo.png`, `zone_foguete.png`, `zone_stealth.png`, `zone_infeccao.png`, `zone_labirinto.png`, `zone_circuito.png`. Depois faça `git add assets/art/zones/ && git commit && git push`.
+- Commit + push: feito para o código (sem as imagens).
+
+## Histórico
+- 2026-03-28 — Zone bg code: `_add_zone_bg()` + chamadas em WorldMapScene.gd commitados; pasta zones/ criada. Imagens bloqueadas (PNGs em Downloads sem nomes corretos).
+
 ## Resultado antigo (SFX)
 
 Restaura arquivos corrompidos e adiciona SFX de UI nas cenas WorldMap e Hub.
@@ -264,16 +274,4 @@ Executado em 2026-03-28.
 - `WorldMapScene.gd` restaurado (574 linhas) e `HubScene.gd` restaurado (435 linhas)
 - `_sfx: AudioStreamPlayer` adicionado em ambas as cenas
 - Click_01 em zone detail e character card; Click_02 em cancel; Confirm_01 em RAIDAR e navegação
-- Lambda de cancel substituída por `_on_cancel_pressed()` para suporte a SFX
-- Push: commit `e46fc7b` em `lelewinter/Fungineer` main
-
----
-
-## Protocolo
-
-**Claude Code faz:**
-1. Detecta Status: PENDING via hook UserPromptSubmit
-2. Executa a tarefa completamente
-3. Atualiza Status para DONE
-4. Escreve resultado em ## Resultado
-5. Faz git add, git 
+- Lambda de cancel substituída por `_on_cancel_presse
