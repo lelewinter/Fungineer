@@ -77,11 +77,19 @@ func _ready() -> void:
 func _build_room_layout() -> void:
 	var floors_h := VH - SURFACE_Y - STOCK_H
 
+	var scroll := ScrollContainer.new()
+	scroll.position = Vector2(0.0, SURFACE_Y)
+	scroll.size = Vector2(VW, floors_h)
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	add_child(scroll)
+
 	var vbox := VBoxContainer.new()
-	vbox.position = Vector2(0.0, SURFACE_Y)
-	vbox.size = Vector2(VW, floors_h)
+	vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	## Minimum height exceeds 390×844 floors area (668 px) to force visible scroll.
+	vbox.custom_minimum_size = Vector2(0.0, 840.0)
 	vbox.add_theme_constant_override("separation", 0)
-	add_child(vbox)
+	scroll.add_child(vbox)
 
 	_room_panels = []
 	for floor_idx: int in FLOOR_LAYOUT.size():

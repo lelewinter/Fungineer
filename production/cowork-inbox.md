@@ -9,12 +9,12 @@ PENDING
 
 ## Tarefa
 
-### Task 008 — Adicionar ScrollContainer envolvendo o VBoxContainer dos andares em WorldMapScene, com scroll horizontal desabilitado e scroll vertical habilitado. Garantir que o conteúdo total dos 3 andares ultrapasse a altura da tela em resolução 390x844 (base mobile), forçando scroll visível.
+### Task 009 — Adicionar Label de nome da zona e Label de subtítulo da sala (ex: "Entrada", "Sala Comum") em ZoneRoom.tscn, posicionados no topo da sala. Os valores vêm das propriedades exportadas zone_name e room_subtitle em ZoneRoom.gd. Adicionar room_subtitle como campo no dicionário de cada zona em zones.gd.
 
 **Tela afetada:** WorldMapScene
-**Descrição completa:** Adicionar ScrollContainer envolvendo o VBoxContainer dos andares em WorldMapScene, com scroll horizontal desabilitado e scroll vertical habilitado. Garantir que o conteúdo total dos 3 andares ultrapasse a altura da tela em resolução 390x844 (base mobile), forçando scroll visível.
-**Como verificar:** Em resolução mobile, é possível rolar verticalmente para ver todos os 3 andares sem conteúdo cortado.
+**Descrição completa:** Adicionar Label de nome da zona e Label de subtítulo da sala (ex: "Entrada", "Sala Comum") em ZoneRoom.tscn, posicionados no topo da sala. Os valores vêm das propriedades exportadas zone_name e room_subtitle em ZoneRoom.gd. Adicionar room_subtitle como campo no dicionário de cada zona em zones.gd.
+**Como verificar:** Cada sala exibe no topo o subtítulo da sala e o nome da zona com a tipografia correta, sem sobreposição com o NPC placeholder.
 
-⚠️ NÃO commite ainda. Task 8/10 do batch 1.
+⚠️ NÃO commite ainda. Task 9/10 do batch 1.
 
 Implemente a mudança acima. Siga os padrões do projeto (GDScript, snake_case, data-driven).
