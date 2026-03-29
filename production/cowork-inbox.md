@@ -9,12 +9,12 @@ PENDING
 
 ## Tarefa
 
-### Task 007 — Em WorldMapScene.gd, ao receber raid_requested, instanciar ConfirmRaidDialog.tscn como filho da cena, chamar setup() com dados de _pending_zone vindos de zones.gd. Conectar sinal confirmed para chamar get_tree().change_scene_to_file() com o scene_path da zona. Conectar sinal cancelled para remover o dialog e limpar _pending_zone.
+### Task 008 — Adicionar ScrollContainer envolvendo o VBoxContainer dos andares em WorldMapScene, com scroll horizontal desabilitado e scroll vertical habilitado. Garantir que o conteúdo total dos 3 andares ultrapasse a altura da tela em resolução 390x844 (base mobile), forçando scroll visível.
 
 **Tela afetada:** WorldMapScene
-**Descrição completa:** Em WorldMapScene.gd, ao receber raid_requested, instanciar ConfirmRaidDialog.tscn como filho da cena, chamar setup() com dados de _pending_zone vindos de zones.gd. Conectar sinal confirmed para chamar get_tree().change_scene_to_file() com o scene_path da zona. Conectar sinal cancelled para remover o dialog e limpar _pending_zone.
-**Como verificar:** Tocar RAID abre o painel de confirmação com nome correto. Confirmar muda de cena. Cancelar fecha o painel e volta ao mapa.
+**Descrição completa:** Adicionar ScrollContainer envolvendo o VBoxContainer dos andares em WorldMapScene, com scroll horizontal desabilitado e scroll vertical habilitado. Garantir que o conteúdo total dos 3 andares ultrapasse a altura da tela em resolução 390x844 (base mobile), forçando scroll visível.
+**Como verificar:** Em resolução mobile, é possível rolar verticalmente para ver todos os 3 andares sem conteúdo cortado.
 
-⚠️ NÃO commite ainda. Task 7/10 do batch 1.
+⚠️ NÃO commite ainda. Task 8/10 do batch 1.
 
 Implemente a mudança acima. Siga os padrões do projeto (GDScript, snake_case, data-driven).
