@@ -546,6 +546,7 @@ func _build_detail_panel() -> void:
 	panel.color = Color(0.07, 0.06, 0.05, 0.97)
 	panel.size = Vector2(340, 240)
 	panel.position = Vector2(VW * 0.5 - 170, VH * 0.5 - 120)
+	panel.mouse_filter = Control.MOUSE_FILTER_STOP
 	_detail_layer.add_child(panel)
 
 	var vbox := VBoxContainer.new()
