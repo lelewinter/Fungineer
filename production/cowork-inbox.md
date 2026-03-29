@@ -9,6 +9,154 @@ DONE
 
 ## Tarefa
 
+Corrige o watcher para disparar automaticamente, sem precisar de mensagem manual.
+
+**Problema:** `tools/cowork-watcher.py` usa watchdog mas só dispara em eventos de modificação de arquivo. Se o inbox já está `PENDING` quando o watcher inicia, nada acontece. Além disso, quando há uma sessão interativa aberta, o `claude --print` pode conflitar.
+
+**O que fazer:**
+
+### Fix 1 — Checa status no startup (arquivo `tools/cowork-watcher.py`)
+
+Em `run_with_watchdog()`, logo após `observer.start()` e antes do `log.info`, adiciona:
+
+```python
+# Check immediately on startup in case file is already PENDING
+import threading
+threading.Timer(1.0, handler._check).start()
+```
+
+Isso faz com que 1 segundo após iniciar, o watcher cheque o status atual e dispare se já estiver PENDING.
+
+### Fix 2 — Polling também checa no startup
+
+Em `run_polling()`, logo após `last_status = get_status()`, adiciona:
+
+```python
+# Trigger immediately if already PENDING on startup
+if last_status == "PENDING":
+    running = True
+    last_status = "IN_PROGRESS"
+    trigger_claude_code()
+    last_status = get_status()
+    running = False
+```
+
+### Fix 3 — Atualiza `start-watcher.bat` para sempre usar polling (mais confiável no Windows)
+
+Em `tools/start-watcher.bat`, adiciona o argumento `--poll` ao comando python, e em `cowork-watcher.py` adiciona suporte ao argumento:
+
+No início do `if __name__ == "__main__":`, antes do try/import watchdog:
+```python
+if "--poll" in sys.argv:
+    run_polling()
+else:
+    try:
+        import watchdog
+        run_with_watchdog()
+    except ImportError:
+        run_polling()
+```
+
+E em `tools/start-watcher.bat`, muda a linha do python para:
+```bat
+python tools/cowork-watcher.py --poll
+```
+
+O polling checa a cada 5 segundos e funciona com sessão interativa aberta.
+
+### Fix 4 — Próxima task pendente (imagens das zonas)
+
+Após aplicar os fixes e confirmar que o watcher está funcionando, executa também a task de mover as imagens das zonas:
+
+1. Copia estes 9 arquivos de `C:\Users\leeew\Downloads\` para `assets/art/zones/`:
+   `zone_hordas.png`, `zone_sacrificio.png`, `zone_extracao.png`, `zone_campo.png`, `zone_foguete.png`, `zone_stealth.png`, `zone_infeccao.png`, `zone_labirinto.png`, `zone_circuito.png`
+
+2. Em `src/scenes/WorldMapScene.gd`, para cada RoomCard de zona adiciona uma `TextureRect` como fundo:
+```gdscript
+var bg := TextureRect.new()
+bg.texture = load("res://assets/art/zones/zone_NOME.png")
+bg.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
+bg.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+bg.anchor_right = 1.0
+bg.anchor_bottom = 1.0
+bg.z_index = -1
+card.add_child(bg)
+card.move_child(bg, 0)
+```
+
+3. Commit e push de tudo: `tools/cowork-watcher.py`, `tools/start-watcher.bat`, `assets/art/zones/`, `src/scenes/WorldMapScene.gd`.
+
+**Resultado:**
+- Fix 1 (startup check watchdog): ✅ `threading.Timer(1.0, handler._check).start()`
+- Fix 2 (polling startup): ✅ checa PENDING imediatamente ao iniciar
+- Fix 3 (--poll flag): ✅ `start-watcher.bat` usa `--poll` por padrão
+- Fix 4 (imagens zonas): ⚠️ BLOQUEADO — arquivos `zone_*.png` não encontrados em `C:\Users\leeew\Downloads\`. Renomeie os PNGs gerados com os nomes corretos e crie nova tarefa.
+- Push: commit `1899691`
+
+**O que fazer:**
+
+### Passo 1 — Cria pasta e copia as imagens
+
+Copia estes 9 arquivos de `C:\Users\leeew\Downloads\` para `assets/art/zones/` (cria a pasta se não existir):
+
+```
+zone_hordas.png
+zone_sacrificio.png
+zone_extracao.png
+zone_campo.png
+zone_foguete.png
+zone_stealth.png
+zone_infeccao.png
+zone_labirinto.png
+zone_circuito.png
+```
+
+### Passo 2 — Conecta as imagens no WorldMapScene.gd
+
+Abre `src/scenes/WorldMapScene.gd`. Localiza onde os RoomCards são criados ou onde as zonas recebem seus nomes/labels. Para cada card de zona, adiciona uma `TextureRect` como filho com a textura correspondente:
+
+```gdscript
+var bg := TextureRect.new()
+bg.texture = load("res://assets/art/zones/zone_NOME.png")
+bg.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
+bg.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+bg.anchor_right = 1.0
+bg.anchor_bottom = 1.0
+bg.z_index = -1
+card.add_child(bg)
+card.move_child(bg, 0)
+```
+
+Mapeamento zona → arquivo:
+- Hordas → `zone_hordas.png`
+- Sacrifício → `zone_sacrificio.png`
+- Extração / Gerador → `zone_extracao.png`
+- Campo / Oficina → `zone_campo.png`
+- Baia do Foguete → `zone_foguete.png`
+- Stealth / Comunicações → `zone_stealth.png`
+- Infecção / Depósito → `zone_infeccao.png`
+- Labirinto / Enfermaria → `zone_labirinto.png`
+- Circuito / Pesquisa → `zone_circuito.png`
+
+### Passo 3 — Commit e push
+
+```bash
+git add assets/art/zones/ src/scenes/WorldMapScene.gd
+git commit -m "Add pixel art zone card backgrounds to WorldMapScene
+
+- 9 AI-generated 1024x1024 zone backgrounds in assets/art/zones/
+- TextureRect added as background layer on each RoomCard
+- Zones: hordas, sacrificio, extracao, campo, foguete,
+  stealth, infeccao, labirinto, circuito
+
+Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>"
+git push
+```
+
+**Sucesso:** push feito, WorldMapScene mostra as imagens pixel art como fundo de cada card de zona.
+
+## Resultado antigo (SFX)
+
 Restaura arquivos corrompidos e adiciona SFX de UI nas cenas WorldMap e Hub.
 
 **Contexto:** O índice git local e dois arquivos GDScript estão corrompidos/truncados. O `WorldMapScene.gd` local tem 566 linhas mas o HEAD no git tem 574 — os últimos 8 linhas estão faltando, incluindo `_start_raid()`. O `HubScene.gd` também está corrompido (erro UTF-8). O índice git em si está corrompido (`unknown index entry format`).
@@ -128,18 +276,4 @@ Executado em 2026-03-28.
 2. Executa a tarefa completamente
 3. Atualiza Status para DONE
 4. Escreve resultado em ## Resultado
-5. Faz git add, git commit e git push de tudo que foi modificado
-
----
-
-## Histórico
-
-### 2026-03-28 — SFX de UI (WorldMap + Hub)
-Click_01/02/Confirm_01 em botões. Índice git e arquivos corrompidos restaurados. Commit `e46fc7b`.
-
-### 2026-03-28 — Música de fundo
-- `Main.gd`: `_setup_music()` adicionado, toca `battle.wav` em loop (-10db)
-- `HubScene.gd`: música `menu.wav` em loop (-8db) adicionada no `_ready()`
-- `WorldMapScene.gd`: mesma música `menu.wav` em loop (-8db)
-- Loop via `finished.connect(play)` — não modifica o resource importado
-- Push: commit `dd1a0e6` em `lelewinter/Fungineer` main
+5. Faz git add, git 
