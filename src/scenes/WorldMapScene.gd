@@ -125,6 +125,17 @@ func _ready() -> void:
 	_sfx = AudioStreamPlayer.new()
 	add_child(_sfx)
 
+	# Zone background images — pixel art 1024x1024 per room
+	_add_zone_bg(0, 0, "res://assets/art/zones/zone_hordas.png")
+	_add_zone_bg(0, 1, "res://assets/art/zones/zone_sacrificio.png")
+	_add_zone_bg(0, 2, "res://assets/art/zones/zone_extracao.png")
+	_add_zone_bg(1, 0, "res://assets/art/zones/zone_campo.png")
+	_add_zone_bg(1, 1, "res://assets/art/zones/zone_foguete.png")
+	_add_zone_bg(1, 2, "res://assets/art/zones/zone_stealth.png")
+	_add_zone_bg(2, 0, "res://assets/art/zones/zone_infeccao.png")
+	_add_zone_bg(2, 1, "res://assets/art/zones/zone_labirinto.png")
+	_add_zone_bg(2, 2, "res://assets/art/zones/zone_circuito.png")
+
 
 func _process(delta: float) -> void:
 	_pulse += delta
@@ -160,6 +171,24 @@ func _unhandled_input(event: InputEvent) -> void:
 
 	# Tap outside panel closes it
 	_detail_layer.visible = false
+
+
+# ── Zone background helpers ────────────────────────────────────────────────────
+
+func _add_zone_bg(floor: int, col: int, texture_path: String) -> void:
+	var tex: Texture2D = load(texture_path) if ResourceLoader.exists(texture_path) else null
+	if tex == null:
+		return
+	var rect := _room_inner_rect(floor, col)
+	var bg := TextureRect.new()
+	bg.texture = tex
+	bg.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
+	bg.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	bg.position = rect.position
+	bg.size = rect.size
+	bg.z_index = -1
+	add_child(bg)
+	move_child(bg, 0)
 
 
 # ── Drawing ────────────────────────────────────────────────────────────────────
