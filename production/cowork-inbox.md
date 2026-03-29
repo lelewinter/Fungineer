@@ -9,12 +9,12 @@ PENDING
 
 ## Tarefa
 
-### Task 006 — Criar cena ConfirmRaidDialog.tscn como CanvasLayer com PanelContainer centralizado. Conteúdo: Label com nome da zona, Label com descrição curta da zona, Button "CONFIRMAR" e Button "CANCELAR". Aceita dados via método setup(zone_name: String, zone_description: String). Emite sinais confirmed e cancelled.
+### Task 007 — Em WorldMapScene.gd, ao receber raid_requested, instanciar ConfirmRaidDialog.tscn como filho da cena, chamar setup() com dados de _pending_zone vindos de zones.gd. Conectar sinal confirmed para chamar get_tree().change_scene_to_file() com o scene_path da zona. Conectar sinal cancelled para remover o dialog e limpar _pending_zone.
 
-**Tela afetada:** ConfirmRaidDialog
-**Descrição completa:** Criar cena ConfirmRaidDialog.tscn como CanvasLayer com PanelContainer centralizado. Conteúdo: Label com nome da zona, Label com descrição curta da zona, Button "CONFIRMAR" e Button "CANCELAR". Aceita dados via método setup(zone_name: String, zone_description: String). Emite sinais confirmed e cancelled.
-**Como verificar:** ConfirmRaidDialog instanciado e chamado com setup() exibe nome e descrição da zona, com dois botões funcionais.
+**Tela afetada:** WorldMapScene
+**Descrição completa:** Em WorldMapScene.gd, ao receber raid_requested, instanciar ConfirmRaidDialog.tscn como filho da cena, chamar setup() com dados de _pending_zone vindos de zones.gd. Conectar sinal confirmed para chamar get_tree().change_scene_to_file() com o scene_path da zona. Conectar sinal cancelled para remover o dialog e limpar _pending_zone.
+**Como verificar:** Tocar RAID abre o painel de confirmação com nome correto. Confirmar muda de cena. Cancelar fecha o painel e volta ao mapa.
 
-⚠️ NÃO commite ainda. Task 6/10 do batch 1.
+⚠️ NÃO commite ainda. Task 7/10 do batch 1.
 
 Implemente a mudança acima. Siga os padrões do projeto (GDScript, snake_case, data-driven).
