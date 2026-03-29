@@ -48,6 +48,9 @@ var _sfx: AudioStreamPlayer
 ## _room_panels[floor_idx][col_idx] → Control node used for layout and input.
 var _room_panels: Array = []
 
+## Name of the zone whose RAID button was last pressed.
+var _pending_zone: String = ""
+
 
 func _ready() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -105,6 +108,7 @@ func _build_room_layout() -> void:
 			var _zd: Dictionary = Zones.ZONES[zone_id] if zone_id >= 0 else Zones.ROCKET_BAY
 			zone_room.accent_color = _zd["accent_color"]
 			zone_room.zone_name = _zd["zone_name"]
+			zone_room.raid_requested.connect(_on_zone_raid_requested)
 			panel.add_child(zone_room)
 
 			hbox.add_child(panel)
@@ -381,6 +385,11 @@ func _draw_stock_panel(top_y: float) -> void:
 
 
 # ── Room input ───────────────────────────────────────────────────────────────────
+
+## Called when any ZoneRoom's RAID button is pressed; stores the zone name.
+func _on_zone_raid_requested(zname: String) -> void:
+	_pending_zone = zname
+
 
 func _on_room_input(event: InputEvent, _floor_idx: int, _col_idx: int, zone_id: int) -> void:
 	var tapped := false
