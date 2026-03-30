@@ -108,10 +108,12 @@ func _build_systems() -> void:
 	_drag_controller.party_node = _party
 	add_child(_drag_controller)
 
-	# Wave spawner
+	# Wave spawner (continuous, VS-style)
 	_wave_spawner = WaveSpawner.new()
 	_wave_spawner.name = "WaveSpawner"
 	_wave_spawner.enemies_container = _enemies
+	_wave_spawner.items_container = _items
+	_wave_spawner.party_node = _party
 	add_child(_wave_spawner)
 
 	# Power manager

@@ -91,12 +91,12 @@ Cada zona é um mini-game com:
 
 ## Zonas (8 implementadas)
 
-### Zona 0: Hordas — Orbit Rescue Arena
+### Zona 0: Hordas — Orbit Rescue Arena (Vampire Survivors style)
 **Cena**: `Main.tscn` | **GDD**: `mvp-game-brief.md`, `enemies-horda-zone.md`
 **Recurso**: Sucata Metálica (`scrap`)
-**Timer**: ~90s + boss fight
-**Mecânica**: Esquadrão auto-ataca; jogador posiciona o grupo. Waves de inimigos com escalada. Wave 1 → evento de resgate (escolher 1 de 2 personagens). Wave 2 → evento de poder (escolher 1 de 3 transformações). Boss fight. Extração para vitória.
-**Como mover funciona aqui**: Posicionamento do esquadrão define quem é atacado e quem sobrevive.
+**Timer**: ~120s (boss) + boss fight
+**Mecânica**: Esquadrão auto-ataca; jogador posiciona o grupo. Inimigos spawnam **continuamente** de todas as direções em bursts escalantes (5→20 por burst, 1.5s→0.4s de intervalo). Até 200 inimigos simultâneos. Cada kill dropa **XpGem** com coleta magnética automática. Bruisers aparecem a partir de T+20s, Spitters a partir de T+45s. Evento de resgate em T+30s, poder em T+60s, boss em T+120s.
+**Como mover funciona aqui**: Navegar entre a horda — posicionamento define quem sobrevive e quão eficiente é a coleta de gems.
 
 ### Zona 1: Instalação de IA — Stealth
 **Cena**: `StealthMain.tscn` | **GDD**: `zone-stealth.md`, `zone-stealth-map.md`

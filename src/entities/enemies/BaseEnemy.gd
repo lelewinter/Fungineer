@@ -119,7 +119,41 @@ func _die() -> void:
 	is_dead = true
 	remove_from_group("enemies")
 	died.emit(self)
+	_spawn_gem()
+	_spawn_death_flash()
 	queue_free()
+
+
+func _spawn_gem() -> void:
+	var gem := XpGem.new()
+	var gem_value: int = GameConfig.GEM_ELITE_VALUE if is_elite else GameConfig.GEM_BASE_VALUE
+	# Find party node for magnet targeting
+	var party_node: Node2D = null
+	for member in GameState.party:
+		if is_instance_valid(member) and not member.is_dead:
+			party_node = member.get_parent()
+			break
+	gem.setup(party_node, gem_value)
+	gem.global_position = global_position
+	# Add to scene tree (items container or scene root)
+	var items := get_tree().current_scene.get_node_or_null("World/Items")
+	if items:
+		items.add_child(gem)
+	else:
+		get_tree().current_scene.add_child(gem)
+
+
+func _spawn_death_flash() -> void:
+	var flash := ColorRect.new()
+	flash.color = Color(1.0, 1.0, 1.0, 0.8)
+	flash.size = Vector2(32, 32)
+	flash.position = global_position - Vector2(16, 16)
+	flash.z_index = 10
+	get_tree().current_scene.add_child(flash)
+	# Fade out via tween
+	var tween := flash.create_tween()
+	tween.tween_property(flash, "modulate:a", 0.0, 0.15)
+	tween.tween_callback(flash.queue_free)
 
 
 func _update_hp_bar() -> void:

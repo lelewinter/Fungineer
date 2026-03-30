@@ -33,40 +33,40 @@ const MEDIC_HP: float = 80.0
 
 # ── Characters — Combat ──────────────────────────────────────────────────────
 const GUARDIAN_DAMAGE: float = 18.0
-const GUARDIAN_ATTACK_RANGE: float = 80.0
-const GUARDIAN_ATTACK_SPEED: float = 1.2  # attacks/second
+const GUARDIAN_ATTACK_RANGE: float = 150.0
+const GUARDIAN_ATTACK_SPEED: float = 2.0  # attacks/second
 const GUARDIAN_DAMAGE_REDUCTION: float = 0.2  # 20% less damage taken
 
 const STRIKER_DAMAGE: float = 12.0
-const STRIKER_ATTACK_RANGE: float = 100.0
-const STRIKER_ATTACK_SPEED: float = 2.5
+const STRIKER_ATTACK_RANGE: float = 200.0
+const STRIKER_ATTACK_SPEED: float = 3.5
 
 const ARTIFICER_DAMAGE: float = 8.0
-const ARTIFICER_ATTACK_RANGE: float = 140.0
-const ARTIFICER_ATTACK_SPEED: float = 0.6
-const ARTIFICER_EXPLOSION_RADIUS: float = 60.0
+const ARTIFICER_ATTACK_RANGE: float = 250.0
+const ARTIFICER_ATTACK_SPEED: float = 1.2
+const ARTIFICER_EXPLOSION_RADIUS: float = 100.0
 const ARTIFICER_CLUSTER_BONUS: float = 0.5  # +50% damage to clusters of 3+
 
 const MEDIC_DAMAGE: float = 4.0
-const MEDIC_ATTACK_RANGE: float = 90.0
-const MEDIC_ATTACK_SPEED: float = 1.0
+const MEDIC_ATTACK_RANGE: float = 160.0
+const MEDIC_ATTACK_SPEED: float = 1.5
 const MEDIC_HEAL_INTERVAL: float = 5.0
 const MEDIC_HEAL_AMOUNT: float = 15.0
 
 # ── Enemies ──────────────────────────────────────────────────────────────────
-const RUNNER_HP: float = 30.0
-const RUNNER_SPEED: float = 130.0
+const RUNNER_HP: float = 15.0
+const RUNNER_SPEED: float = 100.0
 const RUNNER_DAMAGE: float = 5.0
 const RUNNER_ATTACK_INTERVAL: float = 0.8
 const RUNNER_ATTACK_RANGE: float = 30.0
 
-const BRUISER_HP: float = 150.0
+const BRUISER_HP: float = 80.0
 const BRUISER_SPEED: float = 60.0
 const BRUISER_DAMAGE: float = 25.0
 const BRUISER_ATTACK_INTERVAL: float = 1.5
 const BRUISER_ATTACK_RANGE: float = 50.0
 
-const SPITTER_HP: float = 60.0
+const SPITTER_HP: float = 35.0
 const SPITTER_SPEED: float = 40.0
 const SPITTER_DAMAGE: float = 12.0
 const SPITTER_ATTACK_INTERVAL: float = 1.8
@@ -88,15 +88,39 @@ const SENTINEL_ORB_INTERVAL: float = 4.0  # Phase 2 only
 const SENTINEL_ORB_SPEED: float = 90.0
 const SENTINEL_ORB_DAMAGE: float = 8.0
 
-# ── Waves ────────────────────────────────────────────────────────────────────
-const WAVE_1_DELAY: float = 3.0   # seconds after run start
+# ── Horde Zone — Continuous Spawning (Vampire Survivors style) ───────────────
+const HORDE_INITIAL_DELAY: float = 1.0        # seconds before first spawn
+const HORDE_SPAWN_INTERVAL_START: float = 1.5 # seconds between spawn bursts (start)
+const HORDE_SPAWN_INTERVAL_MIN: float = 0.4   # seconds between spawn bursts (min at max escalation)
+const HORDE_BURST_SIZE_START: int = 5          # enemies per burst (start)
+const HORDE_BURST_SIZE_MAX: int = 20           # enemies per burst (max)
+const HORDE_ESCALATION_DURATION: float = 120.0 # seconds to go from start→max difficulty
+const HORDE_BRUISER_START_TIME: float = 20.0   # seconds before bruisers start appearing
+const HORDE_SPITTER_START_TIME: float = 45.0   # seconds before spitters start appearing
+const HORDE_BRUISER_CHANCE: float = 0.15       # chance per enemy in burst to be bruiser
+const HORDE_SPITTER_CHANCE: float = 0.10       # chance per enemy in burst to be spitter
+const HORDE_MAX_ENEMIES: int = 200             # hard cap on simultaneous enemies
+const HORDE_BOSS_TIME: float = 120.0           # seconds before boss spawns
+const HORDE_RESCUE_TIME: float = 30.0          # seconds before rescue event
+const HORDE_POWER_TIME: float = 60.0           # seconds before power event
+
+# ── XP Gems (dropped by enemies on death) ────────────────────────────────────
+const GEM_MAGNET_RADIUS: float = 120.0         # auto-collect distance
+const GEM_MAGNET_SPEED: float = 600.0          # speed when pulled toward player
+const GEM_LIFETIME: float = 30.0               # seconds before gem fades
+const GEM_BASE_VALUE: int = 1                  # XP per gem (runners)
+const GEM_ELITE_VALUE: int = 3                 # XP per gem (bruisers/spitters)
+const GEM_BOSS_VALUE: int = 50                 # XP per gem (boss)
+
+# ── Legacy Waves (kept for compatibility) ────────────────────────────────────
+const WAVE_1_DELAY: float = 3.0
 const WAVE_1_RUNNER_COUNT: int = 10
 const WAVE_1_BRUISER_COUNT: int = 2
-const WAVE_2_DELAY: float = 25.0  # seconds after run start
+const WAVE_2_DELAY: float = 25.0
 const WAVE_2_RUNNER_COUNT: int = 8
 const WAVE_2_BRUISER_COUNT: int = 3
 const WAVE_2_SPITTER_COUNT: int = 3
-const BOSS_SPAWN_TIME: float = 90.0  # seconds after run start
+const BOSS_SPAWN_TIME: float = 90.0
 
 # ── Powers ────────────────────────────────────────────────────────────────────
 const SIEGE_MODE_STILLNESS_TIME: float = 1.5
@@ -133,7 +157,7 @@ const TECH_FRAGMENTS_OBJECTIVE_BONUS: float = 0.5
 const TECH_FRAGMENTS_BOSS_BONUS: int = 10
 
 # ── Backpack / Resources ──────────────────────────────────────────────────────
-const BACKPACK_CAPACITY: int = 3
+const BACKPACK_CAPACITY: int = 50
 const RESOURCE_COLLECTION_TIME: float = 1.5
 const RESOURCE_COLLECTION_RADIUS: float = 35.0
 const RESOURCE_SPAWN_COUNT: int = 4

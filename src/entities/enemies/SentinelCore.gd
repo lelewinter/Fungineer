@@ -171,5 +171,26 @@ func _die() -> void:
 	remove_from_group("enemies")
 	GameState.boss_defeated = true
 	died.emit(self)
+	# Boss drops a big gem
+	_spawn_boss_gem()
+	_spawn_death_flash()
 	GameState.end_run(true)
 	queue_free()
+
+
+func _spawn_boss_gem() -> void:
+	var party_node: Node2D = null
+	for member in GameState.party:
+		if is_instance_valid(member) and not member.is_dead:
+			party_node = member.get_parent()
+			break
+	# Spawn multiple gems in a burst
+	for i in 10:
+		var gem := XpGem.new()
+		gem.setup(party_node, GameConfig.GEM_BOSS_VALUE / 10)
+		gem.global_position = global_position
+		var items := get_tree().current_scene.get_node_or_null("World/Items")
+		if items:
+			items.add_child(gem)
+		else:
+			get_tree().current_scene.add_child(gem)

@@ -24,19 +24,25 @@ Commander of technological creatures fighting in hostile arenas. Control through
 
 ---
 
-## Core Loop
+## Core Loop (Vampire Survivors style)
 
 ```
-Enter arena (1 character)
+Enter arena (2 characters: Guardian + Striker)
   → Drag to reposition squad
   → Auto-combat fires continuously
-  → Wave 1: Runners + Bruisers
-  → Rescue event: pick 1 of 2 new characters
-  → Wave 2: Spitters + Bruisers
-  → Power offer: pick 1 of 3 transformative powers
-  → Boss: Sentinel Core
-  → Win/Lose → collect Tech Fragments → meta screen
+  → Continuous enemy spawning from all directions (escalating)
+  → Enemies drop XP gems on death → magnetic auto-collection
+  → T+20s: Bruisers start appearing in spawn mix
+  → T+30s: Rescue event — pick 1 of 2 new characters
+  → T+45s: Spitters start appearing in spawn mix
+  → T+60s: Power offer — pick 1 of 3 transformative powers
+  → T+120s: Boss — Sentinel Core
+  → Win/Lose → collect scrap from backpack → meta screen
 ```
+
+**Spawn escalation**: Burst of 5 enemies every 1.5s at start → burst of 20 every 0.4s at 2 min.
+**Enemy cap**: 200 simultaneous enemies on screen.
+**Kill feedback**: Every enemy death drops a glowing XpGem that magnetically pulls toward the squad.
 
 ---
 
@@ -50,9 +56,9 @@ Enter arena (1 character)
 
 ## Session Target
 
-- **Minimum**: 90 seconds per run
-- **Maximum**: 150 seconds per run
-- If runs exceed 150s in testing, cut wave count or tighten boss timer.
+- **Target**: ~120 seconds per run (boss spawns at T+120s)
+- **Maximum**: ~180 seconds per run (boss fight lasts up to 60s)
+- Runs feel like Vampire Survivors: constant swarm pressure, satisfying mass kills, gem cascades.
 
 ---
 
