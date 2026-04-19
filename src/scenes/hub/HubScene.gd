@@ -2,6 +2,7 @@ class_name HubScene
 extends Node2D
 
 var hub_renderer: HubRenderer
+var hub_room_display: HubRoomDisplay
 var npc_manager: HubNPCManager
 var rocket_display: HubRocket
 var hub_audio: HubAudio
@@ -21,6 +22,11 @@ func _ready() -> void:
 	hub_renderer = HubRenderer.new()
 	add_child(hub_renderer)
 	hub_renderer.room_clicked.connect(_on_room_clicked)
+
+	# Room display (novo sistema com Control nodes)
+	hub_room_display = HubRoomDisplay.new()
+	hub_room_display.anchors_and_offsets_preset = Control.PRESET_FULL_RECT
+	add_child(hub_room_display)
 
 	# NPC Manager (NPCs e animações)
 	npc_manager = HubNPCManager.new()

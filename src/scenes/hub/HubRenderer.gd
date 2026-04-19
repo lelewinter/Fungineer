@@ -10,6 +10,10 @@ var variant_colors: Dictionary = {}
 signal room_clicked(room_id: String)
 
 func _ready() -> void:
+	position = Vector2.ZERO
+	scale = Vector2.ONE
+	z_index = 0
+
 	rooms = HubData.ROOMS.duplicate()
 	_calculate_cell_sizes()
 	_build_room_hitboxes()
