@@ -68,6 +68,19 @@ signal stock_changed(stock: Dictionary)
 signal rocket_piece_built(piece_index: int, piece_name: String)
 signal deterioration_changed(zone_id: int, stage: int)
 
+# Hub-specific signals
+signal hub_room_selected(room_id: String)
+signal hub_npc_selected(npc_id: String)
+signal hub_zoom_opened(room_id: String, zone_id: String)
+signal hub_zoom_closed()
+signal hub_rocket_opened()
+signal hub_rocket_closed()
+
+# Hub state
+var hub_variant: String = "balanced"  # warm, balanced, blueprint
+var hub_density: String = "balanced"  # minimal, balanced, informative
+var hub_ui_visible: bool = true
+
 
 func deposit_flow(key: String, amount: int) -> void:
 	## Deposit a flow resource directly by integer amount (no backpack slot limit).
@@ -175,3 +188,20 @@ func _stage_for_runs(runs: int) -> int:
 	if runs >= GameConfig.DETERIORATION_STAGE1_RUNS:
 		return 1
 	return 0
+
+
+# Hub helpers
+func get_room_by_id(room_id: String) -> Dictionary:
+	return HubData.get_room(room_id)
+
+
+func get_npc_by_id(npc_id: String) -> Dictionary:
+	return HubData.get_npc(npc_id)
+
+
+func get_zone_by_id(zone_id: String) -> Dictionary:
+	return HubData.get_zone(zone_id)
+
+
+func get_npcs_in_room(room_id: String) -> Array:
+	return HubData.get_npcs_in_room(room_id)
