@@ -346,6 +346,65 @@ const ZONES = [
 	},
 ]
 
+# Diálogos por NPC
+const DIALOGS = {
+	"doutor": {
+		"briefing": "Liderança inquestionável. Coordena todas as operações.",
+		"mission": "Qualquer zona para a qual você esteja pronto.",
+		"quote": "Precisamos de recursos. Você saberá para onde ir."
+	},
+	"marcus": {
+		"briefing": "Engenheiro. Especialista em estrutura.",
+		"mission": "Hordas (coleta de sucata estrutural)",
+		"quote": "Mais sucata para a base. Sempre há algo para consertar."
+	},
+	"amara": {
+		"briefing": "Médica dedicada. Conhecimento biomédico avançado.",
+		"mission": "Infecção (análise de bioformas)",
+		"quote": "A doença evolui. Precisamos de amostras para estudar."
+	},
+	"yuki": {
+		"briefing": "Hacker brilhante. Controla redes digitais.",
+		"mission": "Circuito (hacking de sistemas)",
+		"quote": "As máquinas falam comigo. Deixe-me ouvir."
+	},
+	"elena": {
+		"briefing": "Ex-militar. Estratégia de combate.",
+		"mission": "Hordas (tática de confronto)",
+		"quote": "Preparação e coragem. Nada mais importa."
+	},
+	"bae": {
+		"briefing": "Documentarista. Preserva o conhecimento.",
+		"mission": "Extração (arqueologia de dados)",
+		"quote": "História respira através de cada artefato."
+	},
+	"priya": {
+		"briefing": "Rival. Ambições próprias.",
+		"mission": "Sacrifício (experiências secretas)",
+		"quote": "Meu lab, minhas regras. Queremos o mesmo?"
+	},
+	"tomas": {
+		"briefing": "Mecânico brilhante. Improvisa do nada.",
+		"mission": "Workshop (manufatura e reparo)",
+		"quote": "Com as ferramentas certas, construo o impossível."
+	},
+	"lena": {
+		"briefing": "Criança. Perspectiva inesperada.",
+		"mission": "Stealth (mobilidade e furtividade)",
+		"quote": "Os pequenos espaços, os grandes segredos."
+	},
+	"richard": {
+		"briefing": "Ex-executivo. Logística e planejamento.",
+		"mission": "Qualquer zona (coordenação geral)",
+		"quote": "Eficiência é sobrevivência."
+	},
+	"viktor": {
+		"briefing": "Cínico desencantado. Sarcasmo cortante.",
+		"mission": "Qualquer zona (sem ilusões)",
+		"quote": "Vamos fazer isso. Não importa o quão fútil seja."
+	},
+}
+
 func get_room(room_id: String) -> Dictionary:
 	for room in ROOMS:
 		if room["id"] == room_id:
