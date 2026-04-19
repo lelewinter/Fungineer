@@ -4,6 +4,7 @@ extends Node2D
 var hub_renderer: HubRenderer
 var npc_manager: HubNPCManager
 var rocket_display: HubRocket
+var hub_audio: HubAudio
 
 var background: ColorRect
 var selected_npc: String = ""
@@ -29,6 +30,10 @@ func _ready() -> void:
 	rocket_display = HubRocket.new()
 	add_child(rocket_display)
 
+	# Audio system
+	hub_audio = HubAudio.new()
+	add_child(hub_audio)
+
 	# Variant selector UI
 	_build_variant_selector()
 
@@ -36,9 +41,12 @@ func _ready() -> void:
 	HubState.hub_room_selected.connect(_on_hub_room_selected)
 	HubState.hub_zoom_opened.connect(_on_hub_zoom_opened)
 	HubState.hub_variant_changed.connect(_on_variant_changed)
+	HubState.rocket_piece_built.connect(_on_rocket_piece_built)
 
 
 func _on_room_clicked(room_id: String) -> void:
+	hub_audio.play_click_sfx()
+
 	var room = HubState.get_room_by_id(room_id)
 	var zone_id = HubState.ROOM_TO_ZONE.get(room_id) if "ROOM_TO_ZONE" in HubState else HubData.ROOM_TO_ZONE.get(room_id)
 
@@ -62,6 +70,7 @@ func _on_hub_zoom_opened(_room_id: String, _zone_id: String) -> void:
 
 
 func _open_zoom_view(room_id: String, zone_id: String) -> void:
+	hub_audio.play_open_panel_sfx()
 	zoomed_room = room_id
 
 	# Criar painel de zoom
@@ -75,6 +84,7 @@ func _open_zoom_view(room_id: String, zone_id: String) -> void:
 
 
 func _show_npc_popover(npc_id: String) -> void:
+	hub_audio.play_npc_select_sfx()
 	selected_npc = npc_id
 
 	# Criar card de NPC
@@ -88,11 +98,13 @@ func _show_npc_popover(npc_id: String) -> void:
 
 
 func _close_zoom_view() -> void:
+	hub_audio.play_close_panel_sfx()
 	zoomed_room = ""
 	HubState.hub_zoom_closed.emit()
 
 
 func _close_npc_popover() -> void:
+	hub_audio.play_close_panel_sfx()
 	selected_npc = ""
 
 
@@ -132,3 +144,7 @@ func _update_background_color() -> void:
 
 func _on_variant_changed(_variant_key: String) -> void:
 	_update_background_color()
+
+
+func _on_rocket_piece_built(_index: int, _name: String) -> void:
+	hub_audio.play_rocket_progress_sfx()
