@@ -13,7 +13,7 @@ func _ready() -> void:
 	# Background
 	background = ColorRect.new()
 	background.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	background.color = Color(0.08, 0.07, 0.06)
+	_update_background_color()
 	add_child(background)
 
 	# Renderer (salas e grid)
@@ -29,9 +29,13 @@ func _ready() -> void:
 	rocket_display = HubRocket.new()
 	add_child(rocket_display)
 
+	# Variant selector UI
+	_build_variant_selector()
+
 	# Conectar signals globais
 	HubState.hub_room_selected.connect(_on_hub_room_selected)
 	HubState.hub_zoom_opened.connect(_on_hub_zoom_opened)
+	HubState.hub_variant_changed.connect(_on_variant_changed)
 
 
 func _on_room_clicked(room_id: String) -> void:
@@ -100,3 +104,31 @@ func _on_input(event: InputEvent) -> void:
 					_close_zoom_view()
 				elif selected_npc != "":
 					_close_npc_popover()
+
+
+func _build_variant_selector() -> void:
+	var layer = CanvasLayer.new()
+	layer.layer = 5
+	add_child(layer)
+
+	var hbox = HBoxContainer.new()
+	hbox.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
+	hbox.position = Vector2(12, 12)
+	hbox.add_theme_constant_override("separation", 8)
+	layer.add_child(hbox)
+
+	for variant_key in HubState.VARIANTS.keys():
+		var btn = Button.new()
+		btn.text = variant_key.to_upper()
+		btn.custom_minimum_size = Vector2(80, 24)
+		btn.pressed.connect(func(): HubState.set_hub_variant(variant_key))
+		hbox.add_child(btn)
+
+
+func _update_background_color() -> void:
+	var variant_data = HubState.get_variant_data()
+	background.color = variant_data.get("bg", Color(0.08, 0.07, 0.06))
+
+
+func _on_variant_changed(_variant_key: String) -> void:
+	_update_background_color()

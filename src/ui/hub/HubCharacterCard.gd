@@ -3,26 +3,30 @@ extends CanvasLayer
 
 var npc_id: String = ""
 var npc_data: Dictionary = {}
+var panel_node: PanelContainer
 
 signal closed
 
 func _ready() -> void:
 	layer = 10
 	_build_ui()
+	_animate_open()
 
 
 func _build_ui() -> void:
 	if npc_data.is_empty():
 		return
 
-	var panel = PanelContainer.new()
-	panel.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
-	panel.custom_minimum_size = Vector2(280, 160)
-	add_child(panel)
+	panel_node = PanelContainer.new()
+	panel_node.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+	panel_node.custom_minimum_size = Vector2(280, 160)
+	panel_node.modulate = Color(1, 1, 1, 0)
+	panel_node.scale = Vector2(0.9, 0.9)
+	add_child(panel_node)
 
 	var vbox = VBoxContainer.new()
 	vbox.add_theme_constant_override("separation", 8)
-	panel.add_child(vbox)
+	panel_node.add_child(vbox)
 
 	# Header (nome + trust)
 	var header = HBoxContainer.new()
@@ -72,12 +76,33 @@ func _build_ui() -> void:
 
 
 func _on_close_pressed() -> void:
-	closed.emit()
-	queue_free()
+	_animate_close()
 
 
 func _input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE:
+		_animate_close()
+		get_tree().root.set_input_as_handled()
+
+
+func _animate_open() -> void:
+	var tween = create_tween()
+	tween.set_trans(Tween.TRANS_CUBIC)
+	tween.set_ease(Tween.EASE_OUT)
+
+	tween.tween_property(panel_node, "modulate:a", 1.0, 0.25)
+	tween.parallel().tween_property(panel_node, "scale", Vector2(1.0, 1.0), 0.25)
+
+
+func _animate_close() -> void:
+	var tween = create_tween()
+	tween.set_trans(Tween.TRANS_CUBIC)
+	tween.set_ease(Tween.EASE_IN)
+
+	tween.tween_property(panel_node, "modulate:a", 0.0, 0.15)
+	tween.parallel().tween_property(panel_node, "scale", Vector2(0.9, 0.9), 0.15)
+
+	tween.tween_callback(func():
 		closed.emit()
 		queue_free()
-		get_tree().root.set_input_as_handled()
+	)

@@ -5,6 +5,7 @@ var rooms: Array[Dictionary] = []
 var cell_width: float = 0
 var room_y_offset: Dictionary = {}
 var input_areas: Dictionary = {}
+var variant_colors: Dictionary = {}
 
 signal room_clicked(room_id: String)
 
@@ -12,6 +13,8 @@ func _ready() -> void:
 	rooms = HubData.ROOMS.duplicate()
 	_calculate_cell_sizes()
 	_build_room_hitboxes()
+	_apply_variant()
+	HubState.hub_variant_changed.connect(_on_variant_changed)
 
 
 func _calculate_cell_sizes() -> void:
@@ -294,4 +297,13 @@ func _draw_grid_lines() -> void:
 		var total_h = 0.0
 		for room in rooms:
 			total_h += room["h"]
-		draw_line(Vector2(x, 0), Vector2(x, total_h), Color(0.15, 0.15, 0.15), 1)
+		draw_line(Vector2(x, 0), Vector2(x, total_h), variant_colors.get("grid", Color(0.15, 0.15, 0.15)), 1)
+
+
+func _apply_variant() -> void:
+	variant_colors = HubState.get_variant_data()
+	queue_redraw()
+
+
+func _on_variant_changed(variant_key: String) -> void:
+	_apply_variant()

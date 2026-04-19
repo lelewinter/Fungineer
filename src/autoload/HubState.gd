@@ -81,6 +81,52 @@ var hub_variant: String = "balanced"  # warm, balanced, blueprint
 var hub_density: String = "balanced"  # minimal, balanced, informative
 var hub_ui_visible: bool = true
 
+# Hub variant color palettes
+const VARIANTS: Dictionary = {
+	"warm": {
+		"name": "Warm Gambiarra",
+		"bg": Color(0.09, 0.06, 0.04),
+		"grid": Color(0.15, 0.15, 0.15),
+		"ink": Color(0.96, 0.89, 0.78),
+		"warm_light": Color(0.91, 0.58, 0.23),  # #E8943A
+		"cool_light": Color(0.0, 1.0, 0.68),    # #00FF88
+		"red_light": Color(0.82, 0.29, 0.25),
+		"accent": Color(0.91, 0.58, 0.23),
+	},
+	"balanced": {
+		"name": "Balanced",
+		"bg": Color(0.08, 0.07, 0.06),
+		"grid": Color(0.15, 0.15, 0.15),
+		"ink": Color(0.96, 0.89, 0.78),
+		"warm_light": Color(0.91, 0.58, 0.23),
+		"cool_light": Color(0.0, 1.0, 0.68),
+		"red_light": Color(0.82, 0.29, 0.25),
+		"accent": Color(0.91, 0.58, 0.23),
+	},
+	"blueprint": {
+		"name": "Blueprint Cold",
+		"bg": Color(0.05, 0.08, 0.12),
+		"grid": Color(0.15, 0.18, 0.22),
+		"ink": Color(0.6, 0.8, 1.0),
+		"warm_light": Color(0.0, 1.0, 0.68),
+		"cool_light": Color(0.0, 1.0, 0.68),
+		"red_light": Color(0.0, 1.0, 0.68),
+		"accent": Color(0.0, 1.0, 0.68),
+	}
+}
+
+signal hub_variant_changed(variant: String)
+
+
+func set_hub_variant(variant_key: String) -> void:
+	if variant_key in VARIANTS:
+		hub_variant = variant_key
+		hub_variant_changed.emit(variant_key)
+
+
+func get_variant_data() -> Dictionary:
+	return VARIANTS.get(hub_variant, VARIANTS["balanced"])
+
 
 func deposit_flow(key: String, amount: int) -> void:
 	## Deposit a flow resource directly by integer amount (no backpack slot limit).

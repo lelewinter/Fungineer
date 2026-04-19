@@ -11,32 +11,36 @@ var pieces: Array[Dictionary] = [
 	{"id": "blindagem", "name": "Blindagem", "state": "locked"},
 ]
 
+var panel_node: PanelContainer
+
 signal closed
 
 func _ready() -> void:
 	layer = 20
 	_build_ui()
+	_animate_open()
 
 
 func _build_ui() -> void:
 	var bg = ColorRect.new()
-	bg.color = Color(0, 0, 0, 0.6)
+	bg.color = Color(0, 0, 0, 0.0)
 	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(bg)
 
 	bg.gui_input.connect(func(e: InputEvent):
 		if e is InputEventMouseButton and e.pressed:
-			closed.emit()
-			queue_free()
+			_animate_close()
 	)
 
-	var panel = PanelContainer.new()
-	panel.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
-	panel.custom_minimum_size = Vector2(360, 420)
-	add_child(panel)
+	panel_node = PanelContainer.new()
+	panel_node.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+	panel_node.custom_minimum_size = Vector2(360, 420)
+	panel_node.modulate = Color(1, 1, 1, 0)
+	panel_node.scale = Vector2(0.85, 0.85)
+	add_child(panel_node)
 
 	var vbox = VBoxContainer.new()
-	panel.add_child(vbox)
+	panel_node.add_child(vbox)
 
 	# Header
 	var header = Label.new()
@@ -71,12 +75,37 @@ func _on_rocket_draw() -> void:
 
 
 func _on_close_pressed() -> void:
-	closed.emit()
-	queue_free()
+	_animate_close()
 
 
 func _input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE:
+		_animate_close()
+		get_tree().root.set_input_as_handled()
+
+
+func _animate_open() -> void:
+	var tween = create_tween()
+	tween.set_trans(Tween.TRANS_CUBIC)
+	tween.set_ease(Tween.EASE_OUT)
+
+	var bg = get_child(0)
+	tween.parallel().tween_property(bg, "color:a", 0.6, 0.3)
+	tween.parallel().tween_property(panel_node, "modulate:a", 1.0, 0.3)
+	tween.parallel().tween_property(panel_node, "scale", Vector2(1.0, 1.0), 0.3)
+
+
+func _animate_close() -> void:
+	var tween = create_tween()
+	tween.set_trans(Tween.TRANS_CUBIC)
+	tween.set_ease(Tween.EASE_IN)
+
+	var bg = get_child(0)
+	tween.parallel().tween_property(bg, "color:a", 0.0, 0.2)
+	tween.parallel().tween_property(panel_node, "modulate:a", 0.0, 0.2)
+	tween.parallel().tween_property(panel_node, "scale", Vector2(0.85, 0.85), 0.2)
+
+	tween.tween_callback(func():
 		closed.emit()
 		queue_free()
-		get_tree().root.set_input_as_handled()
+	)
