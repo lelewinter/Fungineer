@@ -59,15 +59,27 @@ func _on_hub_zoom_opened(_room_id: String, _zone_id: String) -> void:
 
 func _open_zoom_view(room_id: String, zone_id: String) -> void:
 	zoomed_room = room_id
-	# TODO: Implementar painel de zoom
-	print("Zoom aberto para zona: %s" % zone_id)
+
+	# Criar painel de zoom
+	var zoom_panel = HubZoomPanel.new()
+	zoom_panel.room_id = room_id
+	zoom_panel.zone_id = zone_id
+	add_child(zoom_panel)
+	zoom_panel.closed.connect(_close_zoom_view)
+
 	HubState.hub_zoom_opened.emit(room_id, zone_id)
 
 
 func _show_npc_popover(npc_id: String) -> void:
-	# TODO: Implementar popover de NPC
 	selected_npc = npc_id
-	print("NPC selecionado: %s" % npc_id)
+
+	# Criar card de NPC
+	var card = HubCharacterCard.new()
+	card.npc_id = npc_id
+	card.npc_data = HubState.get_npc_by_id(npc_id)
+	add_child(card)
+	card.closed.connect(_close_npc_popover)
+
 	HubState.hub_npc_selected.emit(npc_id)
 
 
