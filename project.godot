@@ -12,7 +12,7 @@ config_version=5
 
 config/name="Fungineer"
 config/version="0.1.0-sprint01"
-run/main_scene="res://src/scenes/WorldMapScene.tscn"
+run/main_scene="res://src/scenes/hub/HubScene.tscn"
 config/features=PackedStringArray("4.6", "Mobile")
 
 [autoload]

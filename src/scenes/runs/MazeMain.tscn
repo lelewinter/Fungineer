@@ -1,0 +1,6 @@
+[gd_scene format=3 uid="uid://di2ows05r8wl6"]
+
+[ext_resource type="Script" uid="uid://u6lqwxvy72sb" path="res://src/scenes/runs/MazeMain.gd" id="1"]
+
+[node name="MazeMain" type="Node2D" unique_id=279533439]
+script = ExtResource("1")

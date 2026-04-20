@@ -68,6 +68,129 @@ signal stock_changed(stock: Dictionary)
 signal rocket_piece_built(piece_index: int, piece_name: String)
 signal deterioration_changed(zone_id: int, stage: int)
 
+# Hub-specific signals
+signal hub_room_selected(room_id: String)
+signal hub_npc_selected(npc_id: String)
+signal hub_zoom_opened(room_id: String, zone_id: String)
+signal hub_zoom_closed()
+signal hub_rocket_opened()
+signal hub_rocket_closed()
+
+# Hub state
+var hub_variant: String = "fungus"  # fungus (default), warm, balanced, blueprint
+var hub_density: String = "balanced"  # minimal, balanced, informative
+var hub_ui_visible: bool = true
+
+# Unlock system — Dia 1 apenas saida_hordas + lab (câmara de esporos)
+var room_unlocked: Dictionary = {
+	"saida_hordas": true,
+	"lab": true,
+}
+
+# Ordem de desbloqueio por peça de foguete construída (14 locked → 8 peças)
+# Peças 1-2: 1 sala; peças 3-8: 2 salas. Total = 14.
+const UNLOCK_ORDER: Array[String] = [
+	"cozinha",        # piece 1
+	"enfermaria",     # piece 2
+	"server",         # piece 3 (a)
+	"tunel_stealth",  # piece 3 (b)
+	"arquivo",        # piece 4 (a)
+	"sala_comum",     # piece 4 (b)
+	"workshop",       # piece 5 (a)
+	"vigia",          # piece 5 (b)
+	"tunel_hordas",   # piece 6 (a)
+	"armamentos",     # piece 6 (b)
+	"gestao",         # piece 7 (a)
+	"quarto_lena",    # piece 7 (b)
+	"corredor",       # piece 8 (a)
+	"surface",        # piece 8 (b) — escape visível
+]
+
+signal room_unlocked_signal(room_id: String)
+
+
+func is_room_unlocked(room_id: String) -> bool:
+	return room_unlocked.get(room_id, false)
+
+
+func unlock_room(room_id: String) -> void:
+	if room_unlocked.get(room_id, false):
+		return
+	room_unlocked[room_id] = true
+	room_unlocked_signal.emit(room_id)
+
+
+func _unlock_rooms_for_pieces_built() -> void:
+	# Peças 1-2: 1 sala; peças 3+: +2 salas por peça.
+	var count := 0
+	if rocket_pieces_built >= 1: count = 1
+	if rocket_pieces_built >= 2: count = 2
+	if rocket_pieces_built >= 3: count = 4
+	if rocket_pieces_built >= 4: count = 6
+	if rocket_pieces_built >= 5: count = 8
+	if rocket_pieces_built >= 6: count = 10
+	if rocket_pieces_built >= 7: count = 12
+	if rocket_pieces_built >= 8: count = 14
+	for i in range(min(count, UNLOCK_ORDER.size())):
+		unlock_room(UNLOCK_ORDER[i])
+
+
+# Hub variant color palettes
+const VARIANTS: Dictionary = {
+	"fungus": {
+		"name": "Fungus Pântano",
+		"bg": Color(0.08, 0.09, 0.06),
+		"grid": Color(0.18, 0.14, 0.12),
+		"ink": Color(0.85, 0.92, 0.78),
+		"warm_light": Color(0.72, 0.45, 0.85),   # esporo roxo
+		"cool_light": Color(0.30, 0.78, 0.72),   # turquesa bio
+		"red_light": Color(0.78, 0.35, 0.45),
+		"accent": Color(0.72, 0.45, 0.85),
+	},
+	"warm": {
+		"name": "Warm Gambiarra",
+		"bg": Color(0.09, 0.06, 0.04),
+		"grid": Color(0.15, 0.15, 0.15),
+		"ink": Color(0.96, 0.89, 0.78),
+		"warm_light": Color(0.91, 0.58, 0.23),
+		"cool_light": Color(0.0, 1.0, 0.68),
+		"red_light": Color(0.82, 0.29, 0.25),
+		"accent": Color(0.91, 0.58, 0.23),
+	},
+	"balanced": {
+		"name": "Balanced",
+		"bg": Color(0.08, 0.07, 0.06),
+		"grid": Color(0.15, 0.15, 0.15),
+		"ink": Color(0.96, 0.89, 0.78),
+		"warm_light": Color(0.91, 0.58, 0.23),
+		"cool_light": Color(0.0, 1.0, 0.68),
+		"red_light": Color(0.82, 0.29, 0.25),
+		"accent": Color(0.91, 0.58, 0.23),
+	},
+	"blueprint": {
+		"name": "Blueprint Cold",
+		"bg": Color(0.05, 0.08, 0.12),
+		"grid": Color(0.15, 0.18, 0.22),
+		"ink": Color(0.6, 0.8, 1.0),
+		"warm_light": Color(0.0, 1.0, 0.68),
+		"cool_light": Color(0.0, 1.0, 0.68),
+		"red_light": Color(0.0, 1.0, 0.68),
+		"accent": Color(0.0, 1.0, 0.68),
+	}
+}
+
+signal hub_variant_changed(variant: String)
+
+
+func set_hub_variant(variant_key: String) -> void:
+	if variant_key in VARIANTS:
+		hub_variant = variant_key
+		hub_variant_changed.emit(variant_key)
+
+
+func get_variant_data() -> Dictionary:
+	return VARIANTS.get(hub_variant, VARIANTS["balanced"])
+
 
 func deposit_flow(key: String, amount: int) -> void:
 	## Deposit a flow resource directly by integer amount (no backpack slot limit).
@@ -95,6 +218,7 @@ func _try_build_next_piece() -> void:
 			rocket_pieces_built += 1
 			rocket_piece_built.emit(rocket_pieces_built - 1, piece_name)
 			_check_zone_unlocks()
+			_unlock_rooms_for_pieces_built()
 		else:
 			break
 
@@ -175,3 +299,20 @@ func _stage_for_runs(runs: int) -> int:
 	if runs >= GameConfig.DETERIORATION_STAGE1_RUNS:
 		return 1
 	return 0
+
+
+# Hub helpers
+func get_room_by_id(room_id: String) -> Dictionary:
+	return HubData.get_room(room_id)
+
+
+func get_npc_by_id(npc_id: String) -> Dictionary:
+	return HubData.get_npc(npc_id)
+
+
+func get_zone_by_id(zone_id: String) -> Dictionary:
+	return HubData.get_zone(zone_id)
+
+
+func get_npcs_in_room(room_id: String) -> Array:
+	return HubData.get_npcs_in_room(room_id)

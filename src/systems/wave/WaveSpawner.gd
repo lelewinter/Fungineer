@@ -63,7 +63,6 @@ func _process(delta: float) -> void:
 
 
 func _spawn_wave_1() -> void:
-	print("[WaveSpawner] spawning wave 1")
 	var mult: float = HubState.get_spawn_multiplier(zone_id)
 	var runners: int = roundi(GameConfig.WAVE_1_RUNNER_COUNT * mult)
 	var bruisers: int = roundi(GameConfig.WAVE_1_BRUISER_COUNT * mult)

@@ -1,6 +1,0 @@
-[gd_scene format=3 uid="uid://dvokbdvdvvfxv"]
-
-[ext_resource type="Script" uid="uid://c3fq4ygvdvgnb" path="res://src/scenes/SacrificeMain.gd" id="1"]
-
-[node name="SacrificeMain" type="Node2D" unique_id=339567977]
-script = ExtResource("1")
