@@ -1,7 +1,7 @@
 class_name HubRenderer
 extends Node2D
 
-var rooms: Array[Dictionary] = []
+var rooms: Array = []
 var cell_width: float = 0
 var room_y_offset: Dictionary = {}
 var input_areas: Dictionary = {}
@@ -49,9 +49,11 @@ func _build_room_hitboxes() -> void:
 		var y_pos = room_y_offset.get(room["id"], 0.0)
 		area.position = Vector2(cell_width * room["col"], y_pos)
 
+		var rid: String = room["id"]
 		area.input_event.connect(func(event: InputEvent):
 			if event is InputEventMouseButton and event.pressed:
-				room_clicked.emit(room["id"])
+				if HubState.is_room_unlocked(rid):
+					room_clicked.emit(rid)
 		)
 
 		add_child(area)
@@ -74,6 +76,11 @@ func _draw_room(room: Dictionary) -> void:
 	var w = cell_width * room["w"]
 	var h = room["h"]
 
+	# Sala bloqueada → terra/rocha com silhueta-fantasma
+	if not HubState.is_room_unlocked(room["id"]):
+		_draw_locked_room(room, x, y, w, h)
+		return
+
 	# Fundo base
 	draw_rect(Rect2(x, y, w, h), _get_room_base_color(room))
 
@@ -82,17 +89,62 @@ func _draw_room(room: Dictionary) -> void:
 	_draw_room_interior(room, w, h)
 	draw_set_transform(Vector2.ZERO, 0, Vector2(1, 1))
 
-	# Iluminação (temporariamente desabilitada para debug)
-	# _apply_room_lighting(room, x, y, w, h)
+	# Iluminação per-room (overlay)
+	_apply_room_lighting(room, x, y, w, h)
 
 	# Zona badge
 	_draw_zone_badge_if_needed(room, x, y, w, h)
 
 	# Bordas
-	draw_rect(Rect2(x, y, w, h), Color.TRANSPARENT, true, 1.0, Color(0.15, 0.15, 0.15))
+	draw_rect(Rect2(x, y, w, h), Color(0.15, 0.15, 0.15), false, 1.0)
 
-	# DEBUG: desenhar ID da sala
-	draw_string(ThemeDB.fallback_font, Vector2(x + 5, y + 20), room["id"], HORIZONTAL_ALIGNMENT_LEFT, -1, 8, Color.WHITE)
+
+func _draw_locked_room(room: Dictionary, x: float, y: float, w: float, h: float) -> void:
+	# Terra/rocha base (gradient marrom escuro)
+	_draw_gradient(x, y, w, h, Color(0.10, 0.08, 0.05), Color(0.16, 0.12, 0.08))
+
+	# Textura granular (pontos aleatórios estáveis por sala)
+	var seed_base: int = hash(room["id"])
+	var rng = RandomNumberGenerator.new()
+	rng.seed = seed_base
+	for _i in range(22):
+		var px := x + rng.randf() * w
+		var py := y + rng.randf() * h
+		var shade := Color(0.25, 0.18, 0.12, 0.5)
+		draw_circle(Vector2(px, py), 1.5, shade)
+
+	# Veios de rocha (linhas diagonais sutis)
+	for i in range(3):
+		var vy := y + h * (0.2 + i * 0.3)
+		draw_line(Vector2(x + 6, vy), Vector2(x + w - 6, vy + 4), Color(0.22, 0.16, 0.10, 0.6), 1.0)
+
+	# Silhueta central — forma simplificada (retângulo com ? interno)
+	var silhouette_label: String = room.get("silhouette", "?")
+	var cx := x + w * 0.5
+	var cy := y + h * 0.5
+
+	# Bloco cinza da silhueta
+	var box_w: float = min(w * 0.55, 80.0)
+	var box_h: float = min(h * 0.45, 50.0)
+	var box_rect := Rect2(cx - box_w * 0.5, cy - box_h * 0.5, box_w, box_h)
+	draw_rect(box_rect, Color(0.28, 0.25, 0.22, 0.35))
+	draw_rect(box_rect, Color(0.45, 0.40, 0.35, 0.5), false, 1.0)
+
+	# "?" grande no centro
+	var font: Font = ThemeDB.fallback_font
+	var font_size := 14
+	var q_size := font.get_string_size("?", HORIZONTAL_ALIGNMENT_CENTER, -1, font_size)
+	draw_string(font, Vector2(cx - q_size.x * 0.5, cy + q_size.y * 0.3),
+		"?", HORIZONTAL_ALIGNMENT_CENTER, -1, font_size, Color(0.60, 0.54, 0.46, 0.8))
+
+	# Rótulo discreto abaixo (silhouette hint)
+	if silhouette_label != "?":
+		var lbl_size := font.get_string_size(silhouette_label, HORIZONTAL_ALIGNMENT_CENTER, -1, 8)
+		draw_string(font, Vector2(cx - lbl_size.x * 0.5, cy + box_h * 0.5 + 12),
+			silhouette_label, HORIZONTAL_ALIGNMENT_CENTER, -1, 8, Color(0.55, 0.48, 0.40, 0.6))
+
+	# Bordas
+	draw_rect(Rect2(x, y, w, h), Color(0.10, 0.08, 0.05), false, 1.0)
 
 
 func _get_room_base_color(room: Dictionary) -> Color:
@@ -101,13 +153,13 @@ func _get_room_base_color(room: Dictionary) -> Color:
 		"surface-exit": return Color(0.2, 0.1, 0.05)
 		"tech": return Color(0.08, 0.08, 0.12)
 		"storage": return Color(0.12, 0.10, 0.08)
-		"medical": return Color(0.1, 0.15, 0.12)
-		"lab": return Color(0.15, 0.12, 0.18)
+		"medical", "mycelium-lab": return Color(0.08, 0.14, 0.11)
+		"lab", "spore-chamber": return Color(0.12, 0.09, 0.16)
 		"common": return Color(0.1, 0.09, 0.07)
-		"kitchen": return Color(0.12, 0.10, 0.08)
-		"workshop": return Color(0.15, 0.12, 0.08)
+		"kitchen", "fungus-kitchen": return Color(0.13, 0.10, 0.07)
+		"workshop", "hyphae-forge": return Color(0.14, 0.11, 0.07)
 		"archive": return Color(0.1, 0.10, 0.12)
-		"server": return Color(0.05, 0.05, 0.08)
+		"server", "neural-mushroom": return Color(0.06, 0.08, 0.06)
 		"office": return Color(0.12, 0.12, 0.10)
 		"bedroom": return Color(0.12, 0.08, 0.10)
 		"transit": return Color(0.10, 0.09, 0.08)
@@ -117,46 +169,49 @@ func _get_room_base_color(room: Dictionary) -> Color:
 
 
 func _draw_room_interior(room: Dictionary, w: float, h: float) -> void:
-	# Símbolos grandes por tipo de sala - visível mesmo em zoom-out
-	var center_x = w * 0.5
-	var center_y = h * 0.5
-	var icon_size = min(w, h) * 0.3
-
 	match room["type"]:
 		"surface":
 			_draw_gradient(0, 0, w, h, Color(0.06, 0.05, 0.03), Color(0.15, 0.10, 0.06))
 		"surface-exit":
-			draw_circle(Vector2(center_x, center_y), icon_size, Color(1, 0.5, 0))
+			_draw_surface_exit(w, h, room)
 		"tech":
-			draw_rect(Rect2(center_x - icon_size, center_y - icon_size * 0.5, icon_size * 2, icon_size), Color(1, 0, 0))
+			_draw_monitors(w, h)
 		"storage":
-			draw_rect(Rect2(center_x - icon_size, center_y - icon_size, icon_size * 2, icon_size * 2), Color(0.8, 0.7, 0.2))
+			_draw_shelves(w, h)
 		"medical":
-			draw_circle(Vector2(center_x, center_y), icon_size, Color(0, 1, 0.5))
+			_draw_beds(w, h)
+		"mycelium-lab":
+			_draw_mycelium(w, h)
 		"lab":
-			draw_rect(Rect2(center_x - icon_size * 0.7, center_y - icon_size * 0.7, icon_size * 1.4, icon_size * 1.4), Color(1, 0.5, 1))
+			_draw_beakers(w, h)
+		"spore-chamber":
+			_draw_spore_chamber(w, h)
 		"common":
-			draw_circle(Vector2(center_x, center_y), icon_size, Color(1, 0.9, 0.2))
+			_draw_table(w, h)
 		"kitchen":
-			draw_rect(Rect2(center_x - icon_size, center_y - icon_size * 0.5, icon_size * 2, icon_size), Color(1, 0.3, 0.1))
+			_draw_stove(w, h)
+		"fungus-kitchen":
+			_draw_fungus_kitchen(w, h)
 		"workshop":
-			draw_rect(Rect2(center_x - icon_size * 0.7, center_y - icon_size * 0.7, icon_size * 1.4, icon_size * 1.4), Color(0.8, 0.6, 0.2))
+			_draw_workbench(w, h)
+		"hyphae-forge":
+			_draw_hyphae_forge(w, h)
 		"archive":
-			for i in range(3):
-				draw_line(Vector2(center_x - icon_size + i * icon_size * 0.4, center_y - icon_size),
-						  Vector2(center_x - icon_size + i * icon_size * 0.4, center_y + icon_size), Color(0.7, 0.6, 0.5), 2)
+			_draw_books(w, h)
 		"server":
-			draw_circle(Vector2(center_x, center_y), icon_size, Color(0, 1, 0.5))
+			_draw_racks(w, h)
+		"neural-mushroom":
+			_draw_neural_mushroom(w, h)
 		"office":
-			draw_rect(Rect2(center_x - icon_size, center_y - icon_size, icon_size * 2, icon_size * 2), Color(0.3, 0.5, 0.8))
+			_draw_desk(w, h)
 		"bedroom":
-			draw_rect(Rect2(center_x - icon_size, center_y - icon_size * 0.5, icon_size * 2, icon_size), Color(1, 0.5, 0.7))
+			_draw_bed(w, h)
 		"transit":
-			draw_circle(Vector2(center_x, center_y), icon_size * 0.5, Color(0.5, 0.5, 0.5))
+			_draw_door(w, h)
 		"tunnel-warm":
-			draw_line(Vector2(0, center_y), Vector2(w, center_y), Color(0.91, 0.58, 0.23), icon_size * 0.3)
+			_draw_rails(w, h, Color(0.91, 0.58, 0.23))
 		"tunnel-cool":
-			draw_line(Vector2(0, center_y), Vector2(w, center_y), Color(0.0, 1.0, 0.533), icon_size * 0.3)
+			_draw_rails(w, h, Color(0.0, 1.0, 0.533))
 
 
 func _apply_room_lighting(room: Dictionary, x: float, y: float, w: float, h: float) -> void:
@@ -211,7 +266,8 @@ func _draw_monitors(w: float, h: float) -> void:
 
 	for i in range(3):
 		var mx = start_x + i * (monitor_w + 4)
-		draw_rect(Rect2(mx, start_y, monitor_w, monitor_h), Color(0.1, 0.1, 0.15), false, 2.0, Color(0.6, 0.6, 0.7))
+		draw_rect(Rect2(mx, start_y, monitor_w, monitor_h), Color(0.1, 0.1, 0.15))
+		draw_rect(Rect2(mx, start_y, monitor_w, monitor_h), Color(0.6, 0.6, 0.7), false, 2.0)
 		if (Engine.get_physics_frames() / 15) % 2 == 0:
 			draw_rect(Rect2(mx + 3, start_y + 3, monitor_w - 6, monitor_h - 6), red)
 
@@ -251,7 +307,7 @@ func _draw_beakers(w: float, h: float) -> void:
 
 	for i in range(3):
 		var bx = w * 0.15 + i * spacing
-		draw_rect(Rect2(bx - beaker_size * 0.5, beaker_y, beaker_size, beaker_size * 1.2), Color.TRANSPARENT, true, 2.0, colors[i])
+		draw_rect(Rect2(bx - beaker_size * 0.5, beaker_y, beaker_size, beaker_size * 1.2), colors[i], false, 2.0)
 		draw_circle(Vector2(bx, beaker_y + beaker_size * 0.6), beaker_size * 0.3, colors[i])
 
 
@@ -312,7 +368,7 @@ func _draw_racks(w: float, h: float) -> void:
 
 	for i in range(3):
 		var rx = w * 0.1 + i * (rack_w + 6)
-		draw_rect(Rect2(rx, rack_y, rack_w, rack_h), Color.TRANSPARENT, true, 2.0, green)
+		draw_rect(Rect2(rx, rack_y, rack_w, rack_h), green, false, 2.0)
 
 		for j in range(5):
 			draw_circle(Vector2(rx + rack_w * 0.5, rack_y + 6 + j * (rack_h - 12) * 0.25), 2, green)
@@ -325,7 +381,8 @@ func _draw_desk(w: float, h: float) -> void:
 	var desk_x = w * 0.2
 
 	draw_rect(Rect2(desk_x, desk_y, desk_w, desk_h), Color(0.25, 0.2, 0.15))
-	draw_rect(Rect2(desk_x + 8, desk_y - 12, desk_w - 16, 10), Color(0.05, 0.08, 0.15), true, 2.0, Color(0.3, 0.5, 0.8))
+	draw_rect(Rect2(desk_x + 8, desk_y - 12, desk_w - 16, 10), Color(0.05, 0.08, 0.15))
+	draw_rect(Rect2(desk_x + 8, desk_y - 12, desk_w - 16, 10), Color(0.3, 0.5, 0.8), false, 2.0)
 
 
 func _draw_bed(w: float, h: float) -> void:
@@ -339,7 +396,8 @@ func _draw_bed(w: float, h: float) -> void:
 
 
 func _draw_door(w: float, h: float) -> void:
-	draw_rect(Rect2(w * 0.3, h * 0.15, w * 0.4, h * 0.65), Color(0.15, 0.15, 0.15), false, 3.0, Color(0.3, 0.3, 0.3))
+	draw_rect(Rect2(w * 0.3, h * 0.15, w * 0.4, h * 0.65), Color(0.15, 0.15, 0.15))
+	draw_rect(Rect2(w * 0.3, h * 0.15, w * 0.4, h * 0.65), Color(0.3, 0.3, 0.3), false, 3.0)
 	draw_circle(Vector2(w * 0.65, h * 0.48), 4, Color(0.8, 0.8, 0.8))
 
 
@@ -375,5 +433,121 @@ func _apply_variant() -> void:
 	queue_redraw()
 
 
-func _on_variant_changed(variant_key: String) -> void:
+func _on_variant_changed(_variant_key: String) -> void:
 	_apply_variant()
+
+
+# ---- Interiores bio/fungus ----
+
+func _draw_spore_chamber(w: float, h: float) -> void:
+	# Câmara de esporos — Dia 1. Cúpulas de cogumelos pulsantes + esporos flutuando.
+	var purple := Color(0.72, 0.45, 0.85)
+	var glow := Color(0.85, 0.60, 1.0)
+	var pulse: float = abs(sin(Engine.get_physics_frames() * 0.04)) * 0.3 + 0.7
+
+	# 3 cúpulas (cogumelos)
+	for i in range(3):
+		var cx := w * (0.22 + i * 0.29)
+		var cy := h * 0.62
+		# haste
+		draw_rect(Rect2(cx - 2, cy, 4, 14), Color(0.85, 0.78, 0.62))
+		# chapéu (semi-círculo via arco)
+		draw_circle(Vector2(cx, cy), 8, purple * pulse)
+		draw_circle(Vector2(cx, cy - 2), 6, glow * pulse * 0.6)
+
+	# Esporos flutuando (partículas estáticas animadas)
+	for i in range(6):
+		var sx := w * (0.15 + i * 0.12)
+		var sy_base := h * 0.3
+		var sy_off := sin((Engine.get_physics_frames() * 0.03) + i) * 6.0
+		draw_circle(Vector2(sx, sy_base + sy_off), 1.5, purple * 0.8)
+
+
+func _draw_mycelium(w: float, h: float) -> void:
+	# Micélio crescendo — rede de hifas turquesa + cogumelos menores
+	var cyan := Color(0.30, 0.78, 0.72)
+
+	# Rede de hifas (linhas orgânicas)
+	for i in range(5):
+		var x1 := w * (0.1 + i * 0.18)
+		var x2 := x1 + randf_range(-8, 8) if false else x1 + sin(i) * 8.0
+		draw_line(Vector2(x1, h * 0.25), Vector2(x2, h * 0.75), cyan * 0.6, 1.5)
+
+	# Pequenos cogumelos
+	for i in range(4):
+		var cx := w * (0.15 + i * 0.22)
+		var cy := h * 0.75
+		draw_rect(Rect2(cx - 1, cy - 6, 2, 6), Color(0.85, 0.82, 0.72))
+		draw_circle(Vector2(cx, cy - 6), 4, cyan)
+
+
+func _draw_fungus_kitchen(w: float, h: float) -> void:
+	# Bancada com ingredientes fúngicos + panela fervendo
+	draw_rect(Rect2(w * 0.15, h * 0.55, w * 0.7, h * 0.12), Color(0.35, 0.28, 0.20))
+
+	# Panela ao centro
+	var pot_cx := w * 0.5
+	var pot_cy := h * 0.48
+	draw_rect(Rect2(pot_cx - 12, pot_cy - 6, 24, 14), Color(0.15, 0.15, 0.15))
+
+	# Vapor (pulsando)
+	var pulse: float = abs(sin(Engine.get_physics_frames() * 0.05)) * 0.4 + 0.4
+	for i in range(3):
+		var vx := pot_cx - 6 + i * 6
+		draw_circle(Vector2(vx, pot_cy - 10), 2, Color(0.72, 0.85, 0.72, pulse))
+
+	# Cogumelos na bancada
+	for i in range(3):
+		var mx := w * (0.22 + i * 0.22)
+		draw_rect(Rect2(mx - 1, h * 0.52, 2, 6), Color(0.82, 0.72, 0.55))
+		draw_circle(Vector2(mx, h * 0.52), 3, Color(0.78, 0.45, 0.35))
+
+
+func _draw_hyphae_forge(w: float, h: float) -> void:
+	# Forja biológica — raízes entrelaçadas crescendo de uma base quente
+	var amber := Color(0.91, 0.58, 0.23)
+	var pulse: float = abs(sin(Engine.get_physics_frames() * 0.03)) * 0.5 + 0.5
+
+	# Base (brasas)
+	draw_rect(Rect2(w * 0.2, h * 0.65, w * 0.6, h * 0.1), Color(0.25, 0.12, 0.06))
+	for i in range(5):
+		var ex := w * (0.25 + i * 0.12)
+		draw_circle(Vector2(ex, h * 0.70), 3, amber * pulse)
+
+	# Raízes crescendo (linhas verticais irregulares)
+	for i in range(4):
+		var rx := w * (0.25 + i * 0.17)
+		var points := PackedVector2Array([
+			Vector2(rx, h * 0.65),
+			Vector2(rx + 3, h * 0.5),
+			Vector2(rx - 2, h * 0.35),
+			Vector2(rx + 1, h * 0.22)
+		])
+		for p in range(points.size() - 1):
+			draw_line(points[p], points[p + 1], Color(0.55, 0.35, 0.18), 2.0)
+
+
+func _draw_neural_mushroom(w: float, h: float) -> void:
+	# Rede neural micótica — cogumelos conectados por filamentos pulsando
+	var green := Color(0.30, 0.78, 0.60)
+	var pulse: float = abs(sin(Engine.get_physics_frames() * 0.04)) * 0.5 + 0.5
+
+	# Nodos (cogumelos-cérebro)
+	var nodes: Array[Vector2] = [
+		Vector2(w * 0.2, h * 0.3),
+		Vector2(w * 0.5, h * 0.4),
+		Vector2(w * 0.8, h * 0.3),
+		Vector2(w * 0.3, h * 0.65),
+		Vector2(w * 0.7, h * 0.65),
+	]
+
+	# Conexões (filamentos)
+	for i in range(nodes.size()):
+		for j in range(i + 1, nodes.size()):
+			if nodes[i].distance_to(nodes[j]) < w * 0.5:
+				draw_line(nodes[i], nodes[j], green * pulse * 0.4, 1.0)
+
+	# Nodos
+	for n in nodes:
+		draw_circle(n, 5, green * pulse)
+		draw_circle(n, 3, Color(0.6, 0.95, 0.8))

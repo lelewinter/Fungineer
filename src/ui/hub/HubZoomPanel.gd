@@ -104,8 +104,7 @@ func _build_ui() -> void:
 
 
 func _on_start_pressed() -> void:
-	# TODO: Iniciar run
-	print("Iniciando zona: %s" % zone_id)
+	# TODO: Iniciar run da zona selecionada (zone_id)
 	closed.emit()
 	queue_free()
 

@@ -166,8 +166,6 @@ func _connect_signals() -> void:
 # ── Run Lifecycle ──────────────────────────────────────────────────────────────
 
 func _start_run() -> void:
-	print("[Main] _start_run — clearing state")
-	# Clear state
 	GameState.party.clear()
 
 	# Add starting characters: Guardian + Striker (Sprint 1)
@@ -179,12 +177,10 @@ func _start_run() -> void:
 	_party.add_character(striker)
 	_hud.register_character(striker)
 
-	print("[Main] party size after setup: %d" % GameState.party.size())
 	# Start game state, spawn items, start waves
 	GameState.start_run()
 	_item_spawner.spawn_resources("scrap")
 	_wave_spawner.start()
-	print("[Main] run started — state: ", GameState.current_state)
 
 
 func _on_wave_cleared(wave_index: int) -> void:

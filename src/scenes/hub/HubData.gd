@@ -1,4 +1,5 @@
 class_name HubData
+extends RefCounted
 
 # NPCs — 11 sobreviventes + Doutor
 const NPCS = [
@@ -137,9 +138,10 @@ const ROOMS = [
 		"h": 150,
 		"type": "tech",
 		"light": "red",
+		"silhouette": "posto de vigia",
 		"npcs": ["elena"]
 	},
-	# Floor 2 — Armamentos (muro de armas)
+	# Floor 2 — Armamentos
 	{
 		"id": "armamentos",
 		"label": "ARMAMENTOS",
@@ -148,30 +150,33 @@ const ROOMS = [
 		"h": 150,
 		"type": "storage",
 		"light": "amber",
+		"silhouette": "depósito de armas",
 		"npcs": []
 	},
-	# Floor 2 — Enfermaria (verde hospital)
+	# Floor 2 — Mycelium Lab (ex-enfermaria)
 	{
 		"id": "enfermaria",
-		"label": "ENFERMARIA",
+		"label": "MYCELIUM LAB",
 		"col": 4,
 		"w": 2,
 		"h": 150,
-		"type": "medical",
+		"type": "mycelium-lab",
 		"light": "hospital",
 		"zone_id": "infeccao",
+		"silhouette": "laboratorio de bioformas",
 		"npcs": ["amara"]
 	},
-	# Floor 3 — Lab da Priya (rival)
+	# Floor 3 — Câmara de Esporos (ex-lab da Priya, Day-1)
 	{
 		"id": "lab",
-		"label": "LAB DA PRIYA",
+		"label": "CÂMARA DE ESPOROS",
 		"col": 0,
 		"w": 2,
 		"h": 150,
-		"type": "lab",
+		"type": "spore-chamber",
 		"light": "cool",
 		"zone_id": "sacrificio",
+		"silhouette": "camara de esporos",
 		"npcs": ["priya"]
 	},
 	# Floor 3 — Sala Comum
@@ -183,28 +188,31 @@ const ROOMS = [
 		"h": 150,
 		"type": "common",
 		"light": "amber",
+		"silhouette": "sala de convivência",
 		"npcs": ["richard"]
 	},
-	# Floor 3 — Cozinha
+	# Floor 3 — Fungus Kitchen
 	{
 		"id": "cozinha",
-		"label": "COZINHA",
+		"label": "FUNGUS KITCHEN",
 		"col": 4,
 		"w": 2,
 		"h": 150,
-		"type": "kitchen",
+		"type": "fungus-kitchen",
 		"light": "warm",
+		"silhouette": "cozinha de fungos",
 		"npcs": ["tomas"]
 	},
-	# Floor 4 — Workshop
+	# Floor 4 — Hyphae Forge (ex-workshop)
 	{
 		"id": "workshop",
-		"label": "WORKSHOP",
+		"label": "HYPHAE FORGE",
 		"col": 0,
 		"w": 2,
 		"h": 150,
-		"type": "workshop",
+		"type": "hyphae-forge",
 		"light": "amber",
+		"silhouette": "forja de hifas",
 		"npcs": []
 	},
 	# Floor 4 — Arquivo (câmera)
@@ -217,21 +225,23 @@ const ROOMS = [
 		"type": "archive",
 		"light": "office",
 		"zone_id": "extracao",
+		"silhouette": "arquivo vivo",
 		"npcs": ["bae"]
 	},
-	# Floor 4 — Server (neon verde)
+	# Floor 4 — Neural Mushroom (ex-server)
 	{
 		"id": "server",
-		"label": "SERVER · YUKI",
+		"label": "NEURAL MUSHROOM",
 		"col": 4,
 		"w": 2,
 		"h": 150,
-		"type": "server",
+		"type": "neural-mushroom",
 		"light": "neon-green",
 		"zone_id": "circuito",
+		"silhouette": "rede neural micótica",
 		"npcs": ["yuki"]
 	},
-	# Floor 5 — Gestão (office)
+	# Floor 5 — Gestão
 	{
 		"id": "gestao",
 		"label": "GESTÃO",
@@ -240,6 +250,7 @@ const ROOMS = [
 		"h": 150,
 		"type": "office",
 		"light": "office",
+		"silhouette": "sala de gestão",
 		"npcs": []
 	},
 	# Floor 5 — Quarto da Lena
@@ -251,6 +262,7 @@ const ROOMS = [
 		"h": 150,
 		"type": "bedroom",
 		"light": "pink-dim",
+		"silhouette": "quarto",
 		"npcs": ["lena"]
 	},
 	# Floor 5 — Corredor
@@ -262,6 +274,7 @@ const ROOMS = [
 		"h": 150,
 		"type": "transit",
 		"light": "dim",
+		"silhouette": "corredor",
 		"npcs": []
 	},
 	# Floor 6 — Túnel Stealth
@@ -274,6 +287,7 @@ const ROOMS = [
 		"type": "tunnel-cool",
 		"light": "neon-green",
 		"zone_id": "stealth",
+		"silhouette": "túnel stealth",
 		"npcs": []
 	},
 	# Floor 6 — Túnel Hordas
@@ -285,6 +299,7 @@ const ROOMS = [
 		"h": 150,
 		"type": "tunnel-warm",
 		"light": "amber-hot",
+		"silhouette": "túnel das hordas",
 		"npcs": []
 	},
 ]
@@ -405,35 +420,45 @@ const DIALOGS = {
 	},
 }
 
-func get_room(room_id: String) -> Dictionary:
+static func get_room(room_id: String) -> Dictionary:
 	for room in ROOMS:
 		if room["id"] == room_id:
 			return room.duplicate()
 	return {}
 
-func get_npc(npc_id: String) -> Dictionary:
+static func get_npc(npc_id: String) -> Dictionary:
 	for npc in NPCS:
 		if npc["id"] == npc_id:
 			return npc.duplicate()
 	return {}
 
-func get_zone(zone_id: String) -> Dictionary:
+static func get_zone(zone_id: String) -> Dictionary:
 	for zone in ZONES:
 		if zone["id"] == zone_id:
 			return zone.duplicate()
 	return {}
 
-func get_npcs_in_room(room_id: String) -> Array:
+static func get_npcs_in_room(room_id: String) -> Array:
 	for room in ROOMS:
 		if room["id"] == room_id:
-			var result = []
+			var result := []
 			for npc_id in room.get("npcs", []):
 				result.append(get_npc(npc_id))
 			return result
 	return []
 
-func get_room_y_offset(room_idx: int) -> float:
-	var y = 0.0
-	for i in range(room_idx):
-		y += ROOMS[i]["h"]
-	return y
+static func is_rocket_room(room: Dictionary) -> bool:
+	var t: String = room.get("type", "")
+	return t == "rocket" or t == "rocket-top" or t == "rocket-base"
+
+static func get_floor_height(floor_num: int) -> float:
+	if floor_num == 1:
+		return 150.0
+	return 150.0
+
+static func get_rooms_by_floor(floor_num: int) -> Array:
+	var result := []
+	for room in ROOMS:
+		if room.get("floor", 1) == floor_num:
+			result.append(room)
+	return result

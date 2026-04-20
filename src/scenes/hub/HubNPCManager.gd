@@ -77,7 +77,12 @@ func _try_wander_npc(npc_id: String, state: Dictionary) -> void:
 func _draw() -> void:
 	for npc_id in npc_states:
 		var npc_state = npc_states[npc_id]
+		# Skip NPCs em salas locked (invisíveis até unlock)
+		if not HubState.is_room_unlocked(npc_state["room"]):
+			continue
 		var npc_data = HubState.get_npc_by_id(npc_id)
+		if npc_data.is_empty():
+			continue
 
 		# Bobbing animation
 		npc_state["bob_phase"] += get_physics_process_delta_time() / 0.6
