@@ -602,7 +602,7 @@ func _end_run(victory: bool) -> void:
 
 	_overlay_panel.visible = true
 	await get_tree().create_timer(2.5).timeout
-	get_tree().change_scene_to_file("res://src/scenes/WorldMapScene.tscn")
+	get_tree().change_scene_to_file("res://src/scenes/hub/HubScene.tscn")
 
 
 func _on_run_ended(_victory: bool) -> void:

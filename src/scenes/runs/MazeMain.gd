@@ -436,7 +436,7 @@ func _end_run(victory: bool) -> void:
 	GameState.end_run(victory)
 	queue_redraw()
 	await get_tree().create_timer(2.5).timeout
-	get_tree().change_scene_to_file("res://src/scenes/WorldMapScene.tscn")
+	get_tree().change_scene_to_file("res://src/scenes/hub/HubScene.tscn")
 
 # ─────────────────────── Input ────────────────────────────────────────────────
 const _SWIPE_MIN: float = 15.0

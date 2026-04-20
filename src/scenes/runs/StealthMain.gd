@@ -450,7 +450,7 @@ func _on_run_ended(victory: bool, fragments: int) -> void:
 
 
 func _go_to_hub() -> void:
-	get_tree().change_scene_to_file("res://src/scenes/WorldMapScene.tscn")
+	get_tree().change_scene_to_file("res://src/scenes/hub/HubScene.tscn")
 
 
 # ══════════════════════════════════════════════════════════════════════════════

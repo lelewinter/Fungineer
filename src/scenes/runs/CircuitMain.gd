@@ -154,7 +154,7 @@ func _process(delta: float) -> void:
 	if _overlay_active:
 		_overlay_timer += delta
 		if _overlay_timer >= _OVERLAY_DELAY:
-			get_tree().change_scene_to_file("res://src/scenes/WorldMapScene.tscn")
+			get_tree().change_scene_to_file("res://src/scenes/hub/HubScene.tscn")
 		return
 
 	if GameState.current_state != GameState.RunState.PLAYING:
