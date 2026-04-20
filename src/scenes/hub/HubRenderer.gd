@@ -68,6 +68,40 @@ func _draw() -> void:
 		_draw_room(room)
 
 	_draw_grid_lines()
+	_draw_ambient_spores()
+
+
+func _draw_ambient_spores() -> void:
+	# Esporos globais flutuando lentamente (ambient life).
+	# Só visíveis sobre salas unlocked; em salas locked seriam absorvidos pela terra.
+	var viewport_size: Vector2 = get_viewport_rect().size
+	var t: float = Time.get_ticks_msec() * 0.0006
+	var spore_count: int = 18
+	for i in range(spore_count):
+		var base_x: float = fmod(float(i) * 97.3, viewport_size.x)
+		var base_y: float = fmod(float(i) * 53.1, viewport_size.y)
+		# Deriva vertical ascendente lenta + oscilação horizontal
+		var y: float = fmod(base_y - t * 12.0 * (1.0 + float(i % 3) * 0.3), viewport_size.y)
+		var x: float = base_x + sin(t + float(i)) * 8.0
+
+		# Só desenha se a sala naquele ponto está unlocked
+		if not _is_point_in_unlocked_room(Vector2(x, y)):
+			continue
+
+		var alpha: float = 0.25 + 0.15 * sin(t * 2.0 + float(i))
+		var color: Color = Color(0.72, 0.45, 0.85, alpha) if i % 2 == 0 else Color(0.30, 0.78, 0.72, alpha)
+		draw_circle(Vector2(x, y), 1.2, color)
+
+
+func _is_point_in_unlocked_room(point: Vector2) -> bool:
+	for room in rooms:
+		var rx: float = cell_width * room["col"]
+		var ry: float = room_y_offset.get(room["id"], 0.0)
+		var rw: float = cell_width * room["w"]
+		var rh: float = room["h"]
+		if point.x >= rx and point.x <= rx + rw and point.y >= ry and point.y <= ry + rh:
+			return HubState.is_room_unlocked(room["id"])
+	return false
 
 
 func _draw_room(room: Dictionary) -> void:

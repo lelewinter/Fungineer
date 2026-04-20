@@ -320,43 +320,43 @@ const ZONES = [
 	{
 		"id": "hordas",
 		"name": "Zona Hordas",
-		"color": Color(0.91, 0.58, 0.23),
-		"briefing": "Enxame contínuo de fungos. Fraco singular, forte em banda.",
+		"color": Color(0.72, 0.45, 0.85),
+		"briefing": "Enxame de drones IA caçando esporos. Sozinhos fracos, em banda vorazes. Colheita: biomassa bruta.",
 		"allow_squad": true
 	},
 	{
 		"id": "stealth",
-		"name": "Zona Stealth",
-		"color": Color(0.0, 1.0, 0.533),
-		"briefing": "Infiltração em território inimigo. Silêncio é ouro.",
+		"name": "Túnel Micótico",
+		"color": Color(0.30, 0.78, 0.72),
+		"briefing": "Micélio cultivado crescendo entre as ruínas. Silêncio protege — pisoteio mata a rede. Colheita: hifas raras.",
 		"allow_squad": false
 	},
 	{
 		"id": "infeccao",
-		"name": "Zona Infecção",
+		"name": "Zona Contaminada",
 		"color": Color(0.565, 0.878, 0.722),
-		"briefing": "Bioformas contaminadas. Risco de inoculação.",
+		"briefing": "Bioformas mutadas pela esterilização da IA. Amara precisa de amostras vivas. Risco de inoculação.",
 		"allow_squad": false
 	},
 	{
 		"id": "circuito",
-		"name": "Zona Circuito",
+		"name": "Rede Neural Fúngica",
 		"color": Color(0.0, 1.0, 0.533),
-		"briefing": "Redes digitais. Yuki coordena.",
+		"briefing": "Onde o micélio encontrou os cabos mortos das IAs. Yuki decodifica os sinais. Colheita: núcleos lógicos.",
 		"allow_squad": false
 	},
 	{
 		"id": "extracao",
-		"name": "Zona Extração",
-		"color": Color(0.29, 0.353, 0.549),
-		"briefing": "Arqueologia urbana. Dados antigos.",
+		"name": "Estufa Abandonada",
+		"color": Color(0.62, 0.55, 0.35),
+		"briefing": "Arqueologia botânica — sementes pré-colapso ainda dormentes. Bae documenta o que Paulo sonha reviver.",
 		"allow_squad": false
 	},
 	{
 		"id": "sacrificio",
-		"name": "Zona Sacrifício",
-		"color": Color(0.784, 0.314, 0.392),
-		"briefing": "Lab rival. Experimental e perigoso.",
+		"name": "Câmara de Esporos",
+		"color": Color(0.78, 0.35, 0.55),
+		"briefing": "Laboratório da Priya. Mutações experimentais que só ela ousa cultivar. O preço é cruel.",
 		"allow_squad": false
 	},
 ]
@@ -364,9 +364,9 @@ const ZONES = [
 # Diálogos por NPC
 const DIALOGS = {
 	"doutor": {
-		"briefing": "Liderança inquestionável. Coordena todas as operações.",
-		"mission": "Qualquer zona para a qual você esteja pronto.",
-		"quote": "Precisamos de recursos. Você saberá para onde ir."
+		"briefing": "Dr. Paulo. Botânico. Pensa em foguetes como sementes e em fuga como germinação.",
+		"mission": "Qualquer zona onde o micélio aceitar crescer.",
+		"quote": "Rocket science? Plant science. Quem disse que são coisas diferentes?"
 	},
 	"marcus": {
 		"briefing": "Engenheiro. Especialista em estrutura.",
@@ -379,9 +379,9 @@ const DIALOGS = {
 		"quote": "A doença evolui. Precisamos de amostras para estudar."
 	},
 	"yuki": {
-		"briefing": "Hacker brilhante. Controla redes digitais.",
-		"mission": "Circuito (hacking de sistemas)",
-		"quote": "As máquinas falam comigo. Deixe-me ouvir."
+		"briefing": "Hacker. Descobriu que o micélio fala em protocolos — que as IAs nunca aprenderam a ouvir.",
+		"mission": "Rede Neural Fúngica (decodificar sinais)",
+		"quote": "As máquinas mortas gritam. Os cogumelos sussurram. Escuto os dois."
 	},
 	"elena": {
 		"briefing": "Ex-militar. Estratégia de combate.",
@@ -394,9 +394,9 @@ const DIALOGS = {
 		"quote": "História respira através de cada artefato."
 	},
 	"priya": {
-		"briefing": "Rival. Ambições próprias.",
-		"mission": "Sacrifício (experiências secretas)",
-		"quote": "Meu lab, minhas regras. Queremos o mesmo?"
+		"briefing": "Rival do Paulo. Botânica também — mas aposta em mutação forçada onde ele aposta em simbiose.",
+		"mission": "Câmara de Esporos (mutações experimentais)",
+		"quote": "Meu lab, minhas regras. Paulo rega as plantas; eu as quebro."
 	},
 	"tomas": {
 		"briefing": "Mecânico brilhante. Improvisa do nada.",
