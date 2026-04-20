@@ -177,7 +177,6 @@ func heal(amount: float) -> void:
 
 
 func _die() -> void:
-	print("[BaseCharacter] %s died" % character_name)
 	is_dead = true
 	visible = false
 	died.emit(self)

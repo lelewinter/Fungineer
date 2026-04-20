@@ -1,6 +1,0 @@
-[gd_scene format=3 uid="uid://dktcdt4bynb65"]
-
-[ext_resource type="Script" uid="uid://blbtd5s86ea44" path="res://src/scenes/FieldControlMain.gd" id="1"]
-
-[node name="FieldControlMain" type="Node2D" unique_id=1860941443]
-script = ExtResource("1")
