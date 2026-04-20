@@ -1,0 +1,6 @@
+[gd_scene format=3 uid="uid://7vnbddo6iw25"]
+
+[ext_resource type="Script" uid="uid://ddhq6m1g3vf4o" path="res://src/scenes/runs/InfectionMain.gd" id="1"]
+
+[node name="InfectionMain" type="Node2D" unique_id=1993715721]
+script = ExtResource("1")
