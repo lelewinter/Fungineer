@@ -7,6 +7,7 @@ var zoom_style: String = "cinematic"
 var panel_node: PanelContainer
 
 signal closed
+signal start_run_requested(zone_id: String)
 
 func _ready() -> void:
 	layer = 20
@@ -104,7 +105,7 @@ func _build_ui() -> void:
 
 
 func _on_start_pressed() -> void:
-	# TODO: Iniciar run da zona selecionada (zone_id)
+	start_run_requested.emit(zone_id)
 	closed.emit()
 	queue_free()
 

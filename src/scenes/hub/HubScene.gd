@@ -79,8 +79,17 @@ func _open_zoom_view(room_id: String, zone_id: String) -> void:
 	zoom_panel.zone_id = zone_id
 	add_child(zoom_panel)
 	zoom_panel.closed.connect(_close_zoom_view)
+	zoom_panel.start_run_requested.connect(_on_start_run_requested)
 
 	HubState.hub_zoom_opened.emit(room_id, zone_id)
+
+
+func _on_start_run_requested(zone_id: String) -> void:
+	var scene_path: String = HubData.ZONE_SCENE.get(zone_id, "")
+	if scene_path == "":
+		push_warning("No scene registered for zone: %s" % zone_id)
+		return
+	get_tree().change_scene_to_file(scene_path)
 
 
 func _show_npc_popover(npc_id: String) -> void:

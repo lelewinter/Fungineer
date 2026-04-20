@@ -304,6 +304,16 @@ const ROOMS = [
 	},
 ]
 
+# Map hub zone_id (String) → run scene path
+const ZONE_SCENE: Dictionary = {
+	"hordas":     "res://src/scenes/Main.tscn",
+	"stealth":    "res://src/scenes/runs/StealthMain.tscn",
+	"circuito":   "res://src/scenes/runs/CircuitMain.tscn",
+	"extracao":   "res://src/scenes/runs/ExtractionMain.tscn",
+	"infeccao":   "res://src/scenes/runs/InfectionMain.tscn",
+	"sacrificio": "res://src/scenes/runs/SacrificeMain.tscn",
+}
+
 # Map sala → zona
 const ROOM_TO_ZONE = {
 	"saida_hordas": "hordas",
