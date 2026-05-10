@@ -7,6 +7,7 @@ import { HubState, HUB_VARIANTS, type HubVariantKey } from '../../state/HubState
 import { HubData, ROOM_TO_ZONE } from '../../state/HubData';
 import { ZONES } from '../../state/Zones';
 import { StubRunScene } from '../runs/StubRunScene';
+import { HordasScene } from '../runs/HordasScene';
 import { WorldMapScene } from '../WorldMapScene';
 import { HubAudio } from './HubAudio';
 import { HubRenderer } from './HubRenderer';
@@ -138,7 +139,11 @@ export class HubScene extends Scene {
     }
     const zd = ZONES[zoneIndex];
     if (!zd) return;
-    void sceneManager.replace(new StubRunScene(zd));
+    if (zd.scene === 'main') {
+      void sceneManager.replace(new HordasScene());
+    } else {
+      void sceneManager.replace(new StubRunScene(zd));
+    }
   }
 
   private makeBadgeInteractive(): void {
