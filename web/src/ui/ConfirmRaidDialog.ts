@@ -23,11 +23,10 @@ export class ConfirmRaidDialog extends Modal {
     const title = new Text({
       text: zoneName,
       style: {
-        fontFamily: 'system-ui, sans-serif',
-        fontSize: 18,
-        fontWeight: '900',
+        fontFamily: '"Major Mono Display", "Courier New", monospace',
+        fontSize: 22,
         fill: Color.hex(Color.rgb(1.0, 0.9, 0.5)),
-        letterSpacing: 2,
+        letterSpacing: 4,
       },
     });
     title.anchor.set(0.5, 0);
@@ -38,7 +37,7 @@ export class ConfirmRaidDialog extends Modal {
     const desc = new Text({
       text: zoneDescription,
       style: {
-        fontFamily: 'system-ui, sans-serif',
+        fontFamily: '"Space Grotesk", system-ui, sans-serif',
         fontSize: 11,
         fill: Color.hex(Color.rgb(0.85, 0.85, 0.85)),
         wordWrap: true,

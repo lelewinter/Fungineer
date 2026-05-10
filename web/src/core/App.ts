@@ -1,10 +1,12 @@
 import { Application, Container } from 'pixi.js';
 import { GameConfig } from '../state/GameConfig';
+import { CRTFilter } from './filters/CRTFilter';
 
 export class App {
   readonly pixi: Application;
   readonly stage: Container;
   readonly world: Container;
+  readonly crt: CRTFilter;
 
   private constructor(pixi: Application) {
     this.pixi = pixi;
@@ -12,6 +14,16 @@ export class App {
     this.world = new Container();
     this.world.label = 'WorldRoot';
     this.stage.addChild(this.world);
+
+    this.crt = new CRTFilter({
+      viewportW: GameConfig.VIEWPORT_WIDTH,
+      viewportH: GameConfig.VIEWPORT_HEIGHT,
+      intensity: 1.0,
+    });
+    this.world.filters = [this.crt];
+    this.world.filterArea = this.pixi.screen;
+    this.pixi.ticker.add(() => this.crt.tick());
+
     window.addEventListener('resize', () => this.fit());
     this.fit();
   }

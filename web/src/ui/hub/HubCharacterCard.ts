@@ -27,7 +27,7 @@ export class HubCharacterCard extends Modal {
     // Header — name + trust
     const name = new Text({
       text: this.npc.nome,
-      style: { fontFamily: 'system-ui, sans-serif', fontSize: 14, fill: 0xffffff, fontWeight: '700' },
+      style: { fontFamily: '"Space Grotesk", system-ui, sans-serif', fontSize: 14, fill: 0xffffff, fontWeight: '700' },
     });
     name.x = left;
     name.y = y;
@@ -35,7 +35,7 @@ export class HubCharacterCard extends Modal {
 
     const trust = new Text({
       text: `🤝 ${this.npc.trust}%`,
-      style: { fontFamily: 'system-ui, sans-serif', fontSize: 12, fill: Color.hex(Color.rgb(0.85, 0.92, 0.78)) },
+      style: { fontFamily: '"Space Grotesk", system-ui, sans-serif', fontSize: 12, fill: Color.hex(Color.rgb(0.85, 0.92, 0.78)) },
     });
     trust.anchor.set(1, 0);
     trust.x = right;
@@ -47,7 +47,7 @@ export class HubCharacterCard extends Modal {
     // Hint (role)
     const hint = new Text({
       text: this.npc.hint,
-      style: { fontFamily: 'system-ui, sans-serif', fontSize: 10, fill: 0xcccccc },
+      style: { fontFamily: '"Space Grotesk", system-ui, sans-serif', fontSize: 10, fill: 0xcccccc },
     });
     hint.x = left;
     hint.y = y;
@@ -63,7 +63,7 @@ export class HubCharacterCard extends Modal {
       const briefing = new Text({
         text: dialog.briefing,
         style: {
-          fontFamily: 'system-ui, sans-serif',
+          fontFamily: '"Space Grotesk", system-ui, sans-serif',
           fontSize: 10,
           fill: Color.hex(Color.rgb(0.85, 0.85, 0.85)),
           wordWrap: true,
@@ -78,7 +78,7 @@ export class HubCharacterCard extends Modal {
       const mission = new Text({
         text: `→ ${dialog.mission}`,
         style: {
-          fontFamily: 'system-ui, sans-serif',
+          fontFamily: '"Space Grotesk", system-ui, sans-serif',
           fontSize: 10,
           fill: Color.hex(Color.rgb(0.91, 0.58, 0.23)),
           wordWrap: true,

@@ -18,10 +18,11 @@ export class HubRocket extends Container {
     this.textNode = new Text({
       text: '',
       style: {
-        fontFamily: 'system-ui, sans-serif',
+        fontFamily: '"IBM Plex Mono", ui-monospace, monospace',
         fontSize: 10,
         fill: 0xffffff,
-        fontWeight: '700',
+        fontWeight: '600',
+        letterSpacing: 1.5,
       },
     });
     this.textNode.anchor.set(0, 0.5);

@@ -101,7 +101,7 @@ export class WorldMapScene extends Scene {
     this.skyMessageA = new Text({
       text: '⬤  ZONA IA CONTROLADA — ACESSO PROIBIDO  ⬤',
       style: {
-        fontFamily: 'system-ui, sans-serif',
+        fontFamily: '"Space Grotesk", system-ui, sans-serif',
         fontSize: 9,
         fill: Color.hex(Color.rgb(0.20, 0.60, 0.95)),
       },
@@ -113,7 +113,7 @@ export class WorldMapScene extends Scene {
     this.skyMessageB = new Text({
       text: 'SUPERFÍCIE — ZONA DE PERIGO',
       style: {
-        fontFamily: 'system-ui, sans-serif',
+        fontFamily: '"Space Grotesk", system-ui, sans-serif',
         fontSize: 10,
         fill: Color.hex(Color.rgb(0.85, 0.3, 0.2)),
       },
@@ -307,7 +307,7 @@ export class WorldMapScene extends Scene {
 
     const baseLabel = new Text({
       text: '▼  BASE DE RESISTÊNCIA',
-      style: { fontFamily: 'system-ui, sans-serif', fontSize: 10, fill: Color.hex(Color.rgb(0.75, 0.55, 0.25)) },
+      style: { fontFamily: '"Space Grotesk", system-ui, sans-serif', fontSize: 10, fill: Color.hex(Color.rgb(0.75, 0.55, 0.25)) },
     });
     baseLabel.alpha = 0.75;
     baseLabel.anchor.set(1, 0);
@@ -318,7 +318,7 @@ export class WorldMapScene extends Scene {
     const rescued = HubState.rescued_characters.length + 1;
     const survivors = new Text({
       text: `Sobreviventes: ${rescued} / 10`,
-      style: { fontFamily: 'system-ui, sans-serif', fontSize: 9, fill: Color.hex(Color.rgb(0.55, 0.70, 0.55)) },
+      style: { fontFamily: '"Space Grotesk", system-ui, sans-serif', fontSize: 9, fill: Color.hex(Color.rgb(0.55, 0.70, 0.55)) },
     });
     survivors.alpha = 0.8;
     survivors.anchor.set(1, 0);
@@ -330,7 +330,7 @@ export class WorldMapScene extends Scene {
     const nextName = pieceIdx >= ROCKET_RECIPE.length ? 'FOGUETE COMPLETO!' : ROCKET_RECIPE[pieceIdx]!.name;
     const next = new Text({
       text: `Proxima peca: ${nextName}`,
-      style: { fontFamily: 'system-ui, sans-serif', fontSize: 11, fill: Color.hex(Color.rgb(0.80, 0.65, 0.25)) },
+      style: { fontFamily: '"Space Grotesk", system-ui, sans-serif', fontSize: 11, fill: Color.hex(Color.rgb(0.80, 0.65, 0.25)) },
     });
     next.x = 10;
     next.y = topY + 16;
@@ -360,7 +360,7 @@ export class WorldMapScene extends Scene {
       const txtCol = needed > 0 ? Color.rgb(0.45, 0.85, 0.45) : Color.rgb(0.55, 0.52, 0.50);
       const t = new Text({
         text: `${lbl}: ${amount}${needed > 0 ? `/${needed}` : ''}`,
-        style: { fontFamily: 'system-ui, sans-serif', fontSize: 10, fill: Color.hex(txtCol) },
+        style: { fontFamily: '"Space Grotesk", system-ui, sans-serif', fontSize: 10, fill: Color.hex(txtCol) },
       });
       t.x = colX;
       t.y = rowY;
@@ -418,7 +418,7 @@ export class WorldMapScene extends Scene {
 
     const name = new Text({
       text: zone.zone_name,
-      style: { fontFamily: 'system-ui, sans-serif', fontSize: 18, fontWeight: '900', fill: Color.hex(Color.rgb(1.0, 0.9, 0.5)) },
+      style: { fontFamily: '"Major Mono Display", "Courier New", monospace', fontSize: 20, fill: Color.hex(Color.rgb(1.0, 0.9, 0.5)), letterSpacing: 3 },
     });
     name.x = -halfW + padding;
     name.y = -halfH + padding;
@@ -426,7 +426,7 @@ export class WorldMapScene extends Scene {
 
     const res = new Text({
       text: `Recurso: ${zone.resource}`,
-      style: { fontFamily: 'system-ui, sans-serif', fontSize: 12, fill: Color.hex(Color.rgb(0.6, 0.85, 0.6)) },
+      style: { fontFamily: '"Space Grotesk", system-ui, sans-serif', fontSize: 12, fill: Color.hex(Color.rgb(0.6, 0.85, 0.6)) },
     });
     res.x = -halfW + padding;
     res.y = -halfH + padding + 28;
@@ -440,7 +440,7 @@ export class WorldMapScene extends Scene {
     ];
     const stageLabel = new Text({
       text: stageTexts[stage] ?? stageTexts[0]!,
-      style: { fontFamily: 'system-ui, sans-serif', fontSize: 11, fill: Color.hex(Color.rgb(0.75, 0.6, 0.5)) },
+      style: { fontFamily: '"Space Grotesk", system-ui, sans-serif', fontSize: 11, fill: Color.hex(Color.rgb(0.75, 0.6, 0.5)) },
     });
     stageLabel.x = -halfW + padding;
     stageLabel.y = -halfH + padding + 48;
@@ -449,7 +449,7 @@ export class WorldMapScene extends Scene {
     const dlg = new Text({
       text: ZONE_DIALOGUE[zoneId] ?? '',
       style: {
-        fontFamily: 'system-ui, sans-serif',
+        fontFamily: '"Space Grotesk", system-ui, sans-serif',
         fontSize: 11,
         fill: Color.hex(Color.rgb(0.75, 0.80, 0.65)),
         wordWrap: true,

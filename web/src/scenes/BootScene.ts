@@ -34,7 +34,7 @@ export class BootScene extends Scene {
     this.title = new Text({
       text: 'FUNGINEER',
       style: {
-        fontFamily: 'system-ui, sans-serif',
+        fontFamily: '"Space Grotesk", system-ui, sans-serif',
         fontSize: 36,
         fontWeight: '900',
         fill: Color.hex(variant.accent),
@@ -49,7 +49,7 @@ export class BootScene extends Scene {
     this.subtitle = new Text({
       text: 'Phase 1 — scaffold ok\nPixiJS port booting…',
       style: {
-        fontFamily: 'system-ui, sans-serif',
+        fontFamily: '"Space Grotesk", system-ui, sans-serif',
         fontSize: 16,
         fill: Color.hex(variant.ink),
         align: 'center',
@@ -62,7 +62,7 @@ export class BootScene extends Scene {
     const footer = new Text({
       text: `${W} × ${H} • PixiJS v8`,
       style: {
-        fontFamily: 'monospace',
+        fontFamily: '"IBM Plex Mono", ui-monospace, monospace',
         fontSize: 11,
         fill: Color.hex(variant.cool_light),
         align: 'center',
