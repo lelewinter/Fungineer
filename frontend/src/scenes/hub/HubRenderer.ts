@@ -101,9 +101,41 @@ export class HubRenderer extends Container {
   // ── Drawing ──────────────────────────────────────────────────────────────
   private redraw(): void {
     this.g.clear();
+    this.drawSideWalls();
     for (const room of HubData.ROOMS) this.drawRoom(room);
     this.drawGridLines();
     this.drawAmbientSpores();
+  }
+
+  /** Dirt/rock side walls flanking underground floors. Mirrors the Hub.html
+   *  cross-section detail — adds vertical depth to the bunker. */
+  private drawSideWalls(): void {
+    let totalH = 0;
+    let surfaceH = 0;
+    for (const room of HubData.ROOMS) {
+      totalH += room.h;
+      if (room.type === 'surface' || room.type === 'surface-exit') surfaceH += room.h;
+    }
+    const wallW = 10;
+    const ww = GameConfig.VIEWPORT_WIDTH;
+    const rock = Color.rgb(0.04, 0.03, 0.02);
+    const seam = Color.rgb(0.18, 0.13, 0.09);
+    // Layered fill so the wall doesn't look flat
+    this.g
+      .rect(0, surfaceH, wallW, totalH - surfaceH).fill(Color.hex(rock))
+      .rect(ww - wallW, surfaceH, wallW, totalH - surfaceH).fill(Color.hex(rock));
+    // Horizontal strata lines every ~22px
+    for (let y = surfaceH + 12; y < totalH; y += 22 + ((y * 13) % 9)) {
+      this.g.moveTo(0, y).lineTo(wallW - 1, y + (((y * 7) % 4) - 2))
+        .stroke({ color: Color.hex(seam), width: 1, alpha: 0.55 });
+      this.g.moveTo(ww - wallW + 1, y + (((y * 11) % 4) - 2)).lineTo(ww, y)
+        .stroke({ color: Color.hex(seam), width: 1, alpha: 0.55 });
+    }
+    // Inner seam line where wall meets rooms
+    this.g.moveTo(wallW, surfaceH).lineTo(wallW, totalH)
+      .stroke({ color: Color.hex(seam), width: 1.5, alpha: 0.7 });
+    this.g.moveTo(ww - wallW, surfaceH).lineTo(ww - wallW, totalH)
+      .stroke({ color: Color.hex(seam), width: 1.5, alpha: 0.7 });
   }
 
   private drawRoom(room: HubRoom): void {
