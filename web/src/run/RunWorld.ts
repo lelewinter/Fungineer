@@ -2,6 +2,7 @@ import { Container } from 'pixi.js';
 import type { BaseCharacter } from './BaseCharacter';
 import type { BaseEnemy } from './BaseEnemy';
 import type { ResourceItem } from './ResourceItem';
+import type { Projectile } from './Projectiles';
 import type { Vec2 } from '../core/types';
 
 /** Container for all entities in a run. Owns the world transforms (arena coords)
@@ -19,6 +20,7 @@ export class RunWorld {
   characters: BaseCharacter[] = [];
   enemies: BaseEnemy[] = [];
   items: ResourceItem[] = [];
+  projectiles: Projectile[] = [];
 
   constructor() {
     this.root.addChild(this.bgLayer);
@@ -54,6 +56,28 @@ export class RunWorld {
 
   removeItem(it: ResourceItem): void {
     this.items = this.items.filter((x) => x !== it);
+  }
+
+  addProjectile(p: Projectile): void {
+    this.projectiles.push(p);
+    this.fxLayer.addChild(p.node);
+  }
+
+  removeProjectile(p: Projectile): void {
+    this.projectiles = this.projectiles.filter((x) => x !== p);
+  }
+
+  updateProjectiles(dt: number): void {
+    const next: Projectile[] = [];
+    for (const p of this.projectiles) {
+      if (p.update(dt, this)) {
+        next.push(p);
+      } else {
+        p.node.parent?.removeChild(p.node);
+        p.node.destroy({ children: true });
+      }
+    }
+    this.projectiles = next;
   }
 
   // ── Spatial queries ────────────────────────────────────────────────────
