@@ -10,6 +10,7 @@ import { ZoneRoom } from './ZoneRoom';
 import { ConfirmRaidDialog } from '../ui/ConfirmRaidDialog';
 import { PixiButton } from '../ui/PixiButton';
 import { StubRunScene } from './runs/StubRunScene';
+import { HordasScene } from './runs/HordasScene';
 import { HubScene } from './hub/HubScene';
 
 const VW = GameConfig.VIEWPORT_WIDTH;
@@ -507,6 +508,10 @@ export class WorldMapScene extends Scene {
   }
 
   private startRaid(zone: ZoneData): void {
-    void sceneManager.replace(new StubRunScene(zone));
+    if (zone.scene === 'main') {
+      void sceneManager.replace(new HordasScene());
+    } else {
+      void sceneManager.replace(new StubRunScene(zone));
+    }
   }
 }
