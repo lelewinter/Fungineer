@@ -1,9 +1,9 @@
 {
-  "name": "fungineer-web",
+  "name": "fungineer-frontend",
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Web port of Fungineer (Godot → PixiJS).",
+  "description": "Fungineer frontend — PixiJS v8 + Vite (Cloudflare Pages target).",
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",

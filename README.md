@@ -23,8 +23,6 @@ Posicionamento é o jogo. O que "mover" significa muda completamente de zona par
 
 ## Zonas
 
-Cada zona é um mini-game diferente com a mesma restrição. O que muda é o que mover significa.
-
 | Zona | Mecânica central |
 |------|-----------------|
 | **Hordas** | Squad de 4, combate automático radial, rescate de personagens |
@@ -38,40 +36,125 @@ Cada zona é um mini-game diferente com a mesma restrição. O que muda é o que
 
 ---
 
-## Progressão
-
-Cada zona dropa um tipo único de recurso. O foguete precisa de todos:
-
-- `scrap` — sucata básica das Hordas
-- `ai_components` — componentes das IAs (Circuito)
-- `nucleo_logico` — núcleos lógicos (Pesquisa)
-- `combustivel_volatil` — combustível da Extração
-- `sinais_controle` — sinais do Campo
-- `biomassa_adaptativa` — biomassa da Infecção
-- `fragmentos_estruturais` — fragmentos do Sacrifício
-
-Morreu na run? Perde tudo que coletou. Sem checkpoint.
-
----
-
 ## Stack
 
-- **Engine**: Godot 4.6
-- **Linguagem**: GDScript
-- **Plataforma alvo**: Mobile (Android/iOS)
-- **Sessão típica**: 5–15 min (várias runs de < 2 min)
+| Camada | Tecnologia | Deploy |
+|---|---|---|
+| **Frontend** | PixiJS v8 + Vite + TypeScript | Cloudflare Pages |
+| **Backend** | FastAPI + SQLite (Python 3.11+) | Railway |
+| **Legacy** | Godot 4.6 (em `src/`) | — (referência apenas) |
+
+A Godot tree em `src/` é a versão original — o jogo "vivo" agora está em `frontend/`.
+Veja a PR #13 pra histórico do port.
 
 ---
 
 ## Estrutura do projeto
 
 ```
-src/          — código do jogo
-assets/       — arte, áudio, shaders
-design/       — GDDs e conceito do jogo
-docs/         — documentação técnica
-production/   — planejamento de sprint
+frontend/         PixiJS + Vite (UI, gameplay, runs)
+  public/assets/  symlink → ../../assets (re-usa arte/áudio do projeto Godot)
+  src/
+    core/         App, SceneManager, ApiClient, filtros (CRT), typography
+    state/        GameConfig, GameState, HubState, SaveService, Zones, Characters
+    scenes/       HubScene, WorldMapScene, runs/{Hordas,FieldControl,Sacrifice,Stub}
+    run/          BaseCharacter, BaseEnemy, Party, DragController, Wave, Powers
+    ui/           Modal, PixiButton, run/HUD, hub/*
+
+backend/          FastAPI service (save/load + healthcheck)
+  main.py         endpoints
+  requirements.txt
+  Procfile        (Railway)
+
+src/              Godot 4.6 source (legacy — não rodar)
+assets/           arte + áudio (compartilhado entre Godot e frontend via symlink)
+design/           GDDs, lore, conceito
+docs/             documentação técnica
 ```
+
+---
+
+## Rodar localmente
+
+### Pré-requisitos
+- Node 20+
+- Python 3.11+
+
+### Frontend
+```bash
+cd frontend
+npm install
+cp .env.example .env       # opcional — só se quiser remote save/load
+# .env: VITE_API_URL=http://localhost:8000
+npm run dev                # abre http://localhost:5173
+```
+
+Comandos disponíveis:
+- `npm run dev` — Vite dev server com hot reload
+- `npm run build` — produção em `frontend/dist/`
+- `npm run preview` — serve o build local em `:4173`
+- `npm run typecheck` — `tsc --noEmit`
+
+### Backend (opcional — só pra save remoto)
+```bash
+cd backend
+python -m venv .venv
+source .venv/bin/activate   # Windows: .venv\Scripts\activate
+pip install -r requirements.txt
+cp .env.example .env        # opcional
+uvicorn main:app --reload --port 8000
+```
+
+Endpoints:
+- `GET  /healthz` — liveness
+- `GET  /docs` — Swagger UI
+- `POST /api/state/save` — `{ "slot_id": "default", "state": {...} }`
+- `GET  /api/state/{slot_id}` — restore
+- `DELETE /api/state/{slot_id}` — wipe
+
+O frontend funciona **sem** o backend — quando `VITE_API_URL` está vazio
+a persistência cai pra localStorage só. Liga o backend só se quiser save
+cross-device ou backup remoto.
+
+---
+
+## Deploy
+
+### Frontend → Cloudflare Pages
+
+1. **Conecta o repo no dashboard** do Cloudflare Pages.
+2. **Build settings**:
+   - Framework preset: `Vite`
+   - Build command: `npm run build`
+   - Build output directory: `dist`
+   - Root directory: `frontend`
+3. **Environment variables** (Production e Preview):
+   - `VITE_API_URL` = URL do backend no Railway (ex: `https://fungineer-api.up.railway.app`)
+     — deixa vazio se ainda não tem backend no ar; o jogo cai pra localStorage.
+4. **Deploy** — Cloudflare publica em `https://<projeto>.pages.dev` e em
+   PR previews automaticamente.
+
+Notas:
+- O symlink `frontend/public/assets → ../../assets` precisa funcionar no
+  build do Cloudflare. Pages usa Linux nos builders → symlink resolve normal.
+  Se algum asset não aparecer no deploy, mover `assets/` pra dentro de `frontend/public/`.
+- As 6 WAVs de zona pesam ~100MB — considere converter pra OGG/MP3 antes
+  do deploy de produção (Pages tem limite de 25MB por arquivo).
+
+### Backend → Railway
+
+1. **New project** → conecta o repo → escolhe o serviço.
+2. **Settings → root directory**: `backend`.
+3. **Procfile** já está pronto: `web: uvicorn main:app --host 0.0.0.0 --port $PORT`.
+4. **Variables**:
+   - `FRONTEND_URL` = URL do Cloudflare Pages (ex: `https://fungineer.pages.dev`)
+   - (opcional) `FUNGINEER_DB` = `/data/fungineer.db` se você anexar um Volume
+     persistente em `/data` — sem isso, o save reseta a cada deploy.
+5. **Deploy**. Anota o domínio público — esse vira o `VITE_API_URL` no Cloudflare.
+
+Pra produção real, recomendo trocar SQLite por Postgres (Railway oferece
+plugin) e fazer o `_db()` em `backend/main.py` apontar pro `DATABASE_URL`.
+O scaffold atual já tá pronto pra isso — só trocar o context manager.
 
 ---
 
@@ -83,4 +166,4 @@ que coordenam o desenvolvimento através do Claude Code.
 
 ---
 
-*Roguelike anthology · Mobile-first · Godot 4.6*
+*Roguelike anthology · Mobile-first · Godot 4.6 → PixiJS port*

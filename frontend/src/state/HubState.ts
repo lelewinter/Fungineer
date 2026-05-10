@@ -115,6 +115,21 @@ export const UNLOCK_ORDER: string[] = [
   'corredor', 'surface',
 ];
 
+export interface HubStateSnapshot {
+  v: 1;
+  stock: Record<ResourceKey, number>;
+  rocket_pieces_built: number;
+  rescued_characters: string[];
+  zones_unlocked: boolean[];
+  zone_deterioration: number[];
+  total_runs: number;
+  lore_found: string[];
+  hub_variant: HubVariantKey;
+  hub_density: 'minimal' | 'balanced' | 'informative';
+  hub_ui_visible: boolean;
+  room_unlocked: Record<string, boolean>;
+}
+
 class HubStateClass {
   // ── Stock & rocket ──
   stock: Record<ResourceKey, number> = {
@@ -310,6 +325,46 @@ class HubStateClass {
     if (runs >= GameConfig.DETERIORATION_STAGE2_RUNS) return 2;
     if (runs >= GameConfig.DETERIORATION_STAGE1_RUNS) return 1;
     return 0;
+  }
+
+  // ── Persistence ────────────────────────────────────────────────────────
+  /** Opaque serialisable snapshot. The backend treats this as a black box;
+   *  the schema version below lets us migrate later. */
+  toSnapshot(): HubStateSnapshot {
+    return {
+      v: 1,
+      stock: { ...this.stock },
+      rocket_pieces_built: this.rocket_pieces_built,
+      rescued_characters: this.rescued_characters.slice(),
+      zones_unlocked: this.zones_unlocked.slice(),
+      zone_deterioration: this.zone_deterioration.slice(),
+      total_runs: this.total_runs,
+      lore_found: this.lore_found.slice(),
+      hub_variant: this.hub_variant,
+      hub_density: this.hub_density,
+      hub_ui_visible: this.hub_ui_visible,
+      room_unlocked: { ...this.room_unlocked },
+    };
+  }
+
+  loadFromSnapshot(snap: unknown): boolean {
+    if (typeof snap !== 'object' || snap === null) return false;
+    const s = snap as Partial<HubStateSnapshot>;
+    if (s.v !== 1) return false;
+    if (s.stock) Object.assign(this.stock, s.stock);
+    if (typeof s.rocket_pieces_built === 'number') this.rocket_pieces_built = s.rocket_pieces_built;
+    if (Array.isArray(s.rescued_characters)) this.rescued_characters = s.rescued_characters.slice();
+    if (Array.isArray(s.zones_unlocked)) this.zones_unlocked = s.zones_unlocked.slice();
+    if (Array.isArray(s.zone_deterioration)) this.zone_deterioration = s.zone_deterioration.slice();
+    if (typeof s.total_runs === 'number') this.total_runs = s.total_runs;
+    if (Array.isArray(s.lore_found)) this.lore_found = s.lore_found.slice();
+    if (s.hub_variant && s.hub_variant in HUB_VARIANTS) this.hub_variant = s.hub_variant;
+    if (s.hub_density) this.hub_density = s.hub_density;
+    if (typeof s.hub_ui_visible === 'boolean') this.hub_ui_visible = s.hub_ui_visible;
+    if (s.room_unlocked) this.room_unlocked = { ...s.room_unlocked };
+    this.stockChanged.emit(this.stock);
+    this.hubVariantChanged.emit(this.hub_variant);
+    return true;
   }
 
   // ── Hub data accessors (proxy to HubData) ──
