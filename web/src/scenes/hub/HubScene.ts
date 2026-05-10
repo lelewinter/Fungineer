@@ -8,6 +8,8 @@ import { HubData, ROOM_TO_ZONE } from '../../state/HubData';
 import { ZONES } from '../../state/Zones';
 import { StubRunScene } from '../runs/StubRunScene';
 import { HordasScene } from '../runs/HordasScene';
+import { FieldControlScene } from '../runs/FieldControlScene';
+import { SacrificeScene } from '../runs/SacrificeScene';
 import { WorldMapScene } from '../WorldMapScene';
 import { HubAudio } from './HubAudio';
 import { HubRenderer } from './HubRenderer';
@@ -139,10 +141,11 @@ export class HubScene extends Scene {
     }
     const zd = ZONES[zoneIndex];
     if (!zd) return;
-    if (zd.scene === 'main') {
-      void sceneManager.replace(new HordasScene());
-    } else {
-      void sceneManager.replace(new StubRunScene(zd));
+    switch (zd.scene) {
+      case 'main':      void sceneManager.replace(new HordasScene()); break;
+      case 'field':     void sceneManager.replace(new FieldControlScene()); break;
+      case 'sacrifice': void sceneManager.replace(new SacrificeScene()); break;
+      default:          void sceneManager.replace(new StubRunScene(zd));
     }
   }
 

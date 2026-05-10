@@ -4,6 +4,7 @@ import { Color, type RGBA } from '../core/Color';
 import { Signal } from '../core/Signal';
 import type { BaseCharacter } from './BaseCharacter';
 import type { RunWorld } from './RunWorld';
+import { CombatSfx, spawnDamageNumber } from './fx/DamageNumbers';
 
 export interface EnemyStats {
   name: string;
@@ -119,11 +120,18 @@ export class BaseEnemy {
   takeDamage(amount: number, _source: BaseCharacter | null = null): void {
     if (this.is_dead) return;
     this.current_hp = Math.max(0, this.current_hp - amount);
+    if (this.world) {
+      const color = this.is_elite ? 0xffd966 : 0xffffff;
+      spawnDamageNumber(this.world, this.position, amount, color);
+    }
+    if (this.is_elite) CombatSfx.bossHit(0.3);
+    else CombatSfx.hit(0.28);
     if (this.current_hp <= 0) this.die();
   }
 
   protected die(): void {
     this.is_dead = true;
+    CombatSfx.death(this.is_elite ? 0.6 : 0.35);
     this.died.emit(this);
     if (this.world) this.world.removeEnemy(this);
     this.node.parent?.removeChild(this.node);
