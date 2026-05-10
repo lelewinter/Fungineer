@@ -14,12 +14,11 @@ export const RunState = {
 
 export type RunStateValue = (typeof RunState)[keyof typeof RunState];
 
-/** A character or enemy participating in a run. Loose interface — refined as
- *  characters/enemies are ported in later phases. */
+/** A character or enemy participating in a run. Loose interface — the run
+ *  systems implement BaseCharacter / BaseEnemy which both satisfy this shape. */
 export interface RunActor {
   position: Vec2;
-  hp: number;
-  destroy(): void;
+  is_dead: boolean;
 }
 
 class GameStateClass {
