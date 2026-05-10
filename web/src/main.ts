@@ -1,8 +1,7 @@
 import { App } from './core/App';
 import { sceneManager } from './core/SceneManager';
 import { audioManager } from './core/AudioManager';
-import { assets } from './core/AssetLoader';
-import { BootScene } from './scenes/BootScene';
+import { HubScene } from './scenes/hub/HubScene';
 
 async function bootstrap(): Promise<void> {
   const host = document.getElementById('app');
@@ -11,9 +10,8 @@ async function bootstrap(): Promise<void> {
   const app = await App.create(host);
   sceneManager.attach(app);
   audioManager.unlockOnFirstGesture();
-  assets.preload(['__none__']).catch(() => undefined);
 
-  await sceneManager.replace(new BootScene());
+  await sceneManager.replace(new HubScene());
 }
 
 bootstrap().catch((err: unknown) => {
