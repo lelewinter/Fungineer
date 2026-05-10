@@ -71,7 +71,7 @@ export class HubRenderer extends Container {
         const label = new Text({
           text: room.silhouette,
           style: {
-            fontFamily: 'system-ui, sans-serif',
+            fontFamily: '"Space Grotesk", system-ui, sans-serif',
             fontSize: 8,
             fill: Color.hex(Color.rgb(0.55, 0.48, 0.40)),
             align: 'center',
@@ -123,8 +123,42 @@ export class HubRenderer extends Container {
     // — we just pass absolute coords to the helpers.
     this.drawRoomInterior(room, x, y, w, h);
     this.applyRoomLighting(room, x, y, w, h);
+    this.drawRoomVignette(x, y, w, h);
+    this.drawRoomTopLight(x, y, w, h, room);
     this.drawZoneBadgeIfNeeded(room, x, y, w, h);
     this.g.rect(x, y, w, h).stroke({ color: Color.hex(Color.rgb(0.15, 0.15, 0.15)), width: 1 });
+  }
+
+  /** Darken the room edges with a feathered alpha ring to give depth. */
+  private drawRoomVignette(x: number, y: number, w: number, h: number): void {
+    const layers = 4;
+    for (let i = 0; i < layers; i++) {
+      const t = (i + 1) / layers;
+      const ringSize = t * 6;
+      this.g
+        .rect(x, y, w, ringSize)
+        .fill({ color: 0x000000, alpha: 0.05 + 0.04 * (1 - t) })
+        .rect(x, y + h - ringSize, w, ringSize)
+        .fill({ color: 0x000000, alpha: 0.05 + 0.04 * (1 - t) })
+        .rect(x, y + ringSize, ringSize, h - ringSize * 2)
+        .fill({ color: 0x000000, alpha: 0.05 + 0.04 * (1 - t) })
+        .rect(x + w - ringSize, y + ringSize, ringSize, h - ringSize * 2)
+        .fill({ color: 0x000000, alpha: 0.05 + 0.04 * (1 - t) });
+    }
+  }
+
+  /** A subtle horizontal highlight near the top edge — like a ceiling light strip. */
+  private drawRoomTopLight(x: number, y: number, w: number, _h: number, room: HubRoom): void {
+    const c = this.getLightColor(room.light);
+    this.g
+      .rect(x + 2, y + 2, w - 4, 1.5)
+      .fill({ color: Color.hex(c), alpha: 0.35 });
+    // Soft glow under the strip
+    for (let i = 0; i < 4; i++) {
+      this.g
+        .rect(x + 2, y + 4 + i, w - 4, 1)
+        .fill({ color: Color.hex(c), alpha: 0.04 - i * 0.008 });
+    }
   }
 
   private drawLockedRoom(room: HubRoom, x: number, y: number, w: number, h: number): void {
@@ -245,12 +279,16 @@ export class HubRenderer extends Container {
     const zone = HubData.getZone(room.zone_id);
     if (!zone) return;
     const pulse = Math.abs(Math.sin(this.elapsedFrames * 0.02)) * 0.3 + 0.7;
+    const cx = x + w - 10;
+    const cy = (this.roomYOffset[room.id] ?? 0) + 10;
+    // Outer halo (large, low alpha)
+    this.g.circle(cx, cy, 14).fill({ color: Color.hex(zone.color), alpha: 0.08 * pulse });
+    this.g.circle(cx, cy, 10).fill({ color: Color.hex(zone.color), alpha: 0.16 * pulse });
+    // Bright core
     const c: RGBA = { r: zone.color.r * pulse, g: zone.color.g * pulse, b: zone.color.b * pulse, a: 1 };
-    const cx = x + w - 8;
-    const cy = (this.roomYOffset[room.id] ?? 0) + 8;
     this.g.circle(cx, cy, 5).fill(Color.hex(c));
-    const dim: RGBA = { r: zone.color.r * 0.3, g: zone.color.g * 0.3, b: zone.color.b * 0.3, a: 1 };
-    this.g.circle(cx, cy, 4).fill(Color.hex(dim));
+    // Hot center
+    this.g.circle(cx, cy, 2.5).fill({ color: 0xffffff, alpha: 0.85 * pulse });
   }
 
   private drawGridLines(): void {

@@ -43,7 +43,7 @@ export class HubRocketPanel extends Modal {
 
     const header = new Text({
       text: '◈ CASULO BIOLÓGICO · ESQUEMA',
-      style: { fontFamily: 'system-ui, sans-serif', fontSize: 13, fill: Color.hex(Color.rgb(0.85, 0.92, 0.78)), fontWeight: '700', align: 'center' },
+      style: { fontFamily: '"Major Mono Display", "Courier New", monospace', fontSize: 14, fill: Color.hex(Color.rgb(0.85, 0.92, 0.78)), align: 'center', letterSpacing: 2 },
     });
     header.anchor.set(0.5, 0);
     header.x = 0;
@@ -53,7 +53,7 @@ export class HubRocketPanel extends Modal {
 
     const subtitle = new Text({
       text: 'Dr. Paulo: "Foguete? Não. Semente."',
-      style: { fontFamily: 'system-ui, sans-serif', fontSize: 9, fill: Color.hex(Color.rgb(0.72, 0.45, 0.85)), align: 'center' },
+      style: { fontFamily: '"Space Grotesk", system-ui, sans-serif', fontSize: 9, fill: Color.hex(Color.rgb(0.72, 0.45, 0.85)), align: 'center' },
     });
     subtitle.anchor.set(0.5, 0);
     subtitle.x = 0;
@@ -75,7 +75,7 @@ export class HubRocketPanel extends Modal {
     const pct = Math.floor((built / total) * 100);
     const status = new Text({
       text: `${built} / ${total} peças · ${pct}% germinado`,
-      style: { fontFamily: 'system-ui, sans-serif', fontSize: 10, fill: Color.hex(Color.rgb(0.30, 0.78, 0.72)), align: 'center' },
+      style: { fontFamily: '"Space Grotesk", system-ui, sans-serif', fontSize: 10, fill: Color.hex(Color.rgb(0.30, 0.78, 0.72)), align: 'center' },
     });
     status.anchor.set(0.5, 0);
     status.x = 0;
@@ -202,7 +202,7 @@ export class HubRocketPanel extends Modal {
     const gray: RGBA = { r: 0.35, g: 0.32, b: 0.28, a: 1 };
 
     while (this.annotationLabels.length < recipe.length) {
-      const t = new Text({ text: '', style: { fontFamily: 'system-ui, sans-serif', fontSize: 9 } });
+      const t = new Text({ text: '', style: { fontFamily: '"Space Grotesk", system-ui, sans-serif', fontSize: 9 } });
       this.annotationLabels.push(t);
       this.canvasContainer.addChild(t);
     }
@@ -222,7 +222,7 @@ export class HubRocketPanel extends Modal {
       const annotationX = isRight ? innerW * 0.85 : innerW * 0.15;
       const lineColor = isBuilt ? purple : (isNext ? cyan : gray);
       t.style = {
-        fontFamily: 'system-ui, sans-serif',
+        fontFamily: '"Space Grotesk", system-ui, sans-serif',
         fontSize: 9,
         fill: Color.hex(lineColor),
         wordWrap: true,

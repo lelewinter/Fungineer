@@ -35,7 +35,7 @@ export class ZoneRoom extends Container {
     this.nameLabel = new Text({
       text: opts.zoneName,
       style: {
-        fontFamily: 'system-ui, sans-serif',
+        fontFamily: '"Space Grotesk", system-ui, sans-serif',
         fontSize: 14,
         fill: Color.hex(Color.rgb(0.95, 0.95, 0.95)),
         fontWeight: '700',
@@ -48,7 +48,7 @@ export class ZoneRoom extends Container {
     this.subtitleLabel = new Text({
       text: opts.roomSubtitle,
       style: {
-        fontFamily: 'system-ui, sans-serif',
+        fontFamily: '"Space Grotesk", system-ui, sans-serif',
         fontSize: 10,
         fill: Color.hex(Color.rgb(0.75, 0.75, 0.75)),
       },

@@ -195,7 +195,7 @@ export class HubScene extends Scene {
     const hint = new Text({
       text: 'Toque numa sala para entrar · ESC fecha painel',
       style: {
-        fontFamily: 'system-ui, sans-serif',
+        fontFamily: '"Space Grotesk", system-ui, sans-serif',
         fontSize: 9,
         fill: Color.hex(Color.rgb(0.55, 0.62, 0.50)),
       },

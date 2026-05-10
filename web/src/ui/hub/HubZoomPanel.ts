@@ -37,7 +37,7 @@ export class HubZoomPanel extends Modal {
     // Header
     const header = new Text({
       text: `[${zoneName}]`,
-      style: { fontFamily: 'system-ui, sans-serif', fontSize: 14, fill: 0xffffff, fontWeight: '700' },
+      style: { fontFamily: '"Space Grotesk", system-ui, sans-serif', fontSize: 14, fill: 0xffffff, fontWeight: '700' },
     });
     header.x = -halfW + padding;
     header.y = -halfH + padding;
@@ -100,7 +100,7 @@ export class HubZoomPanel extends Modal {
       const label = new Text({
         text: tab.title,
         style: {
-          fontFamily: 'system-ui, sans-serif',
+          fontFamily: '"Space Grotesk", system-ui, sans-serif',
           fontSize: 9,
           fill: isActive ? 0xe6f0d9 : 0x8e9a92,
           fontWeight: '600',
@@ -135,7 +135,7 @@ export class HubZoomPanel extends Modal {
     const t = new Text({
       text,
       style: {
-        fontFamily: 'system-ui, sans-serif',
+        fontFamily: '"Space Grotesk", system-ui, sans-serif',
         fontSize: 10,
         fill: Color.hex(Color.rgb(0.85, 0.85, 0.85)),
         wordWrap: true,
