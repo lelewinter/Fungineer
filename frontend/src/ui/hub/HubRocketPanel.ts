@@ -132,14 +132,33 @@ export class HubRocketPanel extends Modal {
     const bodyTopY = topY + podH * 0.22;
     const bodyBotY = topY + podH * 0.82;
     const sectionH = (bodyBotY - bodyTopY) / 3;
+    const totalBodyH = bodyBotY - bodyTopY;
+    const buildY = bodyTopY + totalBodyH * (1 - built / Math.max(1, recipe.length));
     for (let i = 0; i < 3; i++) {
       const sy = bodyTopY + i * sectionH;
       const segColor = this.pieceColor(i + 1, built, cyan, gray);
       this.g.rect(cx - bodyW * 0.5, sy, bodyW, sectionH).fill(Color.hex(segColor));
       this.g.rect(cx - bodyW * 0.5, sy, bodyW, sectionH).stroke({ color: Color.hex(Color.rgb(0.15, 0.20, 0.18)), width: 1 });
+      // Plating stripes — horizontal panel lines on the built portion
+      if (i + 1 <= built) {
+        for (let s = 1; s < 4; s++) {
+          const ly = sy + (sectionH * s) / 4;
+          this.g.moveTo(cx - bodyW * 0.4, ly).lineTo(cx + bodyW * 0.4, ly)
+            .stroke({ color: Color.hex(cyan), width: 0.8, alpha: 0.55 });
+        }
+      }
+      // Porthole
       if (i + 1 < built) {
         this.g.circle(cx, sy + sectionH * 0.5, 3).fill(Color.hex(Color.rgb(0.85, 0.92, 0.78)));
       }
+    }
+    // Welding line — animated dashed seam between built and unbuilt
+    if (built > 0 && built < recipe.length) {
+      const dashPulse = 0.4 + 0.6 * Math.abs(Math.sin(this.elapsedMs * 0.006));
+      this.g.moveTo(cx - bodyW * 0.6, buildY).lineTo(cx + bodyW * 0.6, buildY)
+        .stroke({ color: Color.hex(amber), width: 1.2, alpha: 0.85 * dashPulse });
+      this.g.circle(cx - bodyW * 0.3, buildY, 1.6).fill({ color: Color.hex(amber), alpha: dashPulse });
+      this.g.circle(cx + bodyW * 0.3, buildY, 1.4).fill({ color: Color.hex(amber), alpha: 1 - dashPulse });
     }
 
     // Engine fins
