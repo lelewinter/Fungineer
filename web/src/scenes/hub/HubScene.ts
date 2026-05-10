@@ -1,9 +1,13 @@
 import { Container, FederatedPointerEvent, Graphics, Text } from 'pixi.js';
 import { Scene } from '../../core/Scene';
+import { sceneManager } from '../../core/SceneManager';
 import { Color } from '../../core/Color';
 import { GameConfig } from '../../state/GameConfig';
 import { HubState, HUB_VARIANTS, type HubVariantKey } from '../../state/HubState';
 import { HubData, ROOM_TO_ZONE } from '../../state/HubData';
+import { ZONES } from '../../state/Zones';
+import { StubRunScene } from '../runs/StubRunScene';
+import { WorldMapScene } from '../WorldMapScene';
 import { HubAudio } from './HubAudio';
 import { HubRenderer } from './HubRenderer';
 import { HubNPCManager } from './HubNPCManager';
@@ -124,8 +128,17 @@ export class HubScene extends Scene {
   }
 
   private onStartRunRequested(zoneId: string): void {
-    // Phase 7+ wires the actual zone scenes. For now log and stay in hub.
-    console.info('[hub] start run requested', zoneId);
+    // Map the hub's string zone id to the WorldMap zone index.
+    const zoneIndex = (
+      { hordas: 0, stealth: 1, circuito: 2, extracao: 3, infeccao: 5, sacrificio: 7 } as Record<string, number>
+    )[zoneId];
+    if (zoneIndex === undefined) {
+      console.warn('[hub] unknown zone id', zoneId);
+      return;
+    }
+    const zd = ZONES[zoneIndex];
+    if (!zd) return;
+    void sceneManager.replace(new StubRunScene(zd));
   }
 
   private makeBadgeInteractive(): void {
@@ -165,6 +178,19 @@ export class HubScene extends Scene {
       bar.addChild(btn);
     }
     this.uiLayer.addChild(bar);
+
+    const mapBtn = new PixiButton({
+      label: 'WORLD MAP',
+      width: 100,
+      height: 22,
+      fontSize: 9,
+      onClick: () => {
+        void sceneManager.replace(new WorldMapScene());
+      },
+    });
+    mapBtn.x = GameConfig.VIEWPORT_WIDTH - 110;
+    mapBtn.y = 60;
+    this.uiLayer.addChild(mapBtn);
 
     const hint = new Text({
       text: 'Toque numa sala para entrar · ESC fecha painel',
