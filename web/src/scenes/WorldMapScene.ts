@@ -11,6 +11,8 @@ import { ConfirmRaidDialog } from '../ui/ConfirmRaidDialog';
 import { PixiButton } from '../ui/PixiButton';
 import { StubRunScene } from './runs/StubRunScene';
 import { HordasScene } from './runs/HordasScene';
+import { FieldControlScene } from './runs/FieldControlScene';
+import { SacrificeScene } from './runs/SacrificeScene';
 import { HubScene } from './hub/HubScene';
 
 const VW = GameConfig.VIEWPORT_WIDTH;
@@ -508,10 +510,11 @@ export class WorldMapScene extends Scene {
   }
 
   private startRaid(zone: ZoneData): void {
-    if (zone.scene === 'main') {
-      void sceneManager.replace(new HordasScene());
-    } else {
-      void sceneManager.replace(new StubRunScene(zone));
+    switch (zone.scene) {
+      case 'main':      void sceneManager.replace(new HordasScene()); break;
+      case 'field':     void sceneManager.replace(new FieldControlScene()); break;
+      case 'sacrifice': void sceneManager.replace(new SacrificeScene()); break;
+      default:          void sceneManager.replace(new StubRunScene(zone));
     }
   }
 }

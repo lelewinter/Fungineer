@@ -20,6 +20,7 @@ import { Runner, Bruiser, Spitter, SentinelCore } from '../../run/Enemies';
 
 import { HUD } from '../../ui/run/HUD';
 import { GameOverScreen, VictoryScreen, RescueScreen, PowerOfferScreen, type RescueOption } from '../../ui/run/RunScreens';
+import { CombatSfx, updateDamageNumbers } from '../../run/fx/DamageNumbers';
 
 import { HubScene } from '../hub/HubScene';
 import { shuffleInPlace } from '../../core/types';
@@ -86,6 +87,7 @@ export class HordasScene extends Scene {
       this.extractionPoint.update(capped);
       this.waves.update(capped);
       this.powerManager.update(capped);
+      updateDamageNumbers(capped);
     }
     this.hud.update(capped);
     this.updateCamera(capped);
@@ -150,6 +152,7 @@ export class HordasScene extends Scene {
   private buildUi(): void {
     this.hud = new HUD();
     this.uiLayer.addChild(this.hud);
+    this.disposers.push(this.hud.powerTapped.connect(() => this.powerManager.toggle()));
   }
 
   private connectSignals(): void {
@@ -158,6 +161,12 @@ export class HordasScene extends Scene {
     );
     this.disposers.push(
       this.waves.waveCleared.connect((w) => this.onWaveCleared(w)),
+    );
+    this.disposers.push(
+      GameState.waveStarted.connect(() => CombatSfx.waveStart()),
+    );
+    this.disposers.push(
+      GameState.bossSpawned.connect(() => CombatSfx.bossSpawn()),
     );
   }
 

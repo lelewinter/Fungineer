@@ -15,6 +15,7 @@ export class Party {
     if (this.members.length >= GameConfig.MAX_PARTY_SIZE) return false;
     this.members.push(character);
     GameState.party.push(character as unknown as never);
+    character.world = world;
     world.addCharacter(character);
     character.died.connect((c) => {
       this.members = this.members.filter((x) => x !== c);

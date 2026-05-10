@@ -5,6 +5,7 @@ import { Signal } from '../core/Signal';
 import { GameState } from '../state/GameState';
 import type { BaseEnemy } from './BaseEnemy';
 import type { RunWorld } from './RunWorld';
+import { CombatSfx, spawnDamageNumber } from './fx/DamageNumbers';
 
 export interface CharacterStats {
   name: string;
@@ -33,6 +34,7 @@ export class BaseCharacter {
   protected attack_timer = 0;
   current_target: BaseEnemy | null = null;
   private intangible = false;
+  world: RunWorld | null = null;
 
   // Display
   readonly node = new Container();
@@ -117,6 +119,8 @@ export class BaseCharacter {
     this.current_hp = Math.max(0, this.current_hp - effective);
     this.hpChanged.emit(this, this.current_hp, this.max_hp);
     GameState.damageDealt.emit(this as unknown as never, effective, { ...this.position });
+    if (this.world) spawnDamageNumber(this.world, this.position, effective, 0xff7a7a);
+    CombatSfx.partyHit();
     if (this.current_hp <= 0) this.die();
   }
 

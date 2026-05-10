@@ -1,6 +1,7 @@
-import { Container, Graphics, Text } from 'pixi.js';
+import { Container, FederatedPointerEvent, Graphics, Text } from 'pixi.js';
 import { Color } from '../../core/Color';
 import { FontFamily, TextColor } from '../../core/typography';
+import { Signal } from '../../core/Signal';
 import { GameConfig } from '../../state/GameConfig';
 import { GameState, RunState } from '../../state/GameState';
 import type { BaseCharacter } from '../../run/BaseCharacter';
@@ -17,9 +18,13 @@ interface HpRow {
 
 /** In-run overlay HUD. Lives at scene UI layer; reads GameState directly. */
 export class HUD extends Container {
+  readonly powerTapped = new Signal<[]>();
+
   private timerLabel: Text;
   private waveLabel: Text;
   private powerLabel: Text;
+  private powerButton: Container;
+  private powerButtonBg: Graphics;
   private siegeIndicator: Text;
   private siegePulse = 0;
   private hpRows: HpRow[] = [];
@@ -63,15 +68,30 @@ export class HUD extends Container {
     this.waveLabel.y = 13;
     this.addChild(this.waveLabel);
 
-    // Top right: power
+    // Top right: power button (clickable). Width grows with text.
+    this.powerButton = new Container();
+    this.powerButtonBg = new Graphics();
+    this.powerButton.addChild(this.powerButtonBg);
+
     this.powerLabel = new Text({
       text: '',
       style: { fontFamily: FontFamily.body, fontSize: 11, fill: Color.hex(Color.rgb(0.72, 0.52, 1.0)), fontWeight: '600' },
     });
-    this.powerLabel.anchor.set(1, 0);
-    this.powerLabel.x = W - 12;
-    this.powerLabel.y = 14;
-    this.addChild(this.powerLabel);
+    this.powerLabel.anchor.set(1, 0.5);
+    this.powerLabel.x = 0;
+    this.powerLabel.y = 0;
+    this.powerButton.addChild(this.powerLabel);
+
+    this.powerButton.x = W - 12;
+    this.powerButton.y = 20;
+    this.powerButton.eventMode = 'static';
+    this.powerButton.cursor = 'pointer';
+    this.powerButton.on('pointertap', (e: FederatedPointerEvent) => {
+      e.stopPropagation();
+      this.powerTapped.emit();
+    });
+    this.addChild(this.powerButton);
+    this.drawPowerButton(null);
 
     // Bottom center: siege indicator
     this.siegeIndicator = new Text({
@@ -168,7 +188,23 @@ export class HUD extends Container {
   }
 
   setPowerDisplay(power: PowerResource | null): void {
-    this.powerLabel.text = power ? power.power_name : '';
+    this.powerLabel.text = power ? power.power_name : '— sem poder —';
+    this.drawPowerButton(power);
+  }
+
+  private drawPowerButton(power: PowerResource | null): void {
+    const padding = 12;
+    const w = this.powerLabel.width + padding * 2;
+    const h = 22;
+    this.powerButtonBg.clear();
+    const color = power?.icon_color ?? 0x4a584b;
+    const active = power?.is_active === true;
+    const cd = (power?.cooldown_remaining ?? 0) > 0;
+    this.powerButtonBg
+      .roundRect(-w, -h / 2, w, h, 4)
+      .fill({ color: active ? 0x2a1f3a : cd ? 0x101010 : 0x14181a, alpha: 0.95 })
+      .roundRect(-w, -h / 2, w, h, 4)
+      .stroke({ color, width: 1.5, alpha: power ? 0.9 : 0.4 });
   }
 
   update(dt: number): void {
@@ -187,8 +223,9 @@ export class HUD extends Container {
       } else if (p.is_active) {
         this.powerLabel.text = `${p.power_name} [ON]`;
       } else {
-        this.powerLabel.text = p.power_name;
+        this.powerLabel.text = `${p.power_name}  ▸ TAP`;
       }
+      this.drawPowerButton(p);
     }
 
     // Siege indicator
