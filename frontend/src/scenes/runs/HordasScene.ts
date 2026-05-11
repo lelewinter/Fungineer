@@ -98,6 +98,11 @@ export class HordasScene extends Scene {
       this.party.update();
       for (const c of this.world.characters) c.update(capped, this.world);
       for (const e of this.world.enemies) e.update(capped, this.world);
+      // Solid bodies — push enemies out of each other and out of the party.
+      // Two iterations smooths big pile-ups without making it any more
+      // expensive in the common case.
+      this.world.resolveCollisions(this.party);
+      this.world.resolveCollisions(this.party);
       this.world.updateProjectiles(capped);
       this.items.update(capped);
       this.extractionPoint.update(capped);

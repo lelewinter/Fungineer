@@ -39,6 +39,7 @@ export class Bruiser extends BaseEnemy {
       is_elite: true,
     };
     super(stats);
+    this.solid_radius = 18;
   }
 
   protected override findTarget(world: RunWorld): void {
@@ -132,6 +133,7 @@ export class SentinelCore extends BaseEnemy {
       is_elite: true,
     };
     super(stats);
+    this.solid_radius = 30;
   }
 
   protected override buildVisual(): void {
