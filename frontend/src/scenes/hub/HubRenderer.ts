@@ -13,7 +13,9 @@ export class HubRenderer extends Container {
   readonly roomClicked = new Signal<[roomId: string]>();
   readonly rocketShaftClicked = new Signal<[]>();
 
-  private readonly SURFACE_H = 110;
+  private readonly SURFACE_H = 80;
+  private readonly topPad: number;
+  private readonly bottomPad: number;
   private floorH = 0;
 
   private cellWidth: number;
@@ -26,8 +28,10 @@ export class HubRenderer extends Container {
   private variantColors = HubState.getVariantData();
   private disposers: Array<() => void> = [];
 
-  constructor() {
+  constructor(opts: { topPad?: number; bottomPad?: number } = {}) {
     super();
+    this.topPad = opts.topPad ?? 0;
+    this.bottomPad = opts.bottomPad ?? 0;
     this.cellWidth = GameConfig.VIEWPORT_WIDTH / 6;
     this.calculateLayout();
     this.addChild(this.g);
@@ -50,16 +54,21 @@ export class HubRenderer extends Container {
   }
 
   private calculateLayout(): void {
-    this.floorH = (GameConfig.VIEWPORT_HEIGHT - this.SURFACE_H) / 5;
+    const available = GameConfig.VIEWPORT_HEIGHT - this.topPad - this.bottomPad;
+    this.floorH = (available - this.SURFACE_H) / 5;
     for (const room of HubData.ROOMS) {
       this.roomYOffset[room.id] = room.floor === 1
-        ? 0
-        : this.SURFACE_H + (room.floor - 2) * this.floorH;
+        ? this.topPad
+        : this.topPad + this.SURFACE_H + (room.floor - 2) * this.floorH;
     }
   }
 
   private getTotalH(): number {
-    return this.SURFACE_H + 5 * this.floorH;
+    return this.topPad + this.SURFACE_H + 5 * this.floorH;
+  }
+
+  private getTopY(): number {
+    return this.topPad;
   }
 
   private roomFloorH(room: HubRoom): number {
@@ -108,7 +117,7 @@ export class HubRenderer extends Container {
       .rect(0, 0, this.cellWidth * 2, this.floorH * 4)
       .fill({ color: 0x000000, alpha: 0.001 });
     rocketHit.x = this.cellWidth * 2;
-    rocketHit.y = this.SURFACE_H;
+    rocketHit.y = this.topPad + this.SURFACE_H;
     rocketHit.eventMode = 'static';
     rocketHit.cursor = 'pointer';
     rocketHit.on('pointertap', () => this.rocketShaftClicked.emit());
@@ -136,24 +145,24 @@ export class HubRenderer extends Container {
   }
 
   private drawSideWalls(): void {
-    const surfaceH = this.SURFACE_H;
+    const wallTopY = this.topPad + this.SURFACE_H;
     const totalH = this.getTotalH();
     const wallW = 10;
     const ww = GameConfig.VIEWPORT_WIDTH;
     const rock = Color.rgb(0.04, 0.03, 0.02);
     const seam = Color.rgb(0.18, 0.13, 0.09);
     this.g
-      .rect(0, surfaceH, wallW, totalH - surfaceH).fill(Color.hex(rock))
-      .rect(ww - wallW, surfaceH, wallW, totalH - surfaceH).fill(Color.hex(rock));
-    for (let y = surfaceH + 12; y < totalH; y += 22 + ((y * 13) % 9)) {
+      .rect(0, wallTopY, wallW, totalH - wallTopY).fill(Color.hex(rock))
+      .rect(ww - wallW, wallTopY, wallW, totalH - wallTopY).fill(Color.hex(rock));
+    for (let y = wallTopY + 12; y < totalH; y += 22 + ((y * 13) % 9)) {
       this.g.moveTo(0, y).lineTo(wallW - 1, y + (((y * 7) % 4) - 2))
         .stroke({ color: Color.hex(seam), width: 1, alpha: 0.55 });
       this.g.moveTo(ww - wallW + 1, y + (((y * 11) % 4) - 2)).lineTo(ww, y)
         .stroke({ color: Color.hex(seam), width: 1, alpha: 0.55 });
     }
-    this.g.moveTo(wallW, surfaceH).lineTo(wallW, totalH)
+    this.g.moveTo(wallW, wallTopY).lineTo(wallW, totalH)
       .stroke({ color: Color.hex(seam), width: 1.5, alpha: 0.7 });
-    this.g.moveTo(ww - wallW, surfaceH).lineTo(ww - wallW, totalH)
+    this.g.moveTo(ww - wallW, wallTopY).lineTo(ww - wallW, totalH)
       .stroke({ color: Color.hex(seam), width: 1.5, alpha: 0.7 });
   }
 
@@ -188,7 +197,7 @@ export class HubRenderer extends Container {
     const t = this.elapsedMs;
 
     const shaftX = this.cellWidth * 2;
-    const shaftY = this.SURFACE_H;
+    const shaftY = this.topPad + this.SURFACE_H;
     const shaftW = this.cellWidth * 2;
     const shaftH = this.floorH * 4;
     const cx = shaftX + shaftW * 0.5;
@@ -471,10 +480,11 @@ export class HubRenderer extends Container {
   }
 
   private drawGridLines(): void {
+    const topY = this.getTopY();
     const totalH = this.getTotalH();
     for (let col = 0; col < 7; col++) {
       const x = this.cellWidth * col;
-      this.g.moveTo(x, 0).lineTo(x, totalH)
+      this.g.moveTo(x, topY).lineTo(x, totalH)
         .stroke({ color: Color.hex(this.variantColors.grid), width: 1 });
     }
   }
