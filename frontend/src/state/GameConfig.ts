@@ -129,7 +129,7 @@ export const GameConfig = {
   TECH_FRAGMENTS_BOSS_BONUS: 10,
 
   // ── Backpack ───────────────────────────────────────────────────
-  BACKPACK_CAPACITY: 3,
+  BACKPACK_CAPACITY: 12,
   RESOURCE_COLLECTION_TIME: 1.5,
   RESOURCE_COLLECTION_RADIUS: 35,
   RESOURCE_SPAWN_COUNT: 4,

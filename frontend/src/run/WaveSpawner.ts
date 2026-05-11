@@ -4,8 +4,10 @@ import { GameState, RunState } from '../state/GameState';
 import { HubState } from '../state/HubState';
 import type { BaseEnemy } from './BaseEnemy';
 import type { RunWorld } from './RunWorld';
+import type { Vec2 } from '../core/types';
 
 export type EnemyFactory = () => BaseEnemy;
+export type EnemyKind = 'runner' | 'bruiser' | 'spitter' | 'sentinel';
 
 export interface WaveFactories {
   runner: EnemyFactory;
@@ -21,6 +23,9 @@ export class WaveSpawner {
   readonly waveCleared = new Signal<[number]>();
   readonly bossSpawned = new Signal<[]>();
   readonly allWavesClear = new Signal<[]>();
+  /** Fires whenever an enemy spawned by this controller dies. Used by the
+   *  scene to seed loot drops at the kill location. */
+  readonly enemyKilled = new Signal<[kind: EnemyKind, position: Vec2]>();
 
   private running = false;
   private runTimer = 0;
@@ -115,36 +120,47 @@ export class WaveSpawner {
     const t = this.runTimer;
     const r = Math.random();
     let enemy: BaseEnemy;
-    if (t >= WaveSpawner.TRICKLE_SPITTER_AT_S && r < 0.18) {
+    let kind: EnemyKind;
+    if (t >= WaveSpawner.TRICKLE_SPITTER_AT_S && r < 0.22) {
       enemy = this.factories.spitter();
-    } else if (t >= WaveSpawner.TRICKLE_BRUISER_CHANCE_AFTER_S && r < 0.30) {
+      kind = 'spitter';
+    } else if (t >= WaveSpawner.TRICKLE_BRUISER_CHANCE_AFTER_S && r < 0.38) {
       enemy = this.factories.bruiser();
+      kind = 'bruiser';
     } else {
       enemy = this.factories.runner();
+      kind = 'runner';
     }
+    // Scale enemy HP with run length — late-trickle enemies are tankier so
+    // the player can't just one-shot everything once the powers stack up.
+    const hpScale = 1 + Math.min(1.5, t / 60);
+    enemy.max_hp = Math.round(enemy.max_hp * hpScale);
+    enemy.current_hp = enemy.max_hp;
+
     enemy.position = this.randomEdgePosition();
     enemy.setWorld(this.world);
     this.world.addEnemy(enemy);
+    enemy.died.connect(() => this.enemyKilled.emit(kind, { ...enemy.position }));
   }
 
   private spawnWave1(): void {
-    const mult = HubState.getSpawnMultiplier(this.zoneId);
+    const mult = HubState.getSpawnMultiplier(this.zoneId) * 1.5;
     const runners = Math.round(GameConfig.WAVE_1_RUNNER_COUNT * mult);
     const bruisers = Math.round(GameConfig.WAVE_1_BRUISER_COUNT * mult);
-    for (let i = 0; i < runners; i++) this.spawnWaveEnemy(this.factories.runner(), 1);
-    for (let i = 0; i < bruisers; i++) this.spawnWaveEnemy(this.factories.bruiser(), 1);
+    for (let i = 0; i < runners; i++) this.spawnWaveEnemy(this.factories.runner(), 1, 'runner');
+    for (let i = 0; i < bruisers; i++) this.spawnWaveEnemy(this.factories.bruiser(), 1, 'bruiser');
     this.waveSpawned.emit(1);
     GameState.waveStarted.emit(1);
   }
 
   private spawnWave2(): void {
-    const mult = HubState.getSpawnMultiplier(this.zoneId);
+    const mult = HubState.getSpawnMultiplier(this.zoneId) * 1.8;
     const runners = Math.round(GameConfig.WAVE_2_RUNNER_COUNT * mult);
     const bruisers = Math.round(GameConfig.WAVE_2_BRUISER_COUNT * mult);
     const spitters = Math.round(GameConfig.WAVE_2_SPITTER_COUNT * mult);
-    for (let i = 0; i < runners; i++) this.spawnWaveEnemy(this.factories.runner(), 2);
-    for (let i = 0; i < bruisers; i++) this.spawnWaveEnemy(this.factories.bruiser(), 2);
-    for (let i = 0; i < spitters; i++) this.spawnWaveEnemy(this.factories.spitter(), 2);
+    for (let i = 0; i < runners; i++) this.spawnWaveEnemy(this.factories.runner(), 2, 'runner');
+    for (let i = 0; i < bruisers; i++) this.spawnWaveEnemy(this.factories.bruiser(), 2, 'bruiser');
+    for (let i = 0; i < spitters; i++) this.spawnWaveEnemy(this.factories.spitter(), 2, 'spitter');
     this.waveSpawned.emit(2);
     GameState.waveStarted.emit(2);
   }
@@ -154,16 +170,18 @@ export class WaveSpawner {
     boss.position = { x: GameConfig.ARENA_WIDTH * 0.5, y: 80 };
     boss.setWorld(this.world);
     this.world.addEnemy(boss);
+    boss.died.connect(() => this.enemyKilled.emit('sentinel', { ...boss.position }));
     this.bossSpawned.emit();
     GameState.bossSpawned.emit();
     GameState.current_state = RunState.BOSS_FIGHT;
     GameState.stateChanged.emit(RunState.BOSS_FIGHT);
   }
 
-  private spawnWaveEnemy(enemy: BaseEnemy, wave: number): void {
+  private spawnWaveEnemy(enemy: BaseEnemy, wave: number, kind: EnemyKind): void {
     enemy.position = this.randomEdgePosition();
     enemy.setWorld(this.world);
     this.world.addEnemy(enemy);
+    enemy.died.connect(() => this.enemyKilled.emit(kind, { ...enemy.position }));
     if (wave === 1) {
       this.wave1Alive += 1;
       enemy.died.connect(() => this.onWave1EnemyDied());

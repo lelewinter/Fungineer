@@ -116,23 +116,29 @@ export class HUD extends Container {
     this.hpStack.y = H - 124;
     this.addChild(this.hpStack);
 
-    // Bottom right: backpack
-    const slotSize = 30;
-    const slotGap = 5;
-    const totalW = GameConfig.BACKPACK_CAPACITY * slotSize + (GameConfig.BACKPACK_CAPACITY - 1) * slotGap;
+    // Bottom right: backpack. Each slot is colour-coded by resource type so
+    // the player can read at a glance "I have 2× scrap, 1× combustivel" etc.
+    const cols = 6;
+    const rows = Math.ceil(GameConfig.BACKPACK_CAPACITY / cols);
+    const slotSize = 22;
+    const slotGap = 3;
+    const totalW = cols * slotSize + (cols - 1) * slotGap;
+    const totalH = rows * slotSize + (rows - 1) * slotGap;
     const slotsX = W - totalW - 10;
-    const slotsY = H - slotSize - 10;
+    const slotsY = H - totalH - 10;
     const bpBg = new Graphics()
-      .roundRect(slotsX - 9, slotsY - 9, totalW + 18, slotSize + 18, 5)
+      .roundRect(slotsX - 7, slotsY - 7, totalW + 14, totalH + 14, 4)
       .fill({ color: 0x0a0e09, alpha: 0.85 })
       .stroke({ color: TextColor.amber, width: 1, alpha: 0.5 });
     this.addChild(bpBg);
 
     for (let i = 0; i < GameConfig.BACKPACK_CAPACITY; i++) {
+      const r = Math.floor(i / cols);
+      const c = i % cols;
       const slot = new Graphics();
-      slot.x = slotsX + i * (slotSize + slotGap);
-      slot.y = slotsY;
-      this.drawSlot(slot, slotSize, false);
+      slot.x = slotsX + c * (slotSize + slotGap);
+      slot.y = slotsY + r * (slotSize + slotGap);
+      this.drawSlot(slot, slotSize, null);
       this.addChild(slot);
       this.backpackSlots.push(slot);
     }
@@ -258,18 +264,33 @@ export class HUD extends Container {
 
   private onBackpackChanged(contents: string[]): void {
     for (let i = 0; i < this.backpackSlots.length; i++) {
-      this.drawSlot(this.backpackSlots[i]!, 30, i < contents.length);
+      const content = i < contents.length ? contents[i]! : null;
+      this.drawSlot(this.backpackSlots[i]!, 22, content);
     }
   }
 
-  private drawSlot(g: Graphics, size: number, filled: boolean): void {
+  private static readonly SLOT_COLORS: Record<string, number> = {
+    scrap:                  0xb8b3a6,
+    ai_components:          0x4dc7b9,
+    nucleo_logico:          0x6e9bff,
+    combustivel_volatil:    0xff7a3a,
+    sinais_controle:        0xa1ffaa,
+    biomassa_adaptativa:    0xb573d8,
+    fragmentos_estruturais: 0xe8c061,
+  };
+
+  private drawSlot(g: Graphics, size: number, content: string | null): void {
     g.clear();
-    if (filled) {
-      g.roundRect(0, 0, size, size, 4)
-        .fill({ color: Color.hex(Color.rgb(0.65, 0.45, 0.18)), alpha: 0.9 })
-        .stroke({ color: TextColor.amber, width: 1.5 });
+    if (content) {
+      const c = HUD.SLOT_COLORS[content] ?? 0xb8b3a6;
+      g.roundRect(0, 0, size, size, 3)
+        .fill({ color: c, alpha: 0.95 })
+        .roundRect(2, 2, size - 4, size - 4, 2)
+        .fill({ color: c, alpha: 0.35 })
+        .roundRect(0, 0, size, size, 3)
+        .stroke({ color: c, width: 1.5 });
     } else {
-      g.roundRect(0, 0, size, size, 4)
+      g.roundRect(0, 0, size, size, 3)
         .fill({ color: 0x14181a, alpha: 0.9 })
         .stroke({ color: TextColor.faint, width: 1, alpha: 0.6 });
     }

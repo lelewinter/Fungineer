@@ -1,5 +1,6 @@
-import { Container, Graphics } from 'pixi.js';
+import { Container, Graphics, Text } from 'pixi.js';
 import { Scene } from '../../core/Scene';
+import { FontFamily } from '../../core/typography';
 import { sceneManager } from '../../core/SceneManager';
 import { audioManager } from '../../core/AudioManager';
 import { Color } from '../../core/Color';
@@ -48,6 +49,11 @@ export class HordasScene extends Scene {
 
   // UI
   private hud!: HUD;
+  private exitIndicator = new Graphics();
+  private exitIndicatorLabel = new Text({
+    text: 'EXIT ↑',
+    style: { fontFamily: FontFamily.mono, fontSize: 10, fill: 0x6dffba, fontWeight: '700', letterSpacing: 2 },
+  });
   private rescueOffered = false;
   private endShown = false;
 
@@ -102,6 +108,7 @@ export class HordasScene extends Scene {
     }
     this.hud.update(capped);
     this.updateCamera(capped);
+    this.updateExitIndicator();
     Juice.update(capped);
   }
 
@@ -166,6 +173,67 @@ export class HordasScene extends Scene {
     this.hud = new HUD();
     this.uiLayer.addChild(this.hud);
     this.disposers.push(this.hud.powerTapped.connect(() => this.powerManager.toggle()));
+
+    // Off-screen EXIT indicator. Sits on the viewport edge nearest the extract
+    // point with an arrow pointing at it. Hidden once the extract is on screen.
+    this.exitIndicatorLabel.anchor.set(0.5);
+    this.exitIndicator.zIndex = 50;
+    this.exitIndicatorLabel.zIndex = 51;
+    this.uiLayer.addChild(this.exitIndicator);
+    this.uiLayer.addChild(this.exitIndicatorLabel);
+  }
+
+  private updateExitIndicator(): void {
+    // Map extract world-pos → screen-pos, accounting for the camera transform.
+    const ex = this.extractionPoint.position.x + this.cameraLayer.x;
+    const ey = this.extractionPoint.position.y + this.cameraLayer.y;
+    const W = GameConfig.VIEWPORT_WIDTH;
+    const H = GameConfig.VIEWPORT_HEIGHT;
+    const onScreen = ex >= 0 && ex <= W && ey >= 0 && ey <= H;
+    this.exitIndicator.visible = !onScreen;
+    this.exitIndicatorLabel.visible = !onScreen;
+    if (onScreen) return;
+
+    // Clamp the indicator to the viewport with a margin and point an arrow
+    // toward the extract direction.
+    const m = 36;
+    const cx = W / 2;
+    const cy = H / 2;
+    const dx = ex - cx;
+    const dy = ey - cy;
+    const ang = Math.atan2(dy, dx);
+    const sx = Math.cos(ang);
+    const sy = Math.sin(ang);
+    // Project onto the inset rectangle (W-2m × H-2m).
+    const hw = W / 2 - m;
+    const hh = H / 2 - m;
+    const t = Math.min(Math.abs(sx) > 1e-4 ? hw / Math.abs(sx) : Infinity,
+                       Math.abs(sy) > 1e-4 ? hh / Math.abs(sy) : Infinity);
+    const ix = cx + sx * t;
+    const iy = cy + sy * t;
+
+    const pulse = 0.7 + 0.3 * Math.sin(GameState.run_time * 4);
+    this.exitIndicator.clear();
+    // Outer halo
+    this.exitIndicator
+      .circle(ix, iy, 20 + 4 * pulse).fill({ color: 0x6dffba, alpha: 0.12 })
+      .circle(ix, iy, 14).fill({ color: 0x0a1810, alpha: 0.85 })
+      .circle(ix, iy, 14).stroke({ color: 0x6dffba, width: 2, alpha: 0.95 });
+    // Arrow chevron pointing toward the extract direction
+    const arrowLen = 9;
+    const tipX = ix + sx * arrowLen;
+    const tipY = iy + sy * arrowLen;
+    const wx = -sy * 5;
+    const wy = sx * 5;
+    this.exitIndicator
+      .moveTo(ix - sx * 4 + wx, iy - sy * 4 + wy)
+      .lineTo(tipX, tipY)
+      .lineTo(ix - sx * 4 - wx, iy - sy * 4 - wy)
+      .stroke({ color: 0x6dffba, width: 2.4, alpha: 0.95 });
+
+    this.exitIndicatorLabel.x = ix;
+    this.exitIndicatorLabel.y = iy + 28;
+    this.exitIndicatorLabel.alpha = pulse;
   }
 
   private connectSignals(): void {
@@ -174,6 +242,9 @@ export class HordasScene extends Scene {
     );
     this.disposers.push(
       this.waves.waveCleared.connect((w) => this.onWaveCleared(w)),
+    );
+    this.disposers.push(
+      this.waves.enemyKilled.connect((kind, pos) => this.items.dropFromEnemyKill(kind, pos)),
     );
     this.disposers.push(
       GameState.waveStarted.connect(() => CombatSfx.waveStart()),
