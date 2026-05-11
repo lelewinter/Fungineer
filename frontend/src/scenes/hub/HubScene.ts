@@ -27,7 +27,7 @@ export class HubScene extends Scene {
   private uiLayer = new Container();
   private modalLayer = new Container();
   private renderer: HubRenderer;
-  private npcManager = new HubNPCManager();
+  private npcManager: HubNPCManager;
   private hubAudio = new HubAudio();
   private topBar = new HubTopBar();
   private bottomBar = new HubBottomBar();
@@ -37,10 +37,9 @@ export class HubScene extends Scene {
 
   constructor() {
     super();
-    this.renderer = new HubRenderer({
-      topPad: HubTopBar.TOTAL_H,
-      bottomPad: HubBottomBar.H,
-    });
+    const pad = { topPad: HubTopBar.TOTAL_H, bottomPad: HubBottomBar.H };
+    this.renderer = new HubRenderer(pad);
+    this.npcManager = new HubNPCManager(pad);
   }
 
   override async enter(): Promise<void> {
@@ -53,7 +52,6 @@ export class HubScene extends Scene {
 
     this.worldLayer.addChild(this.renderer);
     this.worldLayer.addChild(this.npcManager);
-    this.npcManager.y = HubTopBar.TOTAL_H;
 
     // TopBar + RocketReadout overlay
     this.uiLayer.addChild(this.topBar);
