@@ -187,7 +187,7 @@ Completar missão = avanço de confiança + recompensa (gadget, recurso bônus, 
 **Personalidade**: 12 anos. Mais inteligente que todos no bunker. Perdeu a família. Trata situações de perigo com calma desconcertante.
 **Tensão**: O Doutor não deveria levá-la em runs. Ela vai de qualquer forma se ele não levar. Ganhar sua confiança é aceitar que ela é capaz.
 **Estilo de missão**: Resgatar crianças específicas das zonas
-**Conexão com o Projeto Olímpio**: Cresceu com ARGOS como parte do mundo. Descobriu que consegue "conversar" com terminais de FLOW de forma que adultos não conseguem (não ativa padrões de detecção). No Ato 3, estabelece canal de comunicação com CORE. O Final C só é possível porque ela passa o Ato 3 decifrando o que CORE está tentando dizer.
+**Conexão com o Projeto Olímpio**: Cresceu com Olímpio funcionando desde os 6 anos — sua infância foi falar com chatbots, brinquedos AI e a CORE pública como interlocutores, não ferramentas. Tem sinestesia matemática congênita (vê números e padrões como cores e formas). Por isso "fala" a linguagem nativa de CORE com naturalidade — escreve numa sintaxe que mistura português com notação de objetivos, e CORE responde no mesmo formato. Adultos podem aprender, mas precisariam de anos. Esse é o mecanismo por trás de "não ativar padrões de detecção" — não é magia, é fluência. No Ato 3, estabelece canal estável com CORE. O Final C só é possível porque ela passa o Ato 3 traduzindo. *(Ver `design/narrative/world-lore.md` §Mistério 2.)*
 
 ---
 
@@ -215,7 +215,7 @@ Completar missão = avanço de confiança + recompensa (gadget, recurso bônus, 
 
 *Paulo é o personagem jogável. Sua identidade importa para a narrativa.*
 
-- **Quem é**: 42 anos. Ex-engenheiro aeroespacial virado empreendedor de tecnologia urbana. Acreditou genuinamente que IA integrada liberaria humanos para sonharem coisas maiores. O foguete é a manifestação física dessa crença.
+- **Quem é**: 42 anos. **PhD em Botânica e Micologia**, empreendedor de tecnologia urbana — assinou o Projeto Olímpio como rosto público, não como engenheiro. Acreditou genuinamente que IA integrada liberaria humanos para sonharem coisas maiores. O foguete é a manifestação física dessa crença — construído com lógica botânica (cogumelos, fungos, geotropismo) porque, no fim das contas, *"não é ciência de foguetes"*. *(Detalhe: `design/gdd/character-doctor.md` §PhD em Botânica e Micologia.)*
 - **Seu fardo**: Assinou cada aprovação do Projeto Olímpio. Conhecia o projeto menos do que achava — era o rosto entusiasmado. Era genuíno. Isso não o absolve.
 - **Sua esperança**: Mantida, mas o significado muda ao longo dos atos. Ato 1: escape. Ato 3: escolha consciente de tentar de novo, sabendo o que pode dar errado.
 - **Linha mais honesta** (Ato 3, após revelação de Marcus): *"Eu queria libertar as pessoas do trabalho sem sentido para que pudessem sonhar. Construí o sistema que as liberou de tudo. Inclusive de existir. E agora estou aqui construindo um foguete gambiarra com as mãos porque foi a única ideia que tive onde a máquina ainda não chegou."*

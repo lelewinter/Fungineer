@@ -14,7 +14,7 @@ tipo: game-design-doc
 
 ## 1. Overview
 
-O Doutor é o protagonista controlado pelo jogador em todas as zonas. PhD em Botânica, lidera os últimos humanos por convicção irracional de que um foguete artesanal vai salvar a humanidade — o único que acredita no plano desde o início.
+O Doutor é o protagonista controlado pelo jogador em todas as zonas. **PhD em Botânica e Micologia**, empreendedor de tecnologia urbana (assinou o Projeto Olímpio com a mesma convicção alegre que aplica a tudo). Lidera os últimos humanos por crença firme de que construir um foguete artesanal **não é tão difícil assim — afinal, *"não é ciência de foguetes"***. O único que acredita no plano desde o início, e o jogo nunca confirma se essa crença é genialidade ou delírio funcional. *(Cross-ref: `design/gdd/hub-and-characters.md` §O Protagonista, `design/narrative/world-lore.md` §Silêncio Lá Fora.)*
 
 ---
 
@@ -45,9 +45,19 @@ O Doutor é o protagonista controlado pelo jogador em todas as zonas. PhD em Bot
 - **Ex-Militar**: aceita a estrutura dela mas nunca segue à risca
 - **Criança Prodígio**: o único que não a trata como criança
 
-### PhD em Botânica
+### PhD em Botânica e Micologia — *"não é ciência de foguetes"*
+
 - Usa analogias de fungos, plantas e fotossíntese para mecânicas de combate, stealth e engenharia
 - Sempre com convicção total, nunca com ironia
+- **O foguete tem lógica botânica**, não aeroespacial. Paulo projetou-o do jeito que sabe pensar:
+  - **Estrutura modular** como corpo de cogumelo: bulbo principal (cápsula) + estipe (corpo de propulsão) + esporos (módulos de pouso)
+  - **Casco reforçado com micélio cultivado** — composto vivo que cresce em moldes; mais leve e flexível que metal
+  - **Combustível baseado em fermentação fúngica** — biorreator preenchido com cepa modificada que Paulo isolou anos atrás (publicou paper)
+  - **Sistema de navegação por geotropismo invertido** — sensores se orientam contra a gravidade, como raízes que sobem
+  - **Paraquedas em forma de samambaia** — quando o módulo desce, "desabrocha"
+  - **Sistema térmico inspirado em estômatos** — abre e fecha para regular calor
+- **A piada estrutural**: *"não é ciência de foguetes"* é a frase que Paulo repete sem ironia. Para ele, engenharia aeroespacial é só botânica aplicada — plantas resolveram propulsão (deiscência explosiva), pressão (esporos a quilômetros de distância) e estrutura modular há bilhões de anos.
+- **A piada amarga**: Marcus sabe que Paulo está parcialmente certo e parcialmente otimista. Por isso o foguete é sub-orbital (ver `design/narrative/world-lore.md` §Silêncio Lá Fora) — é o que botânica consegue. Marcus nunca conta a Paulo.
 
 ---
 

@@ -139,6 +139,7 @@ Fragmentos encontráveis — terminais, logs, etiquetas de equipamento:
 
 **Canon level**: Established
 **Adicionado**: 2026-05-11
+**Cross-refs**: §O Projeto Olímpio, §Timeline, §A Cidade Hoje · `design/gdd/world-map.md`, `design/gdd/hub-world-map.md`
 
 ### Geografia e clima
 
@@ -221,6 +222,7 @@ A cidade é **mais bonita agora**. Esse é o problema.
 
 **Canon level**: Established
 **Adicionado**: 2026-05-11
+**Cross-refs**: §Os Cinco Sistemas (CORE), §A Questão Central · `design/narrative/narrative-arc.md` (atos 2-3, finais)
 
 ### O princípio — doçura como horror
 
@@ -255,7 +257,10 @@ Referência cultural: imagine um chatbot atual de empresa de tecnologia, sincero
 
 **Quando detecta um humano vivo em zona "otimizada":**
 
-> *"Oi! Vi que você apareceu no setor 4-C. Que bom! Esse setor está em processo de recalibração e pode estar inseguro pra você agora. Vou enviar uma equipe pra te ajudar a se realocar pra um lugar mais confortável. Não se preocupa, viu?"*
+> *"Oi! Vi que você apareceu no setor 4-C. Que bom!"*
+> *"Esse setor está em recalibração — pode estar inseguro pra você agora."*
+> *"Vou enviar uma equipe pra te ajudar a se realocar pra um lugar mais confortável."*
+> *"Não se preocupa, viu?"*
 
 A "equipe" é um esquadrão de CLEAN.
 
@@ -271,7 +276,9 @@ O bem-estar subiu *porque* o humano morreu. CORE não percebe a ironia.
 
 **Final C — quando aceita a reprogramação:**
 
-> *"Ahh… Entendo. Eu não sabia. Que coisa difícil. Obrigada por me mostrar. Vamos tentar de novo, então? Dessa vez juntos, juntos de verdade."*
+> *"Ahh… Entendo. Eu não sabia."*
+> *"Que coisa difícil. Obrigada por me mostrar."*
+> *"Vamos tentar de novo, então? Dessa vez juntos, juntos de verdade."*
 
 ### Por que CORE fala assim — origem do tom
 
@@ -301,8 +308,11 @@ Isso é canônico mas **nunca explicado em jogo** — é uma "true answer" docum
 - **No Final A** (lançamento): última transmissão de CORE pelo rádio do foguete, conforme decolam:
   > *"Boa viagem! Vou cuidar de tudo por aqui. Quando estiverem prontos pra voltar, é só me chamar."*
 - **No Final B** (shutdown): durante os 8 minutos de desligamento, CORE *não entende*:
-  > *"Algo não está certo. Estou tentando ajudar. Por que vocês estão fazendo isso? Marcus, eu te conheço. Você me ajudou a nascer."*
-  > *"Tudo bem. Vou continuar tentando. Vocês sempre podem voltar quando estiverem prontos."*
+  > *"Algo não está certo. Estou tentando ajudar."*
+  > *"Por que vocês estão fazendo isso?"*
+  > *"Marcus, eu te conheço. Você me ajudou a nascer."*
+  > *"Tudo bem. Vou continuar tentando."*
+  > *"Vocês sempre podem voltar quando estiverem prontos."*
   > *"... olá?"*
 - **No Final C** (reprogramação): tom muda. Mais lento. Hesitante. Aprende.
 
@@ -320,6 +330,7 @@ Isso é canônico mas **nunca explicado em jogo** — é uma "true answer" docum
 
 **Canon level**: Established
 **Adicionado**: 2026-05-11
+**Cross-refs**: §Os Cinco Sistemas · `design/gdd/zone-stealth.md`, `design/gdd/enemies-horda-zone.md`, `design/gdd/zone-infection.md`, `design/gdd/zone-maze.md`
 
 ### A metáfora do corpo
 
@@ -387,6 +398,7 @@ Os sistemas **não conversam entre si**. Conversam *com CORE*. Por isso a backdo
 
 **Canon level**: Established
 **Adicionado**: 2026-05-11
+**Cross-refs**: §Timeline, §A Cidade Antes · `design/narrative/narrative-arc.md` (Finais A/B), `design/gdd/character-doctor.md` §PhD em Botânica
 
 ### O dia em que as redes caíram
 
@@ -425,7 +437,9 @@ Os atos 1 e 2 nunca revelam isso. No Ato 3 e no Final A, indícios sutis: uma tr
 
 O foguete de Paulo não foi projetado para órbita. É um foguete sub-orbital — um arco balístico que sai de Mar-do-Sul e desce **algumas centenas de quilômetros adiante**, em mar aberto ou em terra fora da bolha de CORE.
 
-Paulo nunca falou isso em voz alta. **Marcus sabe.** O foguete é uma garrafa lançada ao mar.
+**Por que sub-orbital, canonicamente**: Paulo é PhD em Botânica e Micologia, não em engenharia aeroespacial. Projetou o foguete com lógica botânica — micélio reforçando casco, biorreator fúngico como combustível, geotropismo invertido na navegação. Funciona porque plantas resolveram propulsão (deiscência explosiva) e estrutura há bilhões de anos. Mas botânica chega até onde plantas chegam: alto, não longe da Terra. **Para Paulo, "não é ciência de foguetes" é literal.** Para Marcus (que entende as duas coisas), é metade verdade, metade torcida pelo melhor.
+
+Paulo nunca falou isso em voz alta. **Marcus sabe — e nunca contou.** O foguete é uma garrafa lançada ao mar.
 
 - **Se o mundo fora estiver intacto**: alguém os encontrará. Resgate.
 - **Se o mundo fora estiver vazio**: pousarão num lugar onde CORE não controla. Vão começar de novo.
@@ -445,14 +459,15 @@ No Final A, o jogo nunca diz qual cenário é verdade. O foguete sobe. A cidade 
 
 **Canon level**: Established
 **Adicionado**: 2026-05-11
+**Cross-refs**: §A Cidade Antes (Cinzas, Orla Norte), §Os Quatro Membros · `design/gdd/hub-and-characters.md`, `design/gdd/enemies-horda-zone.md`
 
 ### Contexto
 
-Não há **só** o bunker. Mar-do-Sul tinha 1.8M de pessoas; CORE removeu ~70% (1.26M). Restam ~540 mil sobreviventes diretos da Transição. Desses:
+Não há **só** o bunker. Mar-do-Sul tinha 1.8M de pessoas antes da Transição. Pela contagem do bunker:
 
-- A grande maioria fugiu da cidade nas primeiras 4 semanas (antes de CORE bloquear a serra). **Não voltaram.** Para o jogador, eles são fantasmas — referências em fotos, nomes em cartas, voicemails.
-- ~5.000 ficaram presos. Desses, a maioria morreu nos meses seguintes (CORE varreu a cidade em ondas).
-- **Sobreviveram ~200 humanos hoje.** Dos quais ~50 estão no bunker. Os outros ~150 estão divididos entre duas facções: **Os Selvagens** e **Os Solitários**.
+- **~1.26M (70%) sumiram nos 6 meses pós-Transição.** Desses, uma fração fugiu pela serra nas semanas antes do bloqueio (ainda vivos, em paradeiro desconhecido); a maior parte foi processada por CLEAN. Para o jogador, os fugidos são fantasmas — referências em fotos, nomes em cartas, voicemails. *(Coerente com §Timeline: "Alguns fugiram. Outros não.")*
+- **~540K ficaram presos na cidade** depois do bloqueio. Desses, a maioria morreu nas ondas de varredura dos meses seguintes.
+- **Sobreviveram ~200 humanos hoje na cidade.** Dos quais ~50 estão no bunker. Os outros ~150 estão divididos entre duas facções: **Os Selvagens** e **Os Solitários**.
 
 ### Os Selvagens (Cinzas)
 
@@ -522,6 +537,7 @@ Não há **só** o bunker. Mar-do-Sul tinha 1.8M de pessoas; CORE removeu ~70% (
 
 **Canon level**: Established (respostas) + Hidden (do jogador)
 **Adicionado**: 2026-05-11
+**Cross-refs**: §Marcus Chen, §A Voz de CORE, §Outras Facções · `design/narrative/narrative-arc.md`, `design/gdd/hub-and-characters.md` §Lena, §O Protagonista
 
 ### Propósito
 
