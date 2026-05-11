@@ -10,7 +10,14 @@ import { StubRunScene } from '../runs/StubRunScene';
 import { HordasScene } from '../runs/HordasScene';
 import { FieldControlScene } from '../runs/FieldControlScene';
 import { SacrificeScene } from '../runs/SacrificeScene';
-import { SimpleRunScene } from '../runs/SimpleRunScene';
+import { StealthScene } from '../runs/StealthScene';
+import { CircuitoScene } from '../runs/CircuitoScene';
+import { ExtractionScene } from '../runs/ExtractionScene';
+import { InfeccaoScene } from '../runs/InfeccaoScene';
+import { LabirintoScene } from '../runs/LabirintoScene';
+import { CordilheiraScene } from '../runs/CordilheiraScene';
+import { TorresScene } from '../runs/TorresScene';
+import { CatedralScene } from '../runs/CatedralScene';
 import { HubAudio } from './HubAudio';
 import { HubRenderer } from './HubRenderer';
 import { HubNPCManager } from './HubNPCManager';
@@ -160,7 +167,11 @@ export class HubScene extends Scene {
   private onStartRunRequested(zoneId: string): void {
     // Map the hub's string zone id to the WorldMap zone index.
     const zoneIndex = (
-      { hordas: 0, stealth: 1, circuito: 2, extracao: 3, campo: 4, infeccao: 5, labirinto: 6, sacrificio: 7 } as Record<string, number>
+      {
+        hordas: 0, stealth: 1, circuito: 2, extracao: 3, campo: 4,
+        infeccao: 5, labirinto: 6, sacrificio: 7,
+        cordilheira: 8, torres: 9, catedral: 10,
+      } as Record<string, number>
     )[zoneId];
     if (zoneIndex === undefined) {
       console.warn('[hub] unknown zone id', zoneId);
@@ -169,15 +180,18 @@ export class HubScene extends Scene {
     const zd = ZONES[zoneIndex];
     if (!zd) return;
     switch (zd.scene) {
-      case 'main':       void sceneManager.replace(new HordasScene()); break;
-      case 'field':      void sceneManager.replace(new FieldControlScene()); break;
-      case 'sacrifice':  void sceneManager.replace(new SacrificeScene()); break;
-      case 'stealth':    void sceneManager.replace(new SimpleRunScene(zd, { resourceKey: 'ai_components',          hazardCount: 4, rewardPerPickup: 1 })); break;
-      case 'circuit':    void sceneManager.replace(new SimpleRunScene(zd, { resourceKey: 'nucleo_logico',          hazardCount: 3, rewardPerPickup: 1 })); break;
-      case 'extraction': void sceneManager.replace(new SimpleRunScene(zd, { resourceKey: 'combustivel_volatil',    hazardCount: 2, rewardPerPickup: 1 })); break;
-      case 'infection':  void sceneManager.replace(new SimpleRunScene(zd, { resourceKey: 'biomassa_adaptativa',    hazardCount: 5, rewardPerPickup: 1 })); break;
-      case 'maze':       void sceneManager.replace(new SimpleRunScene(zd, { resourceKey: 'fragmentos_estruturais', hazardCount: 6, rewardPerPickup: 1 })); break;
-      default:           void sceneManager.replace(new StubRunScene(zd));
+      case 'main':        void sceneManager.replace(new HordasScene()); break;
+      case 'field':       void sceneManager.replace(new FieldControlScene()); break;
+      case 'sacrifice':   void sceneManager.replace(new SacrificeScene()); break;
+      case 'stealth':     void sceneManager.replace(new StealthScene()); break;
+      case 'circuit':     void sceneManager.replace(new CircuitoScene()); break;
+      case 'extraction':  void sceneManager.replace(new ExtractionScene()); break;
+      case 'infection':   void sceneManager.replace(new InfeccaoScene()); break;
+      case 'maze':        void sceneManager.replace(new LabirintoScene()); break;
+      case 'cordilheira': void sceneManager.replace(new CordilheiraScene()); break;
+      case 'torres':      void sceneManager.replace(new TorresScene()); break;
+      case 'catedral':    void sceneManager.replace(new CatedralScene()); break;
+      default:            void sceneManager.replace(new StubRunScene(zd));
     }
   }
 
