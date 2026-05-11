@@ -1,23 +1,22 @@
 # Technical Preferences
 
-<!-- Populated by /setup-engine. Updated as the user makes decisions throughout development. -->
 <!-- All agents reference this file for project-specific standards and conventions. -->
 
-## Engine & Language
+## Stack
 
-- **Engine**: Godot 4.6
-- **Language**: GDScript (primary), C++ via GDExtension (performance-critical)
-- **Rendering**: Forward+ (default), Mobile (fallback), Compatibility (web/low-end)
-- **Physics**: Jolt (default in 4.6)
+- **Frontend**: PixiJS v8 + TypeScript (Vite, ES2022 modules) — `frontend/`
+- **Backend**: FastAPI + SQLite (Python 3.11+) — `backend/`
+- **Rendering**: PixiJS WebGL renderer (Canvas2D fallback)
+- **Audio**: Browser `AudioContext` via `frontend/src/core/AudioManager.ts`
 
-## Naming Conventions
+## Naming Conventions (TypeScript)
 
-- **Classes**: PascalCase (ex: `PlayerController`)
-- **Variables/funções**: snake_case (ex: `move_speed`)
-- **Signals**: snake_case passado (ex: `health_changed`)
-- **Files**: snake_case matching class (ex: `player_controller.gd`)
-- **Scenes**: PascalCase matching root node (ex: `PlayerController.tscn`)
-- **Constants**: UPPER_SNAKE_CASE (ex: `MAX_HEALTH`)
+- **Classes / types**: PascalCase (ex: `HubScene`, `HubRoom`)
+- **Functions / methods / variables**: camelCase (ex: `onRoomClicked`, `zoneIndex`)
+- **Constants**: UPPER_SNAKE_CASE (ex: `ROCKET_RECIPE`)
+- **Signals**: camelCase past-tense (ex: `rocketPieceBuilt`)
+- **Files**: PascalCase matching the exported class (ex: `HubScene.ts`)
+- **Resources path**: `res://assets/...` resolved by `AssetLoader` to `/assets/...`
 
 ## Performance Budgets
 
@@ -25,8 +24,9 @@ Not yet configured. Use `/perf-profile` to set targets.
 
 ## Testing
 
-- **Framework**: GUT (Godot Unit Testing)
-- **Required Tests**: Balance formulas, gameplay systems, networking (if applicable)
+- **Typecheck**: `cd frontend && npm run typecheck` (must be clean before merge)
+- **Build**: `cd frontend && npm run build` (must succeed before merge)
+- **Runtime tests**: not yet wired
 
 ## Forbidden Patterns / Allowed Libraries / ADRs
 
