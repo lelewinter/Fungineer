@@ -10,6 +10,7 @@ import { StubRunScene } from '../runs/StubRunScene';
 import { HordasScene } from '../runs/HordasScene';
 import { FieldControlScene } from '../runs/FieldControlScene';
 import { SacrificeScene } from '../runs/SacrificeScene';
+import { SimpleRunScene } from '../runs/SimpleRunScene';
 import { HubAudio } from './HubAudio';
 import { HubRenderer } from './HubRenderer';
 import { HubNPCManager } from './HubNPCManager';
@@ -161,10 +162,14 @@ export class HubScene extends Scene {
     const zd = ZONES[zoneIndex];
     if (!zd) return;
     switch (zd.scene) {
-      case 'main':      void sceneManager.replace(new HordasScene()); break;
-      case 'field':     void sceneManager.replace(new FieldControlScene()); break;
-      case 'sacrifice': void sceneManager.replace(new SacrificeScene()); break;
-      default:          void sceneManager.replace(new StubRunScene(zd));
+      case 'main':       void sceneManager.replace(new HordasScene()); break;
+      case 'field':      void sceneManager.replace(new FieldControlScene()); break;
+      case 'sacrifice':  void sceneManager.replace(new SacrificeScene()); break;
+      case 'stealth':    void sceneManager.replace(new SimpleRunScene(zd, { resourceKey: 'ai_components',          hazardCount: 4, rewardPerPickup: 1 })); break;
+      case 'circuit':    void sceneManager.replace(new SimpleRunScene(zd, { resourceKey: 'nucleo_logico',          hazardCount: 3, rewardPerPickup: 1 })); break;
+      case 'extraction': void sceneManager.replace(new SimpleRunScene(zd, { resourceKey: 'combustivel_volatil',    hazardCount: 2, rewardPerPickup: 1 })); break;
+      case 'infection':  void sceneManager.replace(new SimpleRunScene(zd, { resourceKey: 'biomassa_adaptativa',    hazardCount: 5, rewardPerPickup: 1 })); break;
+      default:           void sceneManager.replace(new StubRunScene(zd));
     }
   }
 
