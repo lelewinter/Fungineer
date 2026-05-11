@@ -161,13 +161,21 @@ class HubStateClass {
   hub_ui_visible = true;
 
   // ── Room unlocks ──
-  // Campo (deposito) e Labirinto (workshop) também acessíveis desde o início
-  // para cobrir todas as 8 zonas planejadas.
+  // All 11 zone rooms are open from the start for playtesting. The
+  // progressive UNLOCK_ORDER + rocket-piece gating is preserved for the
+  // future "real" progression but kicks in only after a fresh save.
   room_unlocked: Record<string, boolean> = {
     saida_hordas: true,
-    lab_rival: true,
+    vigia: true,
     deposito: true,
+    lab_rival: true,
+    enfermaria: true,
     workshop: true,
+    arquivo: true,
+    server: true,
+    rota_cordilheira: true,
+    rota_torres: true,
+    rota_catedral: true,
   };
 
   // ── Signals ──
@@ -402,7 +410,9 @@ class HubStateClass {
     }
     if (typeof s.hub_ui_visible === 'boolean') this.hub_ui_visible = s.hub_ui_visible;
     if (s.room_unlocked && typeof s.room_unlocked === 'object') {
-      const next: Record<string, boolean> = { saida_hordas: true, lab_rival: true };
+      // Start from the in-memory defaults so legacy saves don't lose access
+      // to rooms that were added in newer builds (e.g. the 3 surface zones).
+      const next: Record<string, boolean> = { ...this.room_unlocked };
       for (const [k, v] of Object.entries(s.room_unlocked as Record<string, unknown>)) {
         if (typeof k === 'string' && k.length <= 64 && /^[a-z0-9_]+$/i.test(k) && v === true) {
           next[k] = true;
