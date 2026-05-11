@@ -23,6 +23,7 @@ import { HUD } from '../../ui/run/HUD';
 import { GameOverScreen, VictoryScreen, RescueScreen, PowerOfferScreen, type RescueOption } from '../../ui/run/RunScreens';
 import { CombatSfx, updateDamageNumbers } from '../../run/fx/DamageNumbers';
 import { Juice } from '../../run/fx/Juice';
+import { ExperienceGem } from '../../run/ExperienceGem';
 
 import { HubScene } from '../hub/HubScene';
 import { saveService } from '../../state/SaveService';
@@ -46,6 +47,9 @@ export class HordasScene extends Scene {
   private items!: ItemSpawner;
   private extractionPoint!: ExtractionPoint;
   private powerManager!: PowerManager;
+  /** Loose pool of XP gems dropped by enemies. Not part of ItemSpawner
+   *  because gems have very different mechanics (auto-collect, no bag). */
+  private xpGems: ExperienceGem[] = [];
 
   // UI
   private hud!: HUD;
@@ -56,12 +60,6 @@ export class HordasScene extends Scene {
   });
   private rescueOffered = false;
   private endShown = false;
-
-  // Recurring power-offer cadence — VS-style "level up". After the first
-  // offer post wave-2 clear, the run keeps prompting every POWER_OFFER_EVERY_S
-  // until run end, letting the player swap powers mid-fight.
-  private static readonly POWER_OFFER_EVERY_S = 25;
-  private nextPowerOfferAt = Number.POSITIVE_INFINITY;
   private powerScreenOpen = false;
 
   // Signal disposers
@@ -105,11 +103,11 @@ export class HordasScene extends Scene {
       this.world.resolveCollisions(this.party);
       this.world.updateProjectiles(capped);
       this.items.update(capped);
+      this.updateGems(capped);
       this.extractionPoint.update(capped);
       this.waves.update(capped);
       this.powerManager.update(capped);
       updateDamageNumbers(capped);
-      this.maybeOfferRecurringPower();
     }
     this.hud.update(capped);
     this.updateCamera(capped);
@@ -249,7 +247,13 @@ export class HordasScene extends Scene {
       this.waves.waveCleared.connect((w) => this.onWaveCleared(w)),
     );
     this.disposers.push(
-      this.waves.enemyKilled.connect((kind, pos) => this.items.dropFromEnemyKill(kind, pos)),
+      this.waves.enemyKilled.connect((kind, pos) => {
+        this.items.dropFromEnemyKill(kind, pos);
+        this.spawnExperienceGem(kind, pos);
+      }),
+    );
+    this.disposers.push(
+      GameState.leveledUp.connect(() => this.offerPower()),
     );
     this.disposers.push(
       GameState.waveStarted.connect(() => CombatSfx.waveStart()),
@@ -284,19 +288,42 @@ export class HordasScene extends Scene {
       if (this.party.size() >= GameConfig.MAX_PARTY_SIZE) return;
       this.offerRescue();
     } else if (wave === 2) {
-      // Wave 2 cleared kicks off the recurring power-offer loop. The first
-      // offer fires immediately; subsequent ones every POWER_OFFER_EVERY_S.
+      // First freebie power offer — gives the player something to work with
+      // before they accumulate enough XP for a level-up offer.
       this.offerPower();
-      this.nextPowerOfferAt = GameState.run_time + HordasScene.POWER_OFFER_EVERY_S;
     }
   }
 
-  private maybeOfferRecurringPower(): void {
-    if (this.powerScreenOpen) return;
-    if (this.nextPowerOfferAt === Number.POSITIVE_INFINITY) return;
-    if (GameState.run_time < this.nextPowerOfferAt) return;
-    this.offerPower();
-    this.nextPowerOfferAt = GameState.run_time + HordasScene.POWER_OFFER_EVERY_S;
+  private spawnExperienceGem(kind: string, pos: { x: number; y: number }): void {
+    // More valuable kills drop a bigger gem (or, in the boss case, several
+    // smaller ones spread around the body so the player has to physically
+    // sweep through to collect them).
+    const drops = kind === 'sentinel' ? 12 : kind === 'bruiser' ? 2 : 1;
+    for (let i = 0; i < drops; i++) {
+      const gem = new ExperienceGem(this.party, 1);
+      const jitter = drops > 1 ? 36 : 4;
+      gem.position = {
+        x: pos.x + (Math.random() - 0.5) * jitter * 2,
+        y: pos.y + (Math.random() - 0.5) * jitter * 2,
+      };
+      this.world.fxLayer.addChild(gem.node);
+      gem.node.x = gem.position.x;
+      gem.node.y = gem.position.y;
+      this.xpGems.push(gem);
+    }
+  }
+
+  private updateGems(dt: number): void {
+    const next: ExperienceGem[] = [];
+    for (const g of this.xpGems) {
+      if (g.update(dt)) {
+        next.push(g);
+      } else {
+        g.node.parent?.removeChild(g.node);
+        g.node.destroy({ children: true });
+      }
+    }
+    this.xpGems = next;
   }
 
   private offerRescue(): void {
@@ -365,9 +392,6 @@ export class HordasScene extends Scene {
       void saveService.flush();
 
       const screen = new VictoryScreen(GameState.run_time, fragments);
-      // Either route — the explicit button OR a backdrop tap that closes
-      // the modal — sends the player back to the hub. Without the closed
-      // hook, tapping outside the panel left the run scene stranded.
       const goHub = (): void => this.returnToHub();
       screen.hubRequested.connect(goHub);
       screen.closed.connect(goHub);
@@ -380,6 +404,25 @@ export class HordasScene extends Scene {
       screen.retryRequested.connect(() => this.retry());
       this.uiLayer.addChild(screen);
     }
+    // Belt-and-braces fallback: if the Pixi event chain somehow doesn't
+    // deliver the modal tap on some browsers, a 500 ms-delayed DOM-level
+    // listener returns to the hub on any tap. The delay prevents the same
+    // gesture that crossed the extract zone from instantly skipping the
+    // victory screen.
+    setTimeout(() => this.armDomFallback(), 500);
+  }
+
+  private domFallbackHandler: ((e: Event) => void) | null = null;
+  private armDomFallback(): void {
+    if (this.transitioning) return;
+    if (this.domFallbackHandler) return;
+    const handler = (): void => {
+      if (this.transitioning) return;
+      this.returnToHub();
+    };
+    this.domFallbackHandler = handler;
+    window.addEventListener('pointerdown', handler, { once: true });
+    window.addEventListener('keydown', handler, { once: true });
   }
 
   private retry(): void {

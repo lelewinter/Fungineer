@@ -15,6 +15,9 @@ export class PowerResource {
   cooldown_remaining = 0.0;
   duration_remaining = 0.0;
   hasMagnetPull = false;
+  /** Power tier — bumped when the player picks the same power again at a
+   *  level-up. Powers read `levelMult()` to scale their primary effect. */
+  level = 1;
 
   /** Called when the player activates this power. */
   onActivate(_party: BaseCharacter[], _world: RunWorld): void {}
@@ -27,6 +30,13 @@ export class PowerResource {
 
   /** Called when the party takes damage (Reflective Shell hook). */
   onDamageReceived(_amount: number, _source: { take_damage?: (amount: number, src: unknown) => void } | null): void {}
+
+  /** Returns the level-scaled multiplier used by subclasses to scale their
+   *  marquee effect. +20% per level above 1; clamped at level 10. */
+  levelMult(): number {
+    const lv = Math.min(10, this.level);
+    return 1 + (lv - 1) * 0.20;
+  }
 
   canActivate(): boolean {
     return this.cooldown_remaining <= 0 && !this.is_active;
@@ -46,6 +56,14 @@ export class PowerManager {
   }
 
   setPower(power: PowerResource): void {
+    // If the player picks the same power again, treat the choice as a
+    // level-up: bump the level on the *existing* instance instead of
+    // swapping in a fresh one. This preserves cooldown / active state and
+    // makes "I keep picking Overclock" feel like a real investment.
+    if (this.active_power && this.active_power.power_name === power.power_name) {
+      this.active_power.level += 1;
+      return;
+    }
     if (this.active_power) this.deactivateCurrent();
     this.active_power = power;
     GameState.active_power = power;

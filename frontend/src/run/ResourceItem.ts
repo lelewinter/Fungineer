@@ -17,12 +17,12 @@ const RESOURCE_VISUALS: Record<string, { core: number; glow: number; sigil?: str
   fragmentos_estruturais: { core: 0xe8c061, glow: 0xfff0c8, sigil: '▣' },
 };
 
-/** Pickable resource in the arena.
+/** Pickable resource in the arena. Channel-time pickup: the player must
+ *  stand within the collection radius for CHANNEL_S seconds. The pickup
+ *  shows a filling ring while charging; leaving the radius resets it.
  *
- *  Vampire-Survivors-style: auto-collect on overlap. The party doesn't have
- *  to stop — touching the pickup with the collection radius drops it
- *  straight into the backpack. If the backpack is full, the item stays on
- *  the ground and visibly dims so the player knows to extract first. */
+ *  This is the *risky* part of the loop — while you're channeling on a
+ *  drop, enemies catch up. Tradeoff: stop and grab, or keep moving. */
 export class ResourceItem {
   readonly collected = new Signal<[string]>();
 
@@ -31,14 +31,19 @@ export class ResourceItem {
 
   readonly node = new Container();
   private body = new Graphics();
+  private ring = new Graphics();
   private party: Party;
   private done = false;
   private spawnT = 0;
+  private channelT = 0;
+
+  private static readonly CHANNEL_S = 0.6;
 
   constructor(party: Party, resourceType: string) {
     this.party = party;
     this.resource_type = resourceType;
     this.node.addChild(this.body);
+    this.node.addChild(this.ring);
     this.drawBody();
   }
 
@@ -52,31 +57,29 @@ export class ResourceItem {
     const dx = this.party.anchor.x - this.position.x;
     const dy = this.party.anchor.y - this.position.y;
     const dist = Math.hypot(dx, dy);
-
+    const inRange = dist <= GameConfig.RESOURCE_COLLECTION_RADIUS;
     const backpackFull = GameState.backpack.length >= HubState.getBackpackCapacity();
 
-    // Magnet-pull inside the collection radius — pickup floats toward party
-    // so the auto-collect feels chunky/responsive even at sprint speeds.
-    const magnetR = GameConfig.RESOURCE_COLLECTION_RADIUS * 1.8;
-    if (!backpackFull && dist < magnetR && dist > 0.5) {
-      const pullSpeed = 220 + (1 - dist / magnetR) * 380;
-      const step = Math.min(dist, pullSpeed * dt);
-      this.position.x += (dx / dist) * step;
-      this.position.y += (dy / dist) * step;
-    }
-
-    if (!backpackFull && dist <= GameConfig.RESOURCE_COLLECTION_RADIUS) {
-      if (GameState.addToBackpack(this.resource_type)) {
-        this.collected.emit(this.resource_type);
-        Juice.shake(0.06, 8);
-        this.done = true;
-        return false;
+    if (inRange && !backpackFull) {
+      this.channelT += dt;
+      if (this.channelT >= ResourceItem.CHANNEL_S) {
+        if (GameState.addToBackpack(this.resource_type)) {
+          this.collected.emit(this.resource_type);
+          Juice.shake(0.06, 8);
+          this.done = true;
+          return false;
+        }
       }
+    } else {
+      // Leaving the radius unwinds the channel quickly — not instantly so a
+      // brief drift-by doesn't waste the work entirely.
+      this.channelT = Math.max(0, this.channelT - dt * 2.2);
     }
 
     this.node.x = this.position.x;
     this.node.y = this.position.y;
     this.drawBody(backpackFull);
+    this.drawRing(inRange, backpackFull);
     return true;
   }
 
@@ -91,5 +94,17 @@ export class ResourceItem {
       .circle(0, 0, r * 1.3).fill({ color: vis.glow, alpha: 0.18 * alpha * pulse })
       .circle(0, 0, r).fill({ color: vis.core, alpha })
       .circle(0, 0, r).stroke({ color: vis.glow, width: 1.5, alpha: 0.85 * alpha });
+  }
+
+  private drawRing(inRange: boolean, backpackFull: boolean): void {
+    this.ring.clear();
+    if (this.channelT <= 0 || backpackFull) return;
+    const vis = RESOURCE_VISUALS[this.resource_type] ?? RESOURCE_VISUALS.scrap!;
+    const r = GameConfig.RESOURCE_ITEM_RADIUS + 6;
+    const t = Math.min(1, this.channelT / ResourceItem.CHANNEL_S);
+    const startAngle = -Math.PI * 0.5;
+    const endAngle = startAngle + Math.PI * 2 * t;
+    this.ring.arc(0, 0, r, startAngle, endAngle, false)
+      .stroke({ color: vis.glow, width: 3, alpha: inRange ? 0.95 : 0.5 });
   }
 }

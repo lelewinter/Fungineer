@@ -1,4 +1,4 @@
-import { BlurFilter, Container, FederatedPointerEvent, Graphics } from 'pixi.js';
+import { Container, FederatedPointerEvent, Graphics } from 'pixi.js';
 import { Signal } from '../core/Signal';
 import { Easing, tween } from '../core/tween';
 import { GameConfig } from '../state/GameConfig';
@@ -32,8 +32,9 @@ export abstract class Modal extends Container {
     this.backdrop.alpha = 0;
     this.backdrop.eventMode = 'static';
     this.backdrop.cursor = 'pointer';
-    // Mild blur on the backdrop softens the world peeking through.
-    this.backdrop.filters = [new BlurFilter({ strength: 2, quality: 2 })];
+    // The old BlurFilter on the backdrop trashed WebGL 1 rendering on some
+    // Android browsers — a flat tint at 0.7 alpha reads just as "modal" and
+    // never breaks the underlying world layer.
     this.backdrop.on('pointertap', (_e: FederatedPointerEvent) => this.requestClose());
     this.addChild(this.backdrop);
 

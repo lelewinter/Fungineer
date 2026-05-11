@@ -30,6 +30,14 @@ class GameStateClass {
   boss_defeated = false;
   backpack: string[] = [];
 
+  // XP / level — VS-style. xp_current fills until xp_to_next, then level up
+  // emits and resets the counter. Threshold grows linearly per level.
+  level = 1;
+  xp_current = 0;
+  xp_to_next = 5;
+  private static readonly XP_BASE = 5;
+  private static readonly XP_STEP = 3;
+
   // Power state
   active_power: unknown = null;
   power_damage_multiplier = 1;
@@ -46,6 +54,8 @@ class GameStateClass {
   readonly bossSpawned = new Signal<[]>();
   readonly damageDealt = new Signal<[target: RunActor, amount: number, position: Vec2]>();
   readonly backpackChanged = new Signal<[contents: string[]]>();
+  readonly xpChanged = new Signal<[current: number, toNext: number, level: number]>();
+  readonly leveledUp = new Signal<[level: number]>();
 
   startRun(): void {
     this.run_time = 0;
@@ -58,7 +68,22 @@ class GameStateClass {
     this.siege_mode_active = false;
     this.backpack = [];
     this.backpackChanged.emit(this.backpack);
+    this.level = 1;
+    this.xp_current = 0;
+    this.xp_to_next = GameStateClass.XP_BASE;
+    this.xpChanged.emit(0, this.xp_to_next, 1);
     this.setState(RunState.PLAYING);
+  }
+
+  addXp(amount: number): void {
+    this.xp_current += amount;
+    while (this.xp_current >= this.xp_to_next) {
+      this.xp_current -= this.xp_to_next;
+      this.level += 1;
+      this.xp_to_next = GameStateClass.XP_BASE + GameStateClass.XP_STEP * (this.level - 1);
+      this.leveledUp.emit(this.level);
+    }
+    this.xpChanged.emit(this.xp_current, this.xp_to_next, this.level);
   }
 
   /** Called from a Scene's update() when state is PLAYING/BOSS_FIGHT. */
