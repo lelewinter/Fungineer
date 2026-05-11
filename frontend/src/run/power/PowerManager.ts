@@ -14,6 +14,7 @@ export class PowerResource {
   is_active = false;
   cooldown_remaining = 0.0;
   duration_remaining = 0.0;
+  hasMagnetPull = false;
 
   /** Called when the player activates this power. */
   onActivate(_party: BaseCharacter[], _world: RunWorld): void {}
@@ -78,8 +79,7 @@ export class PowerManager {
     if (s !== 'PLAYING' && s !== 'BOSS_FIGHT') return;
     p.process(dt, this.world.characters, this.world);
 
-    // MagnetPulse pull executed here (it needs world access).
-    if (p instanceof MagnetPulse && p.is_active) this.processMagnetPull(dt);
+    if (p.hasMagnetPull && p.is_active) this.processMagnetPull(dt);
   }
 
   private processMagnetPull(dt: number): void {
@@ -98,5 +98,3 @@ export class PowerManager {
   }
 }
 
-/** Forward declaration to break circular import. */
-import { MagnetPulse } from './Powers';
