@@ -103,6 +103,7 @@ export class MagnetPulse extends PowerResource {
     this.power_name = 'Magnet Pulse';
     this.description = 'Puxa Runners. Elites causam +20% de dano enquanto ativo.';
     this.icon_color = 0x66ccff;
+    this.hasMagnetPull = true;
   }
 
   override onActivate(): void {
