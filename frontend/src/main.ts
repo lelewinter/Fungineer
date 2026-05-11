@@ -3,6 +3,7 @@ import { sceneManager } from './core/SceneManager';
 import { audioManager } from './core/AudioManager';
 import { saveService } from './state/SaveService';
 import { HubScene } from './scenes/hub/HubScene';
+import { registerSW } from './pwa/registerSW';
 
 async function bootstrap(): Promise<void> {
   const host = document.getElementById('app');
@@ -21,6 +22,11 @@ async function bootstrap(): Promise<void> {
   window.addEventListener('pagehide', () => { void saveService.flush(); });
 
   await sceneManager.replace(new HubScene());
+
+  // PWA registration runs AFTER the hub is mounted, so the update banner
+  // (a DOM overlay) attaches to a fully-built #ui-overlay and never races
+  // the bootstrap. Failures inside registerSW are swallowed there.
+  registerSW();
 }
 
 bootstrap().catch((err: unknown) => {
