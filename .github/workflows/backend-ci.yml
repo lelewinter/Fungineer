@@ -1,0 +1,66 @@
+name: Backend CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "backend/**"
+      - ".github/workflows/backend-ci.yml"
+  pull_request:
+    paths:
+      - "backend/**"
+      - ".github/workflows/backend-ci.yml"
+  workflow_dispatch:
+
+defaults:
+  run:
+    working-directory: backend
+
+jobs:
+  test:
+    name: Import + smoke (FastAPI)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install httpx  # required by FastAPI TestClient
+
+      - name: Import main module
+        run: python -c "import main; print('FastAPI app:', main.app.title)"
+
+      - name: Smoke test endpoints
+        run: |
+          python - <<'PY'
+          from fastapi.testclient import TestClient
+          from main import app
+
+          client = TestClient(app)
+
+          r = client.get("/healthz")
+          assert r.status_code == 200, r.text
+          assert r.json()["status"] == "ok"
+
+          payload = {"slot_id": "ci-smoke", "state": {"hello": "world"}}
+          r = client.post("/api/state/save", json=payload)
+          assert r.status_code == 200, r.text
+
+          r = client.get("/api/state/ci-smoke")
+          assert r.status_code == 200, r.text
+          assert r.json()["state"]["hello"] == "world"
+
+          r = client.delete("/api/state/ci-smoke")
+          assert r.status_code == 204, r.text
+
+          print("backend smoke OK")
+          PY

@@ -164,7 +164,7 @@ PENDING
 **Como verificar:** {verify}
 {commit_instruction}
 
-Implemente a mudança acima. Siga os padrões do projeto (GDScript, snake_case, data-driven).
+Implemente a mudança acima. Siga os padrões do projeto: TypeScript em `frontend/` (PixiJS v8, camelCase, PascalCase para classes), Python em `backend/` (FastAPI, snake_case). Valores de gameplay sempre data-driven (`frontend/src/state/GameConfig.ts` ou JSON em `assets/data/`).
 """
     write_file(INBOX_FILE, inbox_content)
     log(f"📤 Despachada task {task_id}: {desc[:60]}...")

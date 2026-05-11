@@ -6,6 +6,18 @@ tipo: documentacao
 
 # Claude Code Game Studios -- Complete Workflow Guide
 
+> ⚠️ **Stack notice (2026-05-11).** This guide originated from the
+> Claude-Code-Game-Studios template, which assumed an "engine" (Godot/Unity/
+> Unreal) shipping target. Fungineer no longer fits that mould: the runtime
+> is **PixiJS v8 + Vite + TypeScript** (`frontend/`) with an optional
+> **FastAPI + SQLite** backend (`backend/`). See `docs/adr/adr-002-web-port.md`.
+>
+> Most of this guide's process advice (sprints, reviews, gates, retros) still
+> applies. **Ignore** the engine-specific tooling sections — anything calling
+> `godot-specialist`, `unity-specialist`, `unreal-specialist`, or invoking
+> `.gd`/`.tscn`/`.gdshader` files is a leftover from the template and not
+> applicable here. The actual engine specialists are not used for Fungineer.
+
 > **How to go from zero to a shipped game using the Agent Architecture.**
 >
 > This guide walks you through every phase of game development using the
@@ -65,36 +77,27 @@ This guided onboarding asks where you are (no idea, vague idea, clear concept,
 existing work) and routes you to the right phase. Skip this if you already have
 a game concept and engine decision.
 
-### Step 0.3: Choose Your Engine
+### Step 0.3: Stack (Fungineer-specific — `/setup-engine` not used)
 
-Run `/setup-engine` in Claude Code. This is the single most important
-configuration step -- it tells every agent what engine, language, and toolchain
-you're using:
+Fungineer does **not** use `/setup-engine` (that command targets desktop game
+engines). The shipping stack is fixed and documented:
 
-```bash
-/setup-engine godot 4.6
-```
+| Layer | Technology | Lives in |
+|---|---|---|
+| Frontend | PixiJS v8 + Vite + TypeScript | `frontend/` |
+| Backend | FastAPI + SQLite (Python 3.11+) | `backend/` |
+| PWA | `vite-plugin-pwa` + `workbox-window` | `frontend/src/pwa/` |
 
-Or run `/setup-engine` with no arguments to get an interactive recommendation
-based on your game's needs (2D/3D, platforms, team size, language preferences).
+Authoritative references:
+- `CLAUDE.md` Technology Stack section.
+- `.claude/docs/technical-preferences.md` for naming conventions and budgets.
+- `docs/adr/adr-002-web-port.md` for the rationale.
+- `docs/technical-architecture.md` for the current architecture.
 
-**What `/setup-engine` does:**
-
-- Pins the engine and version in `CLAUDE.md`
-- Populates `.claude/docs/technical-preferences.md` with naming conventions,
-  performance budgets, and engine-specific defaults
-- Detects knowledge gaps (engine version newer than LLM training data) and
-  fetches current docs from the web so agents suggest correct APIs
-- Creates version-pinned reference docs in `docs/engine-reference/`
-
-**Why this matters:** Once you set the engine, the system knows which
-engine-specialist agents to use. If you pick Godot, agents like
-`godot-specialist`, `godot-gdscript-specialist`, and `godot-shader-specialist`
-become your go-to experts. The Unity and Unreal specialists remain available
-but won't be primary.
-
-> **Manual alternative:** You can also edit the Technology Stack section in
-> `CLAUDE.md` directly if you prefer.
+The original Godot prototype tree (`src/`, `project.godot`, and
+`docs/engine-reference/godot/`) was removed from the repo after the port —
+its history is preserved in git. The `godot-*`, `unity-*`, and `ue-*`
+specialist agents in `.claude/agents/` are not used.
 
 ### Step 0.3: Verify Hooks Are Working
 
@@ -457,15 +460,15 @@ Agent: [Creates ADR in docs/architecture/ with context, decision drivers,
 ```
 Ask the technical-director agent to evaluate whether we should use an
 ECS architecture or a traditional component system for our gameplay
-entities, considering our team size (solo) and engine choice (Godot 4).
+entities, considering our team size (solo) and stack (PixiJS + TypeScript).
 ```
 
 Agent: "Let me analyze the ECS vs traditional component decision for your context:
 
-       [Performs detailed analysis considering Godot 4's scene system, solo dev
+       [Performs detailed analysis considering PixiJS scene graph, solo dev
        workflow, learning curve, debugging tools, performance needs]
 
-       **Recommendation: Traditional Godot node-based components**
+       **Recommendation: PixiJS Container-based composition (scene graph)**
 
        Reasoning: [Detailed rationale]
 
@@ -780,8 +783,8 @@ User: "Clamp attack_stat to 0-100. Type modifiers per damage type. Round down.
 Agent: "Got it. Here's my implementation approach:
 
        **Files to create**:
-       - src/gameplay/combat/damage_calculator.gd (core formula logic)
-       - src/gameplay/combat/health_component.gd (HP tracking)
+       - frontend/src/run/combat/damageCalculator.ts (core formula logic)
+       - frontend/src/run/combat/HealthComponent.ts (HP tracking)
        - assets/data/combat_damage.json (base damage values, type modifiers)
        - design/gdd/health-system.md (minimal doc)
 
@@ -798,8 +801,8 @@ Agent: [Implements with automatic rule enforcement - data-driven values, delta t
        independence, signal-based communication, dependency injection for testing]
 
        "Implementation complete. Files created:
-       - src/gameplay/combat/damage_calculator.gd
-       - src/gameplay/combat/health_component.gd
+       - frontend/src/run/combat/damageCalculator.ts
+       - frontend/src/run/combat/HealthComponent.ts
        - assets/data/combat_damage.json (validated JSON structure)
        - design/gdd/health-system.md
 
@@ -924,25 +927,26 @@ Agent: [Implements with rule enforcement: 2ms budget, data-driven params, debug 
 The `ai-code` rule automatically enforces performance budgets, data-driven parameters,
 debug visualization, and player-fair behavior.
 
-### Step 5.4: Engine-Specific Work
+### Step 5.4: Stack-Specific Work
 
-When you need engine-specific expertise:
+> **Fungineer note:** the `godot-*`, `unity-*`, and `ue-*` engine specialists
+> from the template are **not used** on this project. Reach for the
+> general-purpose programming agents instead, briefing them with the actual
+> stack (PixiJS v8, Vite, TypeScript, FastAPI). The examples below from the
+> upstream template are kept for documentation completeness only — read
+> "engine specialist" as "the right general programmer briefed on PixiJS or
+> FastAPI."
 
-```
-# For Godot:
-Ask the godot-specialist agent to review our scene tree architecture
-and suggest improvements for performance and maintainability.
+When you need stack-specific expertise on Fungineer, ask the `gameplay-programmer`
+or `lead-programmer` agent, telling it which subsystem you're working on
+(`frontend/src/core/`, `frontend/src/run/`, `backend/main.py`).
 
-# For a specific subsystem:
-Ask the godot-gdscript-specialist to refactor our signal architecture
-to reduce coupling between the combat and UI systems.
-```
-
-Engine specialists know:
-- Engine-specific patterns and anti-patterns
-- Performance optimization techniques for that engine
-- Proper use of engine subsystems (Godot signals, Unity Addressables, UE GAS)
-- When to use native extensions vs scripting
+Stack specialists know:
+- PixiJS v8 scene graph, ticker, filter, and asset patterns
+- Vite + TypeScript build and bundle hygiene
+- Service worker / Workbox cache strategy (see `adr-pwa.md`)
+- FastAPI + Pydantic + SQLite patterns
+- When to extract a hot path to a Web Worker vs keeping it on the main loop
 
 ### Step 5.5: Architecture Decision Records
 
@@ -960,12 +964,12 @@ This documents the decision so future-you (or future contributors) understand
 After implementing a feature:
 
 ```
-/code-review src/gameplay/combat/damage_calculator.gd
+/code-review frontend/src/run/combat/damageCalculator.ts
 ```
 
 **What happens:** The skill performs collaborative architectural review:
 
-Agent: "Reviewing src/gameplay/combat/damage_calculator.gd...
+Agent: "Reviewing frontend/src/run/combat/damageCalculator.ts...
 
        **Architectural Compliance**:
        ✓ Matches ADR-003 (stateless utility pattern)
@@ -1697,9 +1701,10 @@ and prepare a "known issues" post.
 | Prototype quickly | `prototyper` | 3 |
 | Audit security | `security-engineer` | 3 |
 | Communicate with players | `community-manager` | 3 |
-| Godot-specific help | `godot-specialist` | 3 |
-| Unity-specific help | `unity-specialist` | 3 |
-| Unreal-specific help | `unreal-specialist` | 3 |
+
+> The `godot-specialist`, `unity-specialist`, and `unreal-specialist` rows
+> previously listed here were removed: those engines are not used on Fungineer.
+> See the stack notice at the top of this guide.
 
 ### Agent Hierarchy
 

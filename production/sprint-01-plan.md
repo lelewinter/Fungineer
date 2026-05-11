@@ -1,8 +1,15 @@
 # Sprint 01 — Orbit Rescue Prototype
 
+> ⚠️ **Archived (2026-05-11).** This plan dates from the Godot prototype era
+> and is preserved for historical reference. The project has since shipped
+> the hub + Hordas + Field Control + Sacrifice runs on the PixiJS web port
+> (see ADR-002). Tasks below reference Godot files (`.gd`, `.tscn`) that no
+> longer drive the live runtime. Do not pick up tasks from this document —
+> use `production/task-queue.md` instead.
+
 **Period**: 2026-03-21 →  2026-03-28
 **Goal**: Playable run loop — drag, auto-combat, 2 chars, 3 enemies, 1 power, 1 boss, HUD
-**Status**: In Progress
+**Status**: Archived (pre-port)
 
 ---
 
