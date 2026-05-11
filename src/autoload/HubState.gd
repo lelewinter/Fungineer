@@ -82,9 +82,12 @@ var hub_density: String = "balanced"  # minimal, balanced, informative
 var hub_ui_visible: bool = true
 
 # Unlock system — Dia 1 apenas saida_hordas + lab (câmara de esporos)
+# Campo e Labirinto também acessíveis desde o início para cobrir todas as 8 zonas.
 var room_unlocked: Dictionary = {
 	"saida_hordas": true,
 	"lab": true,
+	"transmissao": true,
+	"labirinto": true,
 }
 
 # Ordem de desbloqueio por peça de foguete construída (14 locked → 8 peças)

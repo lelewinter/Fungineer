@@ -302,6 +302,32 @@ const ROOMS = [
 		"silhouette": "túnel das hordas",
 		"npcs": []
 	},
+	# Floor 7 — Setor de Transmissão (zona Campo)
+	{
+		"id": "transmissao",
+		"label": "TRANSMISSÃO",
+		"col": 0,
+		"w": 6,
+		"h": 150,
+		"type": "tech",
+		"light": "neon-green",
+		"zone_id": "campo",
+		"silhouette": "sala de transmissão",
+		"npcs": []
+	},
+	# Floor 8 — Labirinto Subterrâneo (zona Labirinto)
+	{
+		"id": "labirinto",
+		"label": "LABIRINTO",
+		"col": 0,
+		"w": 6,
+		"h": 150,
+		"type": "transit",
+		"light": "dim",
+		"zone_id": "labirinto",
+		"silhouette": "corredores recursivos",
+		"npcs": []
+	},
 ]
 
 # Map hub zone_id (String) → run scene path
@@ -310,7 +336,9 @@ const ZONE_SCENE: Dictionary = {
 	"stealth":    "res://src/scenes/runs/StealthMain.tscn",
 	"circuito":   "res://src/scenes/runs/CircuitMain.tscn",
 	"extracao":   "res://src/scenes/runs/ExtractionMain.tscn",
+	"campo":      "res://src/scenes/runs/FieldControlMain.tscn",
 	"infeccao":   "res://src/scenes/runs/InfectionMain.tscn",
+	"labirinto":  "res://src/scenes/runs/MazeMain.tscn",
 	"sacrificio": "res://src/scenes/runs/SacrificeMain.tscn",
 }
 
@@ -323,6 +351,8 @@ const ROOM_TO_ZONE = {
 	"server": "circuito",
 	"arquivo": "extracao",
 	"lab": "sacrificio",
+	"transmissao": "campo",
+	"labirinto": "labirinto",
 }
 
 # Zonas (portais para runs)
@@ -367,6 +397,20 @@ const ZONES = [
 		"name": "Câmara de Esporos",
 		"color": Color(0.78, 0.35, 0.55),
 		"briefing": "Laboratório da Priya. Mutações experimentais que só ela ousa cultivar. O preço é cruel.",
+		"allow_squad": false
+	},
+	{
+		"id": "campo",
+		"name": "Setor de Transmissão",
+		"color": Color(0.102, 0.435, 0.800),
+		"briefing": "Relés de controle da IA marcam o território por sinais. Perturbe a malha — colha sinais de controle.",
+		"allow_squad": false
+	},
+	{
+		"id": "labirinto",
+		"name": "Labirinto Subterrâneo",
+		"color": Color(0.290, 0.565, 0.643),
+		"briefing": "Complexo abandonado, drones em patrulha recursiva. Os corredores são a parede; sobreviver é mapeá-los. Colha fragmentos estruturais.",
 		"allow_squad": false
 	},
 ]
