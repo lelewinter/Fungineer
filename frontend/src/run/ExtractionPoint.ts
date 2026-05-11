@@ -34,7 +34,11 @@ export class ExtractionPoint {
 
   update(dt: number): void {
     if (this.triggered) return;
-    if (GameState.current_state !== RunState.PLAYING) return;
+    const s = GameState.current_state;
+    // Extraction is always available during a live run — PLAYING *or*
+    // BOSS_FIGHT. We bail only on terminal states (game over / victory)
+    // so the player can choose to bail mid-boss if they're greedy enough.
+    if (s !== RunState.PLAYING && s !== RunState.BOSS_FIGHT) return;
 
     this.pulseTimer += dt;
     this.draw();
@@ -52,12 +56,20 @@ export class ExtractionPoint {
     const r = GameConfig.EXTRACTION_RADIUS;
     const pulse = 0.6 + 0.4 * Math.sin(this.pulseTimer * 3);
     this.g.clear()
+      // Outer ground halo — bigger, more inviting
+      .circle(0, 0, r * 1.6).fill({ color: Color.hex(Color.rgb(0.2, 1.0, 0.6)), alpha: 0.06 * pulse })
+      .circle(0, 0, r * 1.25).fill({ color: Color.hex(Color.rgb(0.2, 1.0, 0.6)), alpha: 0.10 * pulse })
       .circle(0, 0, r)
-      .fill({ color: Color.hex(Color.rgb(0.1, 0.8, 0.5)), alpha: 0.12 * pulse })
+      .fill({ color: Color.hex(Color.rgb(0.1, 0.8, 0.5)), alpha: 0.20 * pulse })
       .circle(0, 0, r)
-      .stroke({ color: Color.hex(Color.rgb(0.2, 1.0, 0.6)), width: 2.5, alpha: 0.8 * pulse })
+      .stroke({ color: Color.hex(Color.rgb(0.2, 1.0, 0.6)), width: 3, alpha: 0.95 * pulse })
       .circle(0, 0, r * 0.6)
-      .stroke({ color: Color.hex(Color.rgb(0.2, 1.0, 0.6)), width: 1.5, alpha: 0.4 * pulse });
-    this.label.alpha = 0.9 * pulse;
+      .stroke({ color: Color.hex(Color.rgb(0.2, 1.0, 0.6)), width: 1.5, alpha: 0.55 * pulse });
+    // Upward chevron — read as "exit / leave"
+    const cy = -r * 0.12;
+    this.g
+      .moveTo(-12, cy + 6).lineTo(0, cy - 6).lineTo(12, cy + 6)
+      .stroke({ color: Color.hex(Color.rgb(0.6, 1.0, 0.8)), width: 2.5, alpha: 0.9 * pulse });
+    this.label.alpha = 0.95 * pulse;
   }
 }

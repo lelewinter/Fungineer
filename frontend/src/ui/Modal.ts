@@ -60,12 +60,19 @@ export abstract class Modal extends Container {
       tween({
         durationMs: 320,
         ease: Easing.easeOutCubic,
-        onUpdate: (t) => { this.backdrop.alpha = t * this.backdropAlpha; },
+        onUpdate: (t) => {
+          if (this.destroyed || this.backdrop.destroyed) return;
+          this.backdrop.alpha = t * this.backdropAlpha;
+        },
       }),
       tween({
         durationMs: 320,
         ease: Easing.easeOutCubic,
-        onUpdate: (t) => { this.panel.alpha = t; this.panel.scale.set(0.85 + 0.15 * t); },
+        onUpdate: (t) => {
+          if (this.destroyed || this.panel.destroyed) return;
+          this.panel.alpha = t;
+          this.panel.scale.set(0.85 + 0.15 * t);
+        },
       }),
     ]);
   }
@@ -76,12 +83,19 @@ export abstract class Modal extends Container {
       tween({
         durationMs: 200,
         ease: Easing.easeInCubic,
-        onUpdate: (t) => { this.backdrop.alpha = (1 - t) * this.backdropAlpha; },
+        onUpdate: (t) => {
+          if (this.destroyed || this.backdrop.destroyed) return;
+          this.backdrop.alpha = (1 - t) * this.backdropAlpha;
+        },
       }),
       tween({
         durationMs: 200,
         ease: Easing.easeInCubic,
-        onUpdate: (t) => { this.panel.alpha = 1 - t; this.panel.scale.set(1 - 0.15 * t); },
+        onUpdate: (t) => {
+          if (this.destroyed || this.panel.destroyed) return;
+          this.panel.alpha = 1 - t;
+          this.panel.scale.set(1 - 0.15 * t);
+        },
       }),
     ]);
   }
