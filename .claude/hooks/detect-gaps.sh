@@ -27,8 +27,8 @@ if [ -f "design/gdd/game-concept.md" ]; then
 fi
 
 # Check if source code exists
-if [ -d "src" ]; then
-  SRC_CHECK=$(find src -type f \( -name "*.gd" -o -name "*.cs" -o -name "*.cpp" -o -name "*.c" -o -name "*.h" -o -name "*.hpp" -o -name "*.rs" -o -name "*.py" -o -name "*.js" -o -name "*.ts" \) 2>/dev/null | head -1)
+if [ -d "frontend/src" ] || [ -d "backend" ]; then
+  SRC_CHECK=$(find frontend/src backend -type f \( -name "*.ts" -o -name "*.tsx" -o -name "*.js" -o -name "*.py" \) 2>/dev/null | head -1)
   if [ -n "$SRC_CHECK" ]; then
     FRESH_PROJECT=false
   fi
@@ -45,9 +45,9 @@ if [ "$FRESH_PROJECT" = true ]; then
 fi
 
 # --- Check 1: Substantial codebase but sparse design docs ---
-if [ -d "src" ]; then
-  # Count source files (cross-platform, handles Windows paths)
-  SRC_FILES=$(find src -type f \( -name "*.gd" -o -name "*.cs" -o -name "*.cpp" -o -name "*.c" -o -name "*.h" -o -name "*.hpp" -o -name "*.rs" -o -name "*.py" -o -name "*.js" -o -name "*.ts" \) 2>/dev/null | wc -l)
+if [ -d "frontend/src" ] || [ -d "backend" ]; then
+  # Count source files (frontend TS + backend Python)
+  SRC_FILES=$(find frontend/src backend -type f \( -name "*.ts" -o -name "*.tsx" -o -name "*.py" \) 2>/dev/null | wc -l)
 else
   SRC_FILES=0
 fi
@@ -65,7 +65,7 @@ DESIGN_FILES=$(echo "$DESIGN_FILES" | tr -d ' ')
 if [ "$SRC_FILES" -gt 50 ] && [ "$DESIGN_FILES" -lt 5 ]; then
   GAPS_FOUND=$((GAPS_FOUND + 1))
   echo "⚠️  GAP: Substantial codebase ($SRC_FILES source files) but sparse design docs ($DESIGN_FILES files)"
-  echo "    Suggested action: /reverse-document design src/[system]"
+  echo "    Suggested action: /reverse-document design frontend/src/[subsystem]"
   echo "    Or run: /project-stage-detect to get full analysis"
 fi
 
@@ -97,11 +97,11 @@ if [ -d "prototypes" ]; then
   fi
 fi
 
-# --- Check 3: Core systems without architecture docs ---
-if [ -d "src/core" ] || [ -d "src/engine" ]; then
+# --- Check 3: Core frontend systems without architecture docs ---
+if [ -d "frontend/src/core" ]; then
   if [ ! -d "docs/architecture" ]; then
     GAPS_FOUND=$((GAPS_FOUND + 1))
-    echo "⚠️  GAP: Core engine/systems exist but no docs/architecture/ directory"
+    echo "⚠️  GAP: frontend/src/core exists but no docs/architecture/ directory"
     echo "    Suggested action: Create docs/architecture/ and run /architecture-decision"
   else
     ADR_COUNT=$(find docs/architecture -type f -name "*.md" 2>/dev/null | wc -l)
@@ -109,38 +109,38 @@ if [ -d "src/core" ] || [ -d "src/engine" ]; then
 
     if [ "$ADR_COUNT" -lt 3 ]; then
       GAPS_FOUND=$((GAPS_FOUND + 1))
-      echo "⚠️  GAP: Core systems exist but only $ADR_COUNT ADR(s) documented"
-      echo "    Suggested action: /reverse-document architecture src/core/[system]"
+      echo "⚠️  GAP: Core frontend systems exist but only $ADR_COUNT ADR(s) documented"
+      echo "    Suggested action: /reverse-document architecture frontend/src/core/[system]"
     fi
   fi
 fi
 
-# --- Check 4: Gameplay systems without design docs ---
-if [ -d "src/gameplay" ]; then
-  # Find major gameplay subdirectories (those with 5+ files)
-  GAMEPLAY_SYSTEMS=$(find src/gameplay -mindepth 1 -maxdepth 1 -type d 2>/dev/null)
+# --- Check 4: Run-mode subsystems without design docs ---
+if [ -d "frontend/src/run" ]; then
+  # Find major run subsystems (those with 5+ files)
+  RUN_SYSTEMS=$(find frontend/src/run -mindepth 1 -maxdepth 1 -type d 2>/dev/null)
 
-  if [ -n "$GAMEPLAY_SYSTEMS" ]; then
+  if [ -n "$RUN_SYSTEMS" ]; then
     while IFS= read -r system_dir; do
       system_dir=$(echo "$system_dir" | sed 's|\\|/|g')
       system_name=$(basename "$system_dir")
       file_count=$(find "$system_dir" -type f 2>/dev/null | wc -l)
       file_count=$(echo "$file_count" | tr -d ' ')
 
-      # If system has 5+ files, check for corresponding design doc
+      # If subsystem has 5+ files, check for corresponding design doc
       if [ "$file_count" -ge 5 ]; then
-        # Check for design doc (allow variations: combat-system.md, combat.md)
+        # Check for design doc (allow variations: power-system.md, power.md)
         design_doc_1="design/gdd/${system_name}-system.md"
         design_doc_2="design/gdd/${system_name}.md"
 
         if [ ! -f "$design_doc_1" ] && [ ! -f "$design_doc_2" ]; then
           GAPS_FOUND=$((GAPS_FOUND + 1))
-          echo "⚠️  GAP: Gameplay system 'src/gameplay/$system_name/' ($file_count files) has no design doc"
+          echo "⚠️  GAP: Run subsystem 'frontend/src/run/$system_name/' ($file_count files) has no design doc"
           echo "    Expected: design/gdd/${system_name}-system.md or design/gdd/${system_name}.md"
-          echo "    Suggested action: /reverse-document design src/gameplay/$system_name"
+          echo "    Suggested action: /reverse-document design frontend/src/run/$system_name"
         fi
       fi
-    done <<< "$GAMEPLAY_SYSTEMS"
+    done <<< "$RUN_SYSTEMS"
   fi
 fi
 

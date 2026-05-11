@@ -68,21 +68,21 @@ if [ -n "$DATA_FILES" ]; then
     done <<< "$DATA_FILES"
 fi
 
-# Check for hardcoded gameplay values in gameplay code
+# Check for hardcoded gameplay values in run code (frontend gameplay primitives)
 # Uses grep -E (POSIX extended) instead of grep -P (Perl) for cross-platform compatibility
-CODE_FILES=$(echo "$STAGED" | grep -E '^src/gameplay/')
+CODE_FILES=$(echo "$STAGED" | grep -E '^frontend/src/run/')
 if [ -n "$CODE_FILES" ]; then
     while IFS= read -r file; do
         if [ -f "$file" ]; then
             if grep -nE '(damage|health|speed|rate|chance|cost|duration)[[:space:]]*[:=][[:space:]]*[0-9]+' "$file" 2>/dev/null; then
-                WARNINGS="$WARNINGS\nCODE: $file may contain hardcoded gameplay values. Use data files."
+                WARNINGS="$WARNINGS\nCODE: $file may contain hardcoded gameplay values. Use GameConfig.ts or assets/data/*.json."
             fi
         fi
     done <<< "$CODE_FILES"
 fi
 
 # Check for TODO/FIXME without assignee -- uses grep -E instead of grep -P
-SRC_FILES=$(echo "$STAGED" | grep -E '^src/')
+SRC_FILES=$(echo "$STAGED" | grep -E '^(frontend|backend)/')
 if [ -n "$SRC_FILES" ]; then
     while IFS= read -r file; do
         if [ -f "$file" ]; then
