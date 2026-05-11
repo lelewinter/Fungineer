@@ -44,8 +44,8 @@ export class App {
 
   /** Letterbox the 480×854 stage inside the canvas. */
   fit(): void {
-    const w = this.pixi.renderer.width / this.pixi.renderer.resolution;
-    const h = this.pixi.renderer.height / this.pixi.renderer.resolution;
+    const w = this.pixi.screen.width;
+    const h = this.pixi.screen.height;
     const scale = Math.min(w / GameConfig.VIEWPORT_WIDTH, h / GameConfig.VIEWPORT_HEIGHT);
     this.world.scale.set(scale);
     this.world.x = (w - GameConfig.VIEWPORT_WIDTH * scale) / 2;
