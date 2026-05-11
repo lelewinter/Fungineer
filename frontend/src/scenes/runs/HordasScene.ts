@@ -21,8 +21,10 @@ import { Runner, Bruiser, Spitter, SentinelCore } from '../../run/Enemies';
 import { HUD } from '../../ui/run/HUD';
 import { GameOverScreen, VictoryScreen, RescueScreen, PowerOfferScreen, type RescueOption } from '../../ui/run/RunScreens';
 import { CombatSfx, updateDamageNumbers } from '../../run/fx/DamageNumbers';
+import { Juice } from '../../run/fx/Juice';
 
 import { HubScene } from '../hub/HubScene';
+import { saveService } from '../../state/SaveService';
 import { shuffleInPlace } from '../../core/types';
 
 /** Hordas zone run scene. Port of src/scenes/Main.gd.
@@ -76,6 +78,8 @@ export class HordasScene extends Scene {
 
     this.keyHandler = (e: KeyboardEvent): void => this.onKey(e);
     window.addEventListener('keydown', this.keyHandler);
+
+    Juice.bind(this.cameraLayer);
   }
 
   override update(dt: number): void {
@@ -98,6 +102,7 @@ export class HordasScene extends Scene {
     }
     this.hud.update(capped);
     this.updateCamera(capped);
+    Juice.update(capped);
   }
 
   override async exit(): Promise<void> {
@@ -106,6 +111,7 @@ export class HordasScene extends Scene {
     this.disposers = [];
     this.drag.destroy();
     this.hud.destroyHud();
+    Juice.bind(null);
     audioManager.stopMusic(300);
   }
 
@@ -143,7 +149,7 @@ export class HordasScene extends Scene {
     this.extractionPoint.position = { x: GameConfig.ARENA_WIDTH * 0.5, y: GameConfig.ARENA_HEIGHT * 0.15 };
     this.world.extractionLayer.addChild(this.extractionPoint.node);
 
-    this.drag = new DragController(this.app, this.party);
+    this.drag = new DragController(this.app, this.party, this.cameraLayer);
 
     const factories: WaveFactories = {
       runner: () => new Runner(),
@@ -173,7 +179,10 @@ export class HordasScene extends Scene {
       GameState.waveStarted.connect(() => CombatSfx.waveStart()),
     );
     this.disposers.push(
-      GameState.bossSpawned.connect(() => CombatSfx.bossSpawn()),
+      GameState.bossSpawned.connect(() => {
+        CombatSfx.bossSpawn();
+        Juice.shake(0.95, 180);
+      }),
     );
   }
 
@@ -266,31 +275,49 @@ export class HordasScene extends Scene {
   private onPowerChosen(power: PowerResource): void {
     this.powerManager.setPower(power);
     this.hud.setPowerDisplay(power);
+    Juice.shake(0.35, 60);
   }
 
   private onRunEnded(victory: boolean, fragments: number): void {
     if (this.endShown) return;
     this.endShown = true;
     if (victory) {
+      // Bank everything the player carried home before showing the screen,
+      // and force-flush the HubState save so a refresh during the modal
+      // can't lose the deposit.
       HubState.depositBackpack(GameState.backpack);
+      void saveService.flush();
+
       const screen = new VictoryScreen(GameState.run_time, fragments);
-      screen.hubRequested.connect(() => this.returnToHub());
+      // Either route — the explicit button OR a backdrop tap that closes
+      // the modal — sends the player back to the hub. Without the closed
+      // hook, tapping outside the panel left the run scene stranded.
+      const goHub = (): void => this.returnToHub();
+      screen.hubRequested.connect(goHub);
+      screen.closed.connect(goHub);
       this.uiLayer.addChild(screen);
     } else {
       const screen = new GameOverScreen(GameState.run_time);
-      screen.hubRequested.connect(() => this.returnToHub());
+      const goHub = (): void => this.returnToHub();
+      screen.hubRequested.connect(goHub);
+      screen.closed.connect(goHub);
       screen.retryRequested.connect(() => this.retry());
       this.uiLayer.addChild(screen);
     }
   }
 
   private retry(): void {
+    if (this.transitioning) return;
+    this.transitioning = true;
     void sceneManager.replace(new HordasScene());
   }
 
   private returnToHub(): void {
+    if (this.transitioning) return;
+    this.transitioning = true;
     void sceneManager.replace(new HubScene());
   }
+  private transitioning = false;
 
   // ── Camera ─────────────────────────────────────────────────────────────
   private updateCamera(dt: number): void {

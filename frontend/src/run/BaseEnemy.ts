@@ -5,6 +5,7 @@ import { Signal } from '../core/Signal';
 import type { BaseCharacter } from './BaseCharacter';
 import type { RunWorld } from './RunWorld';
 import { CombatSfx, spawnDamageNumber } from './fx/DamageNumbers';
+import { Juice } from './fx/Juice';
 
 export interface EnemyStats {
   name: string;
@@ -132,6 +133,9 @@ export class BaseEnemy {
   protected die(): void {
     this.is_dead = true;
     CombatSfx.death(this.is_elite ? 0.6 : 0.35);
+    // Juicy: small thump per kill, big thump per elite/boss death.
+    if (this.is_elite) Juice.shake(0.55, 80);
+    else Juice.shake(0.10, 12);
     this.died.emit(this);
     if (this.world) this.world.removeEnemy(this);
     this.node.parent?.removeChild(this.node);
