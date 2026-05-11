@@ -5,19 +5,15 @@ Each agent owns a specific domain, enforcing separation of concerns and quality.
 
 ## Technology Stack
 
-- **Engine**: Godot 4.6
-- **Language**: GDScript (primary), C++ via GDExtension (performance-critical)
+- **Frontend**: PixiJS v8 + TypeScript + Vite (in `frontend/`)
+- **Backend**: FastAPI + SQLite (Python 3.11+) (in `backend/`)
 - **Version Control**: Git with trunk-based development
-- **Build System**: SCons (engine), Godot Export Templates
-- **Asset Pipeline**: Godot Import System + custom resource pipeline
+- **Deploy**: Cloudflare Pages (frontend) + Railway (backend)
+- **Asset Pipeline**: Vite static assets — `frontend/public/assets/` symlinks to top-level `assets/`
 
 ## Project Structure
 
 @.claude/docs/directory-structure.md
-
-## Engine Version Reference
-
-@docs/engine-reference/godot/VERSION.md
 
 ## Technical Preferences
 

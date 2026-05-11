@@ -42,10 +42,10 @@ Posicionamento é o jogo. O que "mover" significa muda completamente de zona par
 |---|---|---|
 | **Frontend** | PixiJS v8 + Vite + TypeScript | Cloudflare Pages |
 | **Backend** | FastAPI + SQLite (Python 3.11+) | Railway |
-| **Legacy** | Godot 4.6 (em `src/`) | — (referência apenas) |
 
-A Godot tree em `src/` é a versão original — o jogo "vivo" agora está em `frontend/`.
-Veja a PR #13 pra histórico do port.
+O projeto começou em Godot 4.6 e foi portado para PixiJS na PR #13. A árvore
+Godot legacy foi removida do repositório — consulte o histórico do git para
+referência caso precise olhar o código original.
 
 ---
 
@@ -53,7 +53,7 @@ Veja a PR #13 pra histórico do port.
 
 ```
 frontend/         PixiJS + Vite (UI, gameplay, runs)
-  public/assets/  symlink → ../../assets (re-usa arte/áudio do projeto Godot)
+  public/assets/  symlink → ../../assets (arte/áudio compartilhados)
   src/
     core/         App, SceneManager, ApiClient, filtros (CRT), typography
     state/        GameConfig, GameState, HubState, SaveService, Zones, Characters
@@ -66,8 +66,7 @@ backend/          FastAPI service (save/load + healthcheck)
   requirements.txt
   Procfile        (Railway)
 
-src/              Godot 4.6 source (legacy — não rodar)
-assets/           arte + áudio (compartilhado entre Godot e frontend via symlink)
+assets/           arte + áudio (servidos via symlink em frontend/public/assets)
 design/           GDDs, lore, conceito
 docs/             documentação técnica
 ```
@@ -166,4 +165,4 @@ que coordenam o desenvolvimento através do Claude Code.
 
 ---
 
-*Roguelike anthology · Mobile-first · Godot 4.6 → PixiJS port*
+*Roguelike anthology · Mobile-first · PixiJS v8*
