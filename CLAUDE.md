@@ -42,6 +42,18 @@ See `docs/COLLABORATIVE-DESIGN-PRINCIPLE.md` for full protocol and examples.
 > **First session?** If the project has no engine configured and no game concept,
 > run `/start` to begin the guided onboarding flow.
 
+## Merge Policy
+
+After a fix or feature lands on a working branch and verifies green, **always**
+merge it into `main` without asking. Direct push to `main` is blocked, so the
+flow is:
+
+1. Commit + push the working branch
+2. Open a PR against `main` via the GitHub MCP tools
+3. Squash-merge the PR
+
+No "should I merge?" check-in needed — proceed straight to PR + merge.
+
 ## Coding Standards
 
 @.claude/docs/coding-standards.md
