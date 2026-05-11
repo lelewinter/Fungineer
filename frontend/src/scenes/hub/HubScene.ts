@@ -100,6 +100,13 @@ export class HubScene extends Scene {
     this.hubAudio.stop();
     for (const d of this.disposers) d();
     this.disposers = [];
+    // Tear down the chrome bars so their HubState signal listeners get
+    // disconnected. Without this, a stockChanged emit from the run's
+    // depositBackpack call later refers to a destroyed Pixi graphics tree
+    // through the still-live `refresh()` closure and crashes.
+    this.topBar.destroyBar();
+    this.bottomBar.destroyBar();
+    this.renderer.destroyRenderer();
   }
 
   // ── Modal management ─────────────────────────────────────────────────────

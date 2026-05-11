@@ -134,6 +134,13 @@ export abstract class Modal extends Container {
 
   private startBorderAnimation(): void {
     const tick = (): void => {
+      // External destroy (e.g. a scene swap nuking our parent) leaves the
+      // ticker alive without stopBorderAnimation ever firing — guard so the
+      // next frame doesn't dereference a torn-down Graphics.
+      if (this.destroyed || this.animatedBorder.destroyed) {
+        this.borderTicker = null;
+        return;
+      }
       this.borderTime += 0.012;
       this.drawTravelingBorder();
       this.borderTicker = requestAnimationFrame(tick);
