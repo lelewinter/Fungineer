@@ -736,38 +736,89 @@ export class HubRenderer extends Container {
   private drawSporeChamber(x: number, y: number, w: number, h: number): void {
     const purple = Color.rgb(0.72, 0.45, 0.85);
     const glow = Color.rgb(0.85, 0.60, 1.0);
-    const pulse = Math.abs(Math.sin(this.elapsedFrames * 0.04)) * 0.3 + 0.7;
-    for (let i = 0; i < 3; i++) {
-      const icx = x + w * (0.22 + i * 0.29);
-      const icy = y + h * 0.62;
-      this.g.rect(icx - 2, icy, 4, 14).fill(Color.hex(Color.rgb(0.85, 0.78, 0.62)));
-      const mod1: RGBA = { r: purple.r * pulse, g: purple.g * pulse, b: purple.b * pulse, a: 1 };
-      this.g.circle(icx, icy, 8).fill(Color.hex(mod1));
-      const mod2: RGBA = { r: glow.r * pulse * 0.6, g: glow.g * pulse * 0.6, b: glow.b * pulse * 0.6, a: 1 };
-      this.g.circle(icx, icy - 2, 6).fill(Color.hex(mod2));
+    const t = this.elapsedMs;
+    const pulse = 0.7 + 0.3 * Math.abs(Math.sin(t * 0.0024));
+
+    // Central giant mushroom — the showcase. Wide cap with bioluminescent halo.
+    const ccx = x + w * 0.5;
+    const ccy = y + h * 0.62;
+    const stemH = Math.min(h * 0.18, 22);
+    this.g.rect(ccx - 3.5, ccy - 2, 7, stemH).fill(Color.hex(Color.rgb(0.90, 0.82, 0.66)));
+    // Cap glow halo
+    const haloR = 22 * pulse;
+    const haloC: RGBA = { r: glow.r, g: glow.g, b: glow.b, a: 1 };
+    this.g.circle(ccx, ccy, haloR).fill({ color: Color.hex(haloC), alpha: 0.10 * pulse });
+    this.g.circle(ccx, ccy, haloR * 0.7).fill({ color: Color.hex(haloC), alpha: 0.16 * pulse });
+    // Cap dome (ellipse-y)
+    this.g.ellipse(ccx, ccy - 1, 16, 13).fill(Color.hex({ r: purple.r * pulse, g: purple.g * pulse, b: purple.b * pulse, a: 1 }));
+    this.g.ellipse(ccx, ccy - 4, 11, 8).fill({ color: Color.hex(glow), alpha: 0.55 * pulse });
+    // Cap underside ring (gills)
+    this.g.ellipse(ccx, ccy + 6, 14, 3).fill({ color: Color.hex(Color.rgb(0.30, 0.18, 0.42)), alpha: 0.85 });
+
+    // Side mushrooms — smaller, offset
+    const sides: Array<[number, number, number]> = [
+      [x + w * 0.20, y + h * 0.72, 0.7],
+      [x + w * 0.80, y + h * 0.72, 0.6],
+    ];
+    for (const [sx, sy, scale] of sides) {
+      this.g.rect(sx - 2, sy - 2, 4, 10 * scale).fill(Color.hex(Color.rgb(0.85, 0.78, 0.62)));
+      const sp = pulse * 0.92;
+      this.g.circle(sx, sy, 6 * scale).fill({ color: Color.hex(haloC), alpha: 0.12 });
+      this.g.ellipse(sx, sy - 1, 7 * scale, 5 * scale).fill(Color.hex({ r: purple.r * sp, g: purple.g * sp, b: purple.b * sp, a: 1 }));
+      this.g.circle(sx, sy - 3, 2.5 * scale).fill({ color: Color.hex(glow), alpha: 0.45 * pulse });
     }
-    for (let i = 0; i < 6; i++) {
-      const sx = x + w * (0.15 + i * 0.12);
-      const sy = y + h * 0.3 + Math.sin(this.elapsedFrames * 0.03 + i) * 6;
-      const sp: RGBA = { r: purple.r * 0.8, g: purple.g * 0.8, b: purple.b * 0.8, a: 1 };
-      this.g.circle(sx, sy, 1.5).fill(Color.hex(sp));
+
+    // Floating spores — drift up + sideways, alpha fades in & out.
+    for (let i = 0; i < 14; i++) {
+      const baseX = x + w * (0.10 + (i * 0.061) % 0.80);
+      const cycleS = 4 + (i % 3) * 1.2;
+      const phase = (t * 0.001 + i * 0.41) % cycleS;
+      const lifeT = phase / cycleS;
+      const sy = y + h * 0.78 - lifeT * h * 0.55;
+      const sx = baseX + Math.sin(t * 0.001 + i) * 4;
+      const aa = Math.sin(lifeT * Math.PI) * 0.9;
+      const sCol = i % 2 === 0 ? glow : purple;
+      this.g.circle(sx, sy, 1.4).fill({ color: Color.hex(sCol), alpha: aa });
     }
   }
 
   private drawMycelium(x: number, y: number, w: number, h: number): void {
     const cyan = Color.rgb(0.30, 0.78, 0.72);
-    for (let i = 0; i < 5; i++) {
-      const x1 = x + w * (0.1 + i * 0.18);
-      const x2 = x1 + Math.sin(i) * 8;
-      const c: RGBA = { r: cyan.r * 0.6, g: cyan.g * 0.6, b: cyan.b * 0.6, a: 1 };
-      this.g.moveTo(x1, y + h * 0.25).lineTo(x2, y + h * 0.75)
-        .stroke({ color: Color.hex(c), width: 1.5 });
+    const cyanGlow = Color.rgb(0.50, 0.95, 0.88);
+    const t = this.elapsedMs;
+
+    // Network — vertical strands with horizontal cross-links.
+    const strands = 6;
+    for (let i = 0; i < strands; i++) {
+      const xi = x + w * (0.10 + i * 0.16);
+      const sway = Math.sin(t * 0.0012 + i) * 4;
+      this.g.moveTo(xi, y + h * 0.18).lineTo(xi + sway, y + h * 0.85)
+        .stroke({ color: Color.hex({ r: cyan.r * 0.55, g: cyan.g * 0.55, b: cyan.b * 0.55, a: 1 }), width: 1.5 });
     }
+    // Cross-links
+    for (let i = 0; i < strands - 1; i++) {
+      const x1 = x + w * (0.10 + i * 0.16);
+      const x2 = x + w * (0.10 + (i + 1) * 0.16);
+      const yMid = y + h * (0.40 + (i % 2) * 0.18);
+      this.g.moveTo(x1, yMid).lineTo(x2, yMid + (i % 2 === 0 ? -3 : 3))
+        .stroke({ color: Color.hex({ r: cyan.r * 0.45, g: cyan.g * 0.45, b: cyan.b * 0.45, a: 1 }), width: 1, alpha: 0.7 });
+    }
+    // Pulsing bio-nodes flowing along strands
+    for (let i = 0; i < strands; i++) {
+      const xi = x + w * (0.10 + i * 0.16);
+      const phase = (t * 0.0007 + i * 0.31) % 1;
+      const ny = y + h * (0.18 + phase * 0.65);
+      const nAlpha = Math.sin(phase * Math.PI);
+      this.g.circle(xi, ny, 2.2).fill({ color: Color.hex(cyanGlow), alpha: 0.85 * nAlpha });
+      this.g.circle(xi, ny, 4).fill({ color: Color.hex(cyan), alpha: 0.30 * nAlpha });
+    }
+    // Mushrooms growing from the floor
     for (let i = 0; i < 4; i++) {
-      const icx = x + w * (0.15 + i * 0.22);
-      const icy = y + h * 0.75;
-      this.g.rect(icx - 1, icy - 6, 2, 6).fill(Color.hex(Color.rgb(0.85, 0.82, 0.72)));
-      this.g.circle(icx, icy - 6, 4).fill(Color.hex(cyan));
+      const icx = x + w * (0.18 + i * 0.21);
+      const icy = y + h * 0.86;
+      this.g.rect(icx - 1, icy - 7, 2, 7).fill(Color.hex(Color.rgb(0.85, 0.82, 0.72)));
+      this.g.circle(icx, icy - 7, 5).fill({ color: Color.hex(cyanGlow), alpha: 0.30 });
+      this.g.circle(icx, icy - 7, 4).fill(Color.hex(cyan));
     }
   }
 
@@ -812,26 +863,42 @@ export class HubRenderer extends Container {
 
   private drawNeuralMushroom(x: number, y: number, w: number, h: number): void {
     const green = Color.rgb(0.30, 0.78, 0.60);
-    const pulse = Math.abs(Math.sin(this.elapsedFrames * 0.04)) * 0.5 + 0.5;
+    const greenBright = Color.rgb(0.6, 0.95, 0.8);
+    const t = this.elapsedMs;
     const nodes: Array<[number, number]> = [
-      [x + w * 0.2, y + h * 0.3], [x + w * 0.5, y + h * 0.4], [x + w * 0.8, y + h * 0.3],
+      [x + w * 0.2, y + h * 0.30], [x + w * 0.5, y + h * 0.40], [x + w * 0.8, y + h * 0.30],
       [x + w * 0.3, y + h * 0.65], [x + w * 0.7, y + h * 0.65],
     ];
+
+    // Edges with travelling pulse — for each edge, draw the line dim then a
+    // bright bead following along the line, simulating signal propagation.
+    const edges: Array<[number, number]> = [];
     for (let i = 0; i < nodes.length; i++) {
       for (let j = i + 1; j < nodes.length; j++) {
-        const a = nodes[i]!;
-        const b = nodes[j]!;
-        const dist = Math.hypot(a[0] - b[0], a[1] - b[1]);
-        if (dist < w * 0.5) {
-          const c: RGBA = { r: green.r * pulse * 0.4, g: green.g * pulse * 0.4, b: green.b * pulse * 0.4, a: 1 };
-          this.g.moveTo(a[0], a[1]).lineTo(b[0], b[1]).stroke({ color: Color.hex(c), width: 1 });
-        }
+        const a = nodes[i]!; const b = nodes[j]!;
+        if (Math.hypot(a[0] - b[0], a[1] - b[1]) < w * 0.5) edges.push([i, j]);
       }
     }
-    for (const n of nodes) {
-      const c: RGBA = { r: green.r * pulse, g: green.g * pulse, b: green.b * pulse, a: 1 };
-      this.g.circle(n[0], n[1], 5).fill(Color.hex(c));
-      this.g.circle(n[0], n[1], 3).fill(Color.hex(Color.rgb(0.6, 0.95, 0.8)));
+    for (let e = 0; e < edges.length; e++) {
+      const [i, j] = edges[e]!;
+      const a = nodes[i]!; const b = nodes[j]!;
+      this.g.moveTo(a[0], a[1]).lineTo(b[0], b[1])
+        .stroke({ color: Color.hex({ r: green.r * 0.3, g: green.g * 0.3, b: green.b * 0.3, a: 1 }), width: 1 });
+      // Bead position 0..1 along the edge
+      const phase = (t * 0.0008 + e * 0.27) % 1;
+      const bx = a[0] + (b[0] - a[0]) * phase;
+      const by = a[1] + (b[1] - a[1]) * phase;
+      this.g.circle(bx, by, 1.6).fill({ color: Color.hex(greenBright), alpha: 0.95 });
+      this.g.circle(bx, by, 3).fill({ color: Color.hex(green), alpha: 0.30 });
+    }
+
+    // Nodes — soft halo + core pulsing slightly out of phase per node.
+    for (let i = 0; i < nodes.length; i++) {
+      const n = nodes[i]!;
+      const np = 0.5 + 0.5 * Math.abs(Math.sin(t * 0.0022 + i * 0.7));
+      this.g.circle(n[0], n[1], 7).fill({ color: Color.hex(greenBright), alpha: 0.18 * np });
+      this.g.circle(n[0], n[1], 5).fill(Color.hex({ r: green.r * np, g: green.g * np, b: green.b * np, a: 1 }));
+      this.g.circle(n[0], n[1], 3).fill(Color.hex(greenBright));
     }
   }
 }
