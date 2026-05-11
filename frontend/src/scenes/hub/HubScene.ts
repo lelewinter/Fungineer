@@ -160,7 +160,7 @@ export class HubScene extends Scene {
   private onStartRunRequested(zoneId: string): void {
     // Map the hub's string zone id to the WorldMap zone index.
     const zoneIndex = (
-      { hordas: 0, stealth: 1, circuito: 2, extracao: 3, infeccao: 5, sacrificio: 7 } as Record<string, number>
+      { hordas: 0, stealth: 1, circuito: 2, extracao: 3, campo: 4, infeccao: 5, labirinto: 6, sacrificio: 7 } as Record<string, number>
     )[zoneId];
     if (zoneIndex === undefined) {
       console.warn('[hub] unknown zone id', zoneId);
@@ -176,6 +176,7 @@ export class HubScene extends Scene {
       case 'circuit':    void sceneManager.replace(new SimpleRunScene(zd, { resourceKey: 'nucleo_logico',          hazardCount: 3, rewardPerPickup: 1 })); break;
       case 'extraction': void sceneManager.replace(new SimpleRunScene(zd, { resourceKey: 'combustivel_volatil',    hazardCount: 2, rewardPerPickup: 1 })); break;
       case 'infection':  void sceneManager.replace(new SimpleRunScene(zd, { resourceKey: 'biomassa_adaptativa',    hazardCount: 5, rewardPerPickup: 1 })); break;
+      case 'maze':       void sceneManager.replace(new SimpleRunScene(zd, { resourceKey: 'fragmentos_estruturais', hazardCount: 6, rewardPerPickup: 1 })); break;
       default:           void sceneManager.replace(new StubRunScene(zd));
     }
   }

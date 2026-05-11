@@ -161,9 +161,13 @@ class HubStateClass {
   hub_ui_visible = true;
 
   // ── Room unlocks ──
+  // Campo (deposito) e Labirinto (workshop) também acessíveis desde o início
+  // para cobrir todas as 8 zonas planejadas.
   room_unlocked: Record<string, boolean> = {
     saida_hordas: true,
     lab_rival: true,
+    deposito: true,
+    workshop: true,
   };
 
   // ── Signals ──
