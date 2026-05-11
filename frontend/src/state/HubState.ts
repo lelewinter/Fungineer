@@ -110,9 +110,9 @@ export const HUB_VARIANTS: Record<HubVariantKey, HubVariant> = {
 };
 
 export const UNLOCK_ORDER: string[] = [
-  'cozinha', 'enfermaria', 'server', 'tunel_stealth', 'arquivo', 'sala_comum',
-  'workshop', 'vigia', 'tunel_hordas', 'armamentos', 'gestao', 'quarto_lena',
-  'corredor', 'surface',
+  'cozinha', 'enfermaria', 'server', 'vigia', 'arquivo', 'sala',
+  'workshop', 'deposito', 'gestao', 'quarto_lena',
+  'lab_rival', 'saida_hordas',
 ];
 
 export interface HubStateSnapshot {
@@ -163,7 +163,7 @@ class HubStateClass {
   // ── Room unlocks ──
   room_unlocked: Record<string, boolean> = {
     saida_hordas: true,
-    lab: true,
+    lab_rival: true,
   };
 
   // ── Signals ──
