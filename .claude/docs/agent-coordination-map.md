@@ -13,9 +13,9 @@
         |        |        |     |
   game-designer art-dir  narr-dir  lead-programmer  qa-lead  audio-dir
         |        |        |         |                |        |
-     +--+--+     |     +--+--+  +--+--+--+--+--+   |        |
-     |  |  |     |     |     |  |  |  |  |  |  |   |        |
-    sys lvl eco  ta   wrt  wrld gp ep  ai net tl ui qa-t    snd
+     +--+--+     |     +--+--+  +--+--+--+--+      |        |
+     |  |  |     |     |     |  |  |  |  |  |      |        |
+    sys lvl eco  ta   wrt  wrld gp ep  ai tl  ui    qa-t    snd
                                  |
                              +---+---+
                              |       |
@@ -25,40 +25,27 @@
     release-manager         -- Release pipeline, versioning, deployment
     localization-lead       -- i18n, string tables, translation pipeline
     prototyper              -- Rapid throwaway prototypes, concept validation
-    security-engineer       -- Anti-cheat, exploits, data privacy, network security
+    security-engineer       -- Exploits, data privacy, save / API security
     accessibility-specialist -- WCAG, colorblind, remapping, text scaling
     live-ops-designer       -- Seasons, events, battle passes, retention, live economy
     community-manager       -- Patch notes, player feedback, crisis comms
-
-  Engine Specialists (use the SET matching your engine):
-    unreal-specialist  -- UE5 lead: Blueprint/C++, GAS overview, UE subsystems
-      ue-gas-specialist         -- GAS: abilities, effects, attributes, tags, prediction
-      ue-blueprint-specialist   -- Blueprint: BP/C++ boundary, graph standards, optimization
-      ue-replication-specialist -- Networking: replication, RPCs, prediction, bandwidth
-      ue-umg-specialist         -- UI: UMG, CommonUI, widget hierarchy, data binding
-
-    unity-specialist   -- Unity lead: MonoBehaviour/DOTS, Addressables, URP/HDRP
-      unity-dots-specialist         -- DOTS/ECS: Jobs, Burst, hybrid renderer
-      unity-shader-specialist       -- Shaders: Shader Graph, VFX Graph, SRP customization
-      unity-addressables-specialist -- Assets: async loading, bundles, memory, CDN
-      unity-ui-specialist           -- UI: UI Toolkit, UGUI, UXML/USS, data binding
-
-    godot-specialist   -- Godot 4 lead: GDScript, node/scene, signals, resources
-      godot-gdscript-specialist    -- GDScript: static typing, patterns, signals, performance
-      godot-shader-specialist      -- Shaders: Godot shading language, visual shaders, VFX
-      godot-gdextension-specialist -- Native: C++/Rust bindings, GDExtension, build systems
 ```
+
+> The upstream template had engine-specialist agents for Godot, Unity, and Unreal
+> (plus a `network-programmer`). Those were removed during the web port —
+> Fungineer ships on PixiJS + Vite + TS (frontend) and FastAPI (backend).
+> See `docs/adr/adr-002-web-port.md`.
 
 ### Legend
 ```
 sys  = systems-designer       gp  = gameplay-programmer
 lvl  = level-designer         ep  = engine-programmer
 eco  = economy-designer       ai  = ai-programmer
-ta   = technical-artist       net = network-programmer
-wrt  = writer                 tl  = tools-programmer
-wrld = world-builder          ui  = ui-programmer
-snd  = sound-designer         qa-t = qa-tester
-narr-dir = narrative-director perf-a = performance-analyst
+ta   = technical-artist       tl  = tools-programmer
+wrt  = writer                 ui  = ui-programmer
+wrld = world-builder          qa-t = qa-tester
+snd  = sound-designer         perf-a = performance-analyst
+narr-dir = narrative-director
 art-dir = art-director
 ```
 
@@ -72,7 +59,7 @@ art-dir = art-director
 | technical-director | lead-programmer, devops-engineer, performance-analyst, technical-artist (technical decisions) |
 | producer | Any agent (task assignment within their domain only) |
 | game-designer | systems-designer, level-designer, economy-designer |
-| lead-programmer | gameplay-programmer, engine-programmer, ai-programmer, network-programmer, tools-programmer, ui-programmer |
+| lead-programmer | gameplay-programmer, engine-programmer, ai-programmer, tools-programmer, ui-programmer |
 | art-director | technical-artist, ux-designer |
 | audio-director | sound-designer |
 | narrative-director | writer, world-builder |
@@ -80,10 +67,8 @@ art-dir = art-director
 | release-manager | devops-engineer (release builds), qa-lead (release testing) |
 | localization-lead | writer (string review), ui-programmer (text fitting) |
 | prototyper | (works independently, reports findings to producer and relevant leads) |
-| security-engineer | network-programmer (security review), lead-programmer (secure patterns) |
+| security-engineer | lead-programmer (secure patterns), gameplay-programmer (input validation, save integrity) |
 | accessibility-specialist | ux-designer (accessible patterns), ui-programmer (implementation), qa-tester (a11y testing) |
-| [engine]-specialist | engine sub-specialists (delegates subsystem-specific work) |
-| [engine] sub-specialists | (advises all programmers on engine subsystem patterns and optimization) |
 | live-ops-designer | economy-designer (live economy), community-manager (event comms), analytics-engineer (engagement metrics) |
 | community-manager | (works with producer for approval, release-manager for patch note timing) |
 

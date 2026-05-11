@@ -1680,7 +1680,6 @@ and prepare a "known issues" post.
 | Implement gameplay code | `gameplay-programmer` | 3 |
 | Implement core engine systems | `engine-programmer` | 3 |
 | Implement AI behavior | `ai-programmer` | 3 |
-| Implement multiplayer | `network-programmer` | 3 |
 | Implement UI | `ui-programmer` | 3 |
 | Build dev tools | `tools-programmer` | 3 |
 | Review code architecture | `lead-programmer` | 2 |
