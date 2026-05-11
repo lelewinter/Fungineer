@@ -31,6 +31,11 @@ export class BaseEnemy {
   position: Vec2 = { x: 0, y: 0 };
   current_hp = 0;
   is_dead = false;
+  /** Collision radius in world units. Used by the per-frame separation
+   *  pass to keep enemies from overlapping each other and to block the
+   *  party from walking through them. Subclasses can override (e.g. the
+   *  Sentinel boss is bigger). */
+  solid_radius = 14;
   protected attack_timer = 0;
   protected current_target: BaseCharacter | null = null;
 
