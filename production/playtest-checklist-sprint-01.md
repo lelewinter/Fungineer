@@ -1,5 +1,11 @@
 # Playtest Checklist — Sprint 01
 
+> ⚠️ **Archived (2026-05-11).** This checklist was written for the Godot
+> prototype build. Steps that say "Abrir Godot 4.6 / rodar Main.tscn" no
+> longer apply — the live build runs in the browser via `npm run dev` in
+> `frontend/` (or as a PWA from the Cloudflare Pages URL). The pillar
+> definitions below are still relevant; only the setup commands are stale.
+
 **Data**: 2026-03-21
 **Versão**: 0.1.0-sprint01
 **Objetivo**: Validar os 3 pilares do core loop

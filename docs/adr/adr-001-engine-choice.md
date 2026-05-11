@@ -1,5 +1,5 @@
 ---
-tags: [fungineer, arquitetura, adr, decisao]
+tags: [fungineer, arquitetura, adr, decisao, superseded]
 date: 2026-03-21
 tipo: adr
 ---
@@ -7,8 +7,13 @@ tipo: adr
 # ADR-001: Engine Choice — Godot 4.6
 
 **Date**: 2026-03-21
-**Status**: Accepted
+**Status**: **Superseded by [ADR-002](./adr-002-web-port.md)** (2026-05-11)
 **Deciders**: Technical Director, Producer
+
+> ⚠️ **Historical record only.** Fungineer no longer ships on Godot. The runtime
+> was ported to PixiJS v8 + Vite + TypeScript (frontend, Cloudflare Pages) with
+> a FastAPI + SQLite backend (Railway). The Godot project and engine reference
+> docs were subsequently removed from the repo. See ADR-002 for the rationale.
 
 ---
 
