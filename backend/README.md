@@ -30,6 +30,16 @@ API is now at `http://localhost:8000`. Try:
 | `PORT` | Bind port (Railway sets it automatically). Locally use `--port`. |
 | `FUNGINEER_DB` | SQLite file path. Default `fungineer.db`. |
 | `FRONTEND_URL` | Adds your prod frontend origin to the CORS allowlist (e.g. `https://fungineer.pages.dev`). `*.pages.dev` previews are already allowed via regex. |
+| `FUNGINEER_ENV` | Set to `production` to disable `/docs`, `/redoc`, and `/openapi.json`. |
+| `FUNGINEER_PEPPER` | Required in production: a 32+ char random string. Used to HMAC owner secrets. **Rotating it invalidates every save** — pin it once and store it as a Railway secret. |
+| `FUNGINEER_MAX_BODY` | Max accepted request body in bytes. Defaults to 65536 (64 KB). |
+
+## Slot ownership
+
+Each save slot is pinned to the secret in the client's `X-Owner-Secret`
+request header. The first request to a slot claims it; subsequent
+reads/writes/deletes must present the same secret or the server answers
+404. The frontend generates and stores this secret automatically.
 
 ## Deploy to Railway
 
