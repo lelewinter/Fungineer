@@ -56,9 +56,15 @@ const NPCS: HubNpc[] = [
 // 6-column × 6-floor cross-section layout (matches Hub.html mockup).
 // Cols 2-3 on floors 2-5 are the rocket shaft (type: rocket-*).
 const ROOMS: HubRoom[] = [
-  // Floor 1 — Surface exit (full width)
-  { id: 'saida_hordas', label: 'SAÍDA · HORDAS', col: 0, w: 6, floor: 1,
+  // Floor 1 — Surface (split: half hordas-exit, half three surface zones)
+  { id: 'saida_hordas', label: 'SAÍDA · HORDAS', col: 0, w: 3, floor: 1,
     type: 'surface-exit', light: 'red', zone_id: 'hordas', npcs: [] },
+  { id: 'rota_cordilheira', label: 'CORDILHEIRA', col: 3, w: 1, floor: 1,
+    type: 'surface-exit', light: 'amber', zone_id: 'cordilheira', silhouette: 'favela silenciosa', npcs: [] },
+  { id: 'rota_torres', label: 'TORRES', col: 4, w: 1, floor: 1,
+    type: 'surface-exit', light: 'cool', zone_id: 'torres', silhouette: 'arranha-céus podres', npcs: [] },
+  { id: 'rota_catedral', label: 'CATEDRAL', col: 5, w: 1, floor: 1,
+    type: 'surface-exit', light: 'warm', zone_id: 'catedral', silhouette: 'catedral em ruínas', npcs: [] },
 
   // Floor 2
   { id: 'vigia',       label: 'VIGIA',     col: 0, w: 2, floor: 2, type: 'tech',          light: 'red',      zone_id: 'stealth',   silhouette: 'posto de vigia',           npcs: ['elena'] },
@@ -87,25 +93,31 @@ const ROOMS: HubRoom[] = [
 ];
 
 export const ZONE_SCENE: Record<string, string> = {
-  hordas:     'main',
-  stealth:    'stealth',
-  circuito:   'circuit',
-  extracao:   'extraction',
-  campo:      'field',
-  infeccao:   'infection',
-  labirinto:  'maze',
-  sacrificio: 'sacrifice',
+  hordas:      'main',
+  stealth:     'stealth',
+  circuito:    'circuit',
+  extracao:    'extraction',
+  campo:       'field',
+  infeccao:    'infection',
+  labirinto:   'maze',
+  sacrificio:  'sacrifice',
+  cordilheira: 'cordilheira',
+  torres:      'torres',
+  catedral:    'catedral',
 };
 
 export const ROOM_TO_ZONE: Record<string, string> = {
-  saida_hordas: 'hordas',
-  vigia:        'stealth',
-  lab_rival:    'sacrificio',
-  enfermaria:   'infeccao',
-  server:       'circuito',
-  arquivo:      'extracao',
-  deposito:     'campo',
-  workshop:     'labirinto',
+  saida_hordas:     'hordas',
+  vigia:            'stealth',
+  lab_rival:        'sacrificio',
+  enfermaria:       'infeccao',
+  server:           'circuito',
+  arquivo:          'extracao',
+  deposito:         'campo',
+  workshop:         'labirinto',
+  rota_cordilheira: 'cordilheira',
+  rota_torres:      'torres',
+  rota_catedral:    'catedral',
 };
 
 const ZONES: HubZone[] = [
@@ -117,6 +129,9 @@ const ZONES: HubZone[] = [
   { id: 'sacrificio', name: 'Câmara de Esporos',    color: C(0.78, 0.35, 0.55),  briefing: 'Laboratório da Priya. Mutações experimentais que só ela ousa cultivar. O preço é cruel.',   allow_squad: false },
   { id: 'campo',      name: 'Setor de Transmissão', color: C(0.102, 0.435, 0.800), briefing: 'Relés de controle da IA marcam o território por sinais. Perturbe a malha — colha sinais de controle.', allow_squad: false },
   { id: 'labirinto',  name: 'Labirinto Subterrâneo', color: C(0.290, 0.565, 0.643), briefing: 'Complexo abandonado, drones em patrulha recursiva. Os corredores são a parede; sobreviver é mapeá-los. Colha fragmentos estruturais.', allow_squad: false },
+  { id: 'cordilheira', name: 'Favela Silenciosa',     color: C(0.420, 0.380, 0.350), briefing: 'Sobreviventes humanos sem IA — fluxos hostis em vielas estreitas. Atravesse com timing, não com força.', allow_squad: false },
+  { id: 'torres',      name: 'Arranha-céus Podres',   color: C(0.180, 0.300, 0.520), briefing: 'Escalada vertical entre andares colapsados. Algo sempre cai do alto — leia o ritmo.', allow_squad: false },
+  { id: 'catedral',    name: 'Catedral em Ruínas',    color: C(0.780, 0.680, 0.420), briefing: 'Pirâmide ritualística iluminada por passos. Cada tile aceso é uma relíquia. Não pare onde algo está caindo.', allow_squad: false },
 ];
 
 const DIALOGS: Record<string, HubDialog> = {
