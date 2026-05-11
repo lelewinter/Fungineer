@@ -1,25 +1,24 @@
-import { Container, FederatedPointerEvent, Graphics, Text } from 'pixi.js';
+import { Container, Graphics } from 'pixi.js';
 import { Scene } from '../../core/Scene';
 import { sceneManager } from '../../core/SceneManager';
 import { Color } from '../../core/Color';
 import { GameConfig } from '../../state/GameConfig';
-import { HubState, HUB_VARIANTS, type HubVariantKey } from '../../state/HubState';
+import { HubState } from '../../state/HubState';
 import { HubData, ROOM_TO_ZONE } from '../../state/HubData';
 import { ZONES } from '../../state/Zones';
 import { StubRunScene } from '../runs/StubRunScene';
 import { HordasScene } from '../runs/HordasScene';
 import { FieldControlScene } from '../runs/FieldControlScene';
 import { SacrificeScene } from '../runs/SacrificeScene';
-import { WorldMapScene } from '../WorldMapScene';
 import { HubAudio } from './HubAudio';
 import { HubRenderer } from './HubRenderer';
 import { HubNPCManager } from './HubNPCManager';
-import { HubRocket } from './HubRocket';
 import { HubCharacterCard } from '../../ui/hub/HubCharacterCard';
 import { HubRocketPanel } from '../../ui/hub/HubRocketPanel';
 import { HubZoomPanel } from '../../ui/hub/HubZoomPanel';
+import { HubTopBar } from '../../ui/hub/HubTopBar';
+import { HubBottomBar } from '../../ui/hub/HubBottomBar';
 import { Modal } from '../../ui/Modal';
-import { PixiButton } from '../../ui/PixiButton';
 
 /** Mirrors src/scenes/hub/HubScene.gd. Root scene of the bunker view. */
 export class HubScene extends Scene {
@@ -27,13 +26,22 @@ export class HubScene extends Scene {
   private worldLayer = new Container();
   private uiLayer = new Container();
   private modalLayer = new Container();
-  private renderer = new HubRenderer();
+  private renderer: HubRenderer;
   private npcManager = new HubNPCManager();
-  private rocketBadge = new HubRocket();
   private hubAudio = new HubAudio();
+  private topBar = new HubTopBar();
+  private bottomBar = new HubBottomBar();
   private activeModal: Modal | null = null;
   private disposers: Array<() => void> = [];
   private keyHandler!: (e: KeyboardEvent) => void;
+
+  constructor() {
+    super();
+    this.renderer = new HubRenderer({
+      topPad: HubTopBar.TOTAL_H,
+      bottomPad: HubBottomBar.H,
+    });
+  }
 
   override async enter(): Promise<void> {
     this.root.addChild(this.background);
@@ -45,25 +53,26 @@ export class HubScene extends Scene {
 
     this.worldLayer.addChild(this.renderer);
     this.worldLayer.addChild(this.npcManager);
+    this.npcManager.y = HubTopBar.TOTAL_H;
 
-    this.uiLayer.addChild(this.rocketBadge);
-    this.makeBadgeInteractive();
-    this.buildVariantSelector();
+    // TopBar + RocketReadout overlay
+    this.uiLayer.addChild(this.topBar);
+    this.disposers.push(
+      this.topBar.rocketReadoutClicked.connect(() => this.openRocketPanel()),
+    );
+
+    // BottomBar overlay
+    this.bottomBar.y = GameConfig.VIEWPORT_HEIGHT - HubBottomBar.H;
+    this.uiLayer.addChild(this.bottomBar);
+    this.disposers.push(
+      this.bottomBar.rocketClicked.connect(() => this.openRocketPanel()),
+    );
 
     this.disposers.push(
       this.renderer.roomClicked.connect((roomId) => this.onRoomClicked(roomId)),
     );
     this.disposers.push(
-      this.renderer.rocketShaftClicked.connect(() => {
-        this.hubAudio.playOpenPanelSfx();
-        const panel = new HubRocketPanel();
-        panel.closed.connect(() => {
-          this.hubAudio.playClosePanelSfx();
-          HubState.hubRocketClosed.emit();
-        });
-        this.openModal(panel);
-        HubState.hubRocketOpened.emit();
-      }),
+      this.renderer.rocketShaftClicked.connect(() => this.openRocketPanel()),
     );
     this.disposers.push(
       HubState.hubVariantChanged.connect(() => this.updateBackground()),
@@ -161,69 +170,15 @@ export class HubScene extends Scene {
     }
   }
 
-  private makeBadgeInteractive(): void {
-    this.rocketBadge.eventMode = 'static';
-    this.rocketBadge.cursor = 'pointer';
-    this.rocketBadge.on('pointertap', (e: FederatedPointerEvent) => {
-      e.stopPropagation();
-      this.hubAudio.playOpenPanelSfx();
-      const panel = new HubRocketPanel();
-      panel.closed.connect(() => {
-        this.hubAudio.playClosePanelSfx();
-        HubState.hubRocketClosed.emit();
-      });
-      this.openModal(panel);
-      HubState.hubRocketOpened.emit();
+  private openRocketPanel(): void {
+    this.hubAudio.playOpenPanelSfx();
+    const panel = new HubRocketPanel();
+    panel.closed.connect(() => {
+      this.hubAudio.playClosePanelSfx();
+      HubState.hubRocketClosed.emit();
     });
-  }
-
-  private buildVariantSelector(): void {
-    const bar = new Container();
-    bar.x = 12;
-    bar.y = 60;
-    let x = 0;
-    const keys = Object.keys(HUB_VARIANTS) as HubVariantKey[];
-    for (const key of keys) {
-      const btn = new PixiButton({
-        label: key.toUpperCase(),
-        width: 80,
-        height: 22,
-        fontSize: 9,
-        onClick: () => {
-          HubState.setHubVariant(key);
-        },
-      });
-      btn.x = x;
-      x += 84;
-      bar.addChild(btn);
-    }
-    this.uiLayer.addChild(bar);
-
-    const mapBtn = new PixiButton({
-      label: 'WORLD MAP',
-      width: 100,
-      height: 22,
-      fontSize: 9,
-      onClick: () => {
-        void sceneManager.replace(new WorldMapScene());
-      },
-    });
-    mapBtn.x = GameConfig.VIEWPORT_WIDTH - 110;
-    mapBtn.y = 60;
-    this.uiLayer.addChild(mapBtn);
-
-    const hint = new Text({
-      text: 'Toque numa sala para entrar · ESC fecha painel',
-      style: {
-        fontFamily: '"Space Grotesk", system-ui, sans-serif',
-        fontSize: 9,
-        fill: Color.hex(Color.rgb(0.55, 0.62, 0.50)),
-      },
-    });
-    hint.anchor.set(0.5, 1);
-    hint.x = GameConfig.VIEWPORT_WIDTH / 2;
-    hint.y = GameConfig.VIEWPORT_HEIGHT - 8;
-    this.uiLayer.addChild(hint);
+    this.openModal(panel);
+    HubState.hubRocketOpened.emit();
   }
 
   private updateBackground(): void {
