@@ -148,8 +148,8 @@ class HubStateClass {
   rescued_characters: string[] = [];
 
   // ── Zones ──
-  zones_unlocked: boolean[] = [true, true, true, true, true, true, true, true];
-  zone_deterioration: number[] = [0, 0, 0, 0, 0, 0, 0, 0];
+  zones_unlocked: boolean[] = [true, true, true, true, true, true, true, true, true, true, true];
+  zone_deterioration: number[] = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
   total_runs = 0;
 
   // ── Lore ──
@@ -253,9 +253,11 @@ class HubStateClass {
   }
 
   private checkZoneUnlocks(): void {
-    const thresholds = [0, 1, 2, 3, 4, 5, 6, 7];
+    // All 11 zones playable from start; thresholds kept for legacy snapshots
+    // and future gated re-introduction. Index 8..10 are surface-floor zones.
+    const thresholds = [0, 1, 2, 3, 4, 5, 6, 7, 0, 0, 0];
     for (let i = 0; i < this.zones_unlocked.length; i++) {
-      if (this.rocket_pieces_built >= thresholds[i]!) this.zones_unlocked[i] = true;
+      if (this.rocket_pieces_built >= (thresholds[i] ?? 0)) this.zones_unlocked[i] = true;
     }
   }
 
@@ -378,13 +380,13 @@ class HubStateClass {
     }
     if (Array.isArray(s.zones_unlocked)) {
       this.zones_unlocked = s.zones_unlocked.map((v) => v === true).slice(0, this.zones_unlocked.length);
-      while (this.zones_unlocked.length < 8) this.zones_unlocked.push(true);
+      while (this.zones_unlocked.length < 11) this.zones_unlocked.push(true);
     }
     if (Array.isArray(s.zone_deterioration)) {
       this.zone_deterioration = s.zone_deterioration
         .map((v) => (typeof v === 'number' && Number.isFinite(v) ? Math.max(0, Math.min(2, Math.floor(v))) : 0))
         .slice(0, this.zone_deterioration.length);
-      while (this.zone_deterioration.length < 8) this.zone_deterioration.push(0);
+      while (this.zone_deterioration.length < 11) this.zone_deterioration.push(0);
     }
     if (typeof s.total_runs === 'number' && Number.isFinite(s.total_runs)) {
       this.total_runs = Math.max(0, Math.floor(s.total_runs));

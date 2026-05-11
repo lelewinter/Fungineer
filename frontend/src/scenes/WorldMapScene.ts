@@ -30,7 +30,8 @@ const STOCK_H = 104;
 
 /** zone_id grid; -1 is the rocket bay slot. */
 const FLOOR_LAYOUT: number[][] = [
-  [0, 7, 3], // top
+  [8, 9, 10], // surface (cordilheira, torres, catedral)
+  [0, 7, 3],
   [4, -1, 1],
   [5, 6, 2], // base
 ];
@@ -44,6 +45,9 @@ const ZONE_DIALOGUE: Record<number, string> = {
   5: '"Laboratório bioprogramável. A IA criou isso para controlar organismos. Nós vamos reapropriá-lo."\n— Dr. Valério',
   6: '"Complexo subterrâneo abandonado. Drones de patrulha ainda operacionais. Os corredores são um labirinto."\n— Dr. Valério',
   7: '"Centro de detenção da IA. Recursos e sobreviventes? Cada segundo lá dentro tem um preço."\n— Dr. Valério',
+  8: '"Favela silenciosa. Sem IA — só os que ficaram. Hostis, mas humanos. Atravesse com calma."\n— Dr. Valério',
+  9: '"Arranha-céus podres. Subir é metade da batalha; o que cai do alto é a outra metade."\n— Dr. Valério',
+  10: '"A Catedral. Relíquias, ritmo, ressonância. Pise certo e ela canta com você."\n— Dr. Valério',
 };
 
 /** Mirrors src/scenes/WorldMapScene.gd — bunker cross-section view. */
