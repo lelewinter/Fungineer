@@ -47,8 +47,14 @@ export class HordasScene extends Scene {
   // UI
   private hud!: HUD;
   private rescueOffered = false;
-  private powerOffered = false;
   private endShown = false;
+
+  // Recurring power-offer cadence — VS-style "level up". After the first
+  // offer post wave-2 clear, the run keeps prompting every POWER_OFFER_EVERY_S
+  // until run end, letting the player swap powers mid-fight.
+  private static readonly POWER_OFFER_EVERY_S = 25;
+  private nextPowerOfferAt = Number.POSITIVE_INFINITY;
+  private powerScreenOpen = false;
 
   // Signal disposers
   private disposers: Array<() => void> = [];
@@ -88,6 +94,7 @@ export class HordasScene extends Scene {
       this.waves.update(capped);
       this.powerManager.update(capped);
       updateDamageNumbers(capped);
+      this.maybeOfferRecurringPower();
     }
     this.hud.update(capped);
     this.updateCamera(capped);
@@ -191,10 +198,20 @@ export class HordasScene extends Scene {
       this.rescueOffered = true;
       if (this.party.size() >= GameConfig.MAX_PARTY_SIZE) return;
       this.offerRescue();
-    } else if (wave === 2 && !this.powerOffered) {
-      this.powerOffered = true;
+    } else if (wave === 2) {
+      // Wave 2 cleared kicks off the recurring power-offer loop. The first
+      // offer fires immediately; subsequent ones every POWER_OFFER_EVERY_S.
       this.offerPower();
+      this.nextPowerOfferAt = GameState.run_time + HordasScene.POWER_OFFER_EVERY_S;
     }
+  }
+
+  private maybeOfferRecurringPower(): void {
+    if (this.powerScreenOpen) return;
+    if (this.nextPowerOfferAt === Number.POSITIVE_INFINITY) return;
+    if (GameState.run_time < this.nextPowerOfferAt) return;
+    this.offerPower();
+    this.nextPowerOfferAt = GameState.run_time + HordasScene.POWER_OFFER_EVERY_S;
   }
 
   private offerRescue(): void {
@@ -214,6 +231,8 @@ export class HordasScene extends Scene {
   }
 
   private offerPower(): void {
+    if (this.powerScreenOpen) return;
+    this.powerScreenOpen = true;
     const pool: PowerResource[] = [
       new SiegeMode(),
       new SplitOrbit(),
@@ -225,7 +244,10 @@ export class HordasScene extends Scene {
     shuffleInPlace(pool);
     const offered = pool.slice(0, 3);
     const screen = new PowerOfferScreen(offered);
-    screen.powerChosen.connect((p) => this.onPowerChosen(p));
+    screen.powerChosen.connect((p) => {
+      this.powerScreenOpen = false;
+      this.onPowerChosen(p);
+    });
     this.uiLayer.addChild(screen);
   }
 
