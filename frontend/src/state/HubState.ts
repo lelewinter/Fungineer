@@ -352,20 +352,62 @@ class HubStateClass {
   }
 
   loadFromSnapshot(snap: unknown): boolean {
+    // Strict validation: the backend is treated as untrusted (the slot may
+    // hold whatever a previous client wrote, and a malicious payload should
+    // never be able to inject unknown keys into HubState).
     if (typeof snap !== 'object' || snap === null) return false;
     const s = snap as Partial<HubStateSnapshot>;
     if (s.v !== 1) return false;
-    if (s.stock) Object.assign(this.stock, s.stock);
-    if (typeof s.rocket_pieces_built === 'number') this.rocket_pieces_built = s.rocket_pieces_built;
-    if (Array.isArray(s.rescued_characters)) this.rescued_characters = s.rescued_characters.slice();
-    if (Array.isArray(s.zones_unlocked)) this.zones_unlocked = s.zones_unlocked.slice();
-    if (Array.isArray(s.zone_deterioration)) this.zone_deterioration = s.zone_deterioration.slice();
-    if (typeof s.total_runs === 'number') this.total_runs = s.total_runs;
-    if (Array.isArray(s.lore_found)) this.lore_found = s.lore_found.slice();
-    if (s.hub_variant && s.hub_variant in HUB_VARIANTS) this.hub_variant = s.hub_variant;
-    if (s.hub_density) this.hub_density = s.hub_density;
+    const RESOURCE_KEYS: ResourceKey[] = [
+      'scrap', 'ai_components', 'nucleo_logico', 'combustivel_volatil',
+      'sinais_controle', 'biomassa_adaptativa', 'fragmentos_estruturais',
+    ];
+    if (s.stock && typeof s.stock === 'object') {
+      for (const key of RESOURCE_KEYS) {
+        const v = (s.stock as Record<string, unknown>)[key];
+        if (typeof v === 'number' && Number.isFinite(v) && v >= 0) {
+          this.stock[key] = Math.floor(v);
+        }
+      }
+    }
+    if (typeof s.rocket_pieces_built === 'number' && Number.isFinite(s.rocket_pieces_built)) {
+      this.rocket_pieces_built = Math.max(0, Math.min(ROCKET_RECIPE.length, Math.floor(s.rocket_pieces_built)));
+    }
+    if (Array.isArray(s.rescued_characters)) {
+      this.rescued_characters = s.rescued_characters.filter((v): v is string => typeof v === 'string').slice(0, 64);
+    }
+    if (Array.isArray(s.zones_unlocked)) {
+      this.zones_unlocked = s.zones_unlocked.map((v) => v === true).slice(0, this.zones_unlocked.length);
+      while (this.zones_unlocked.length < 8) this.zones_unlocked.push(true);
+    }
+    if (Array.isArray(s.zone_deterioration)) {
+      this.zone_deterioration = s.zone_deterioration
+        .map((v) => (typeof v === 'number' && Number.isFinite(v) ? Math.max(0, Math.min(2, Math.floor(v))) : 0))
+        .slice(0, this.zone_deterioration.length);
+      while (this.zone_deterioration.length < 8) this.zone_deterioration.push(0);
+    }
+    if (typeof s.total_runs === 'number' && Number.isFinite(s.total_runs)) {
+      this.total_runs = Math.max(0, Math.floor(s.total_runs));
+    }
+    if (Array.isArray(s.lore_found)) {
+      this.lore_found = s.lore_found.filter((v): v is string => typeof v === 'string').slice(0, 256);
+    }
+    if (typeof s.hub_variant === 'string' && s.hub_variant in HUB_VARIANTS) {
+      this.hub_variant = s.hub_variant as HubVariantKey;
+    }
+    if (s.hub_density === 'minimal' || s.hub_density === 'balanced' || s.hub_density === 'informative') {
+      this.hub_density = s.hub_density;
+    }
     if (typeof s.hub_ui_visible === 'boolean') this.hub_ui_visible = s.hub_ui_visible;
-    if (s.room_unlocked) this.room_unlocked = { ...s.room_unlocked };
+    if (s.room_unlocked && typeof s.room_unlocked === 'object') {
+      const next: Record<string, boolean> = { saida_hordas: true, lab_rival: true };
+      for (const [k, v] of Object.entries(s.room_unlocked as Record<string, unknown>)) {
+        if (typeof k === 'string' && k.length <= 64 && /^[a-z0-9_]+$/i.test(k) && v === true) {
+          next[k] = true;
+        }
+      }
+      this.room_unlocked = next;
+    }
     this.stockChanged.emit(this.stock);
     this.hubVariantChanged.emit(this.hub_variant);
     return true;
