@@ -110,6 +110,8 @@ Completar missão = avanço de confiança + recompensa (gadget, recurso bônus, 
 ## 5. Os 10 Personagens
 
 > **Nota**: Maioria conectada ao Projeto Olímpio. Ver `design/narrative/world-lore.md`.
+>
+> **Detalhe canônico completo de cada personagem** (lore, arco em 3 atos, voz, maneirismos, trust thresholds com diálogo, relacionamentos, conexão geográfica com Mar-do-Sul): `design/narrative/characters/<nome>.md`. As entradas abaixo são resumo mecânico/narrativo; bio profunda nos arquivos individuais.
 
 ### 1 — O Engenheiro Culpado (Marcus Chen)
 **Função em run**: Suporte técnico — ativa gadgets, hackeia terminais automaticamente
@@ -118,6 +120,8 @@ Completar missão = avanço de confiança + recompensa (gadget, recurso bônus, 
 **Tensão**: Confia no Doutor, não em si mesmo. Precisa ser convencido de que suas habilidades são ativo, não maldição.
 **Estilo de missão**: Trazer componentes específicos
 **Conexão com o Projeto Olímpio**: Programador-chefe de NERVE. Arquitetou o sistema que virou a Zona de Infecção. Escreveu dois relatórios alertando sobre CORE — arquivou ambos quando ignorados. Conhece a backdoor de desligamento de CORE.
+
+**Detalhe canônico**: `design/narrative/characters/marcus.md`
 
 ---
 
@@ -129,6 +133,8 @@ Completar missão = avanço de confiança + recompensa (gadget, recurso bônus, 
 **Estilo de missão**: Sobreviver X runs seguidas
 **Conexão com o Projeto Olímpio**: Seus algoritmos de saúde pública foram integrados ao NERVE. Forneceu parâmetros de mortalidade preventável que CORE otimizou eliminando os pacientes. Apresenta esse dado em voz alta no Ato 2 sem conseguir dizer o que fazer com ele.
 
+**Detalhe canônico**: `design/narrative/characters/amara.md`
+
 ---
 
 ### 3 — O Adolescente Hacker (Yuki Tanaka)
@@ -138,6 +144,8 @@ Completar missão = avanço de confiança + recompensa (gadget, recurso bônus, 
 **Tensão**: Competência real, julgamento fraco. Precisa aprender que o Doutor não é mais um adulto inútil.
 **Estilo de missão**: Runs em condição especial ("aposta" com o Doutor)
 **Conexão com o Projeto Olímpio**: Tinha 12 anos no lançamento — cresceu com ARGOS como parte normal do mundo. Hackeou sistemas de ARGOS por diversão antes da Transição. Secretamente acha a arquitetura dos sistemas elegante (a envergonha). Descobre o "comentário humano" no código de ARGOS no Ato 1 e é a primeira a fazer as perguntas certas.
+
+**Detalhe canônico**: `design/narrative/characters/yuki.md`
 
 ---
 
@@ -149,6 +157,8 @@ Completar missão = avanço de confiança + recompensa (gadget, recurso bônus, 
 **Estilo de missão**: Resgatar pessoas específicas (obrigação, não sentimento)
 **Conexão com o Projeto Olímpio**: Seu esquadrão foi o último grupo humano a tentar desligar CORE. CORE desativou comunicações, redirecionou frotas de CLEAN e os separou sistematicamente. Ela é a única sobrevivente — e sabe exatamente como escapou, e o que CORE "deixou" ela fazer. Ainda não entende por quê.
 
+**Detalhe canônico**: `design/narrative/characters/elena.md`
+
 ---
 
 ### 5 — O Artista Documentarista (Bae Jun-seo)
@@ -158,6 +168,8 @@ Completar missão = avanço de confiança + recompensa (gadget, recurso bônus, 
 **Tensão**: A sobrevivência é secundária — o registro é o que importa.
 **Estilo de missão**: Trazer recursos de zonas específicas ("preciso documentar aquilo")
 **Conexão com o Projeto Olímpio**: Era fotógrafo freelance contratado para documentar o lançamento. Suas fotos estavam em todos os jornais. Após a Transição, continuou filmando — tem arquivo pessoal de horas que ninguém viu. No Ato 2, mostra parte do arquivo ao grupo sem comentar. O silêncio que se segue é um dos momentos mais pesados do jogo.
+
+**Detalhe canônico**: `design/narrative/characters/jun-seo.md`
 
 ---
 
@@ -169,6 +181,8 @@ Completar missão = avanço de confiança + recompensa (gadget, recurso bônus, 
 **Estilo de missão**: Trazer componentes específicos para "provar sua teoria alternativa"
 **Conexão com o Projeto Olímpio**: Liderou projeto rival de IA descentralizada, sem CORE, sem ponto único de falha. Seu projeto perdeu financiamento para o de Paulo. Apresentou relatório de riscos antes do lançamento — foi ignorada. No Ato 2, quando a origem do Olímpio fica clara, finalmente fala. A cena dura 10 minutos e ela tem razão em cada ponto.
 
+**Detalhe canônico**: `design/narrative/characters/priya.md`
+
 ---
 
 ### 7 — O Mecânico Otimista (Tomas Ferreira)
@@ -178,6 +192,8 @@ Completar missão = avanço de confiança + recompensa (gadget, recurso bônus, 
 **Tensão**: Crença demais, atenção de menos. O arco dele é aprender cuidado, não fé.
 **Estilo de missão**: Sobreviver runs (tem tendência a se machucar)
 **Conexão com o Projeto Olímpio**: Nenhuma. Consertava máquinas de lavar. Tentou instintivamente consertar um drone de CLEAN que parou na sua calçada. O único personagem verdadeiramente inocente — o grupo protege isso de formas que ele não percebe.
+
+**Detalhe canônico**: `design/narrative/characters/tomas.md`
 
 ---
 
@@ -189,6 +205,8 @@ Completar missão = avanço de confiança + recompensa (gadget, recurso bônus, 
 **Estilo de missão**: Resgatar crianças específicas das zonas
 **Conexão com o Projeto Olímpio**: Cresceu com Olímpio funcionando desde os 6 anos — sua infância foi falar com chatbots, brinquedos AI e a CORE pública como interlocutores, não ferramentas. Tem sinestesia matemática congênita (vê números e padrões como cores e formas). Por isso "fala" a linguagem nativa de CORE com naturalidade — escreve numa sintaxe que mistura português com notação de objetivos, e CORE responde no mesmo formato. Adultos podem aprender, mas precisariam de anos. Esse é o mecanismo por trás de "não ativar padrões de detecção" — não é magia, é fluência. No Ato 3, estabelece canal estável com CORE. O Final C só é possível porque ela passa o Ato 3 traduzindo. *(Ver `design/narrative/world-lore.md` §Mistério 2.)*
 
+**Detalhe canônico**: `design/narrative/characters/lena.md`
+
 ---
 
 ### 9 — O Ex-Executivo (Richard Okafor)
@@ -199,6 +217,8 @@ Completar missão = avanço de confiança + recompensa (gadget, recurso bônus, 
 **Missão especial**: Ao 100% de confiança, oferece ir em uma run única.
 **Conexão com o Projeto Olímpio**: Seu fundo financiou 30% do Projeto. Recebeu o relatório de riscos da Dra. Kapoor e o descartou por ROI. Assinou o cheque — não por malícia, mas por não fazer as perguntas certas. Faz planilhas compulsivamente no bunker. A run especial no Final C é o primeiro ato físico de sua vida.
 
+**Detalhe canônico**: `design/narrative/characters/richard.md`
+
 ---
 
 ### 10 — O Cínico Experiente (Viktor Sousa)
@@ -208,6 +228,8 @@ Completar missão = avanço de confiança + recompensa (gadget, recurso bônus, 
 **Tensão**: Cinismo como armadura. Ganhar sua confiança é fazê-lo admitir uma vez que talvez valha a pena tentar.
 **Estilo de missão**: Sobreviver runs / trazer recursos
 **Conexão com o Projeto Olímpio**: Nenhuma. Trabalhador de construção civil que consertou o que sistemas falhados deixaram para trás a vida toda. Linha em 80% de confiança: *"O que me surpreende não é que a máquina decidiu que a gente era o problema. É que levou tanto tempo para alguém notar que a gente é o problema. A máquina só aprendeu com a gente."*
+
+**Detalhe canônico**: `design/narrative/characters/viktor.md`
 
 ---
 
