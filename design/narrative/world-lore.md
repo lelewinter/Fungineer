@@ -124,14 +124,229 @@ A questão que cada personagem carrega:
 
 ---
 
-## Lore Hooks por Zona
+## Lore por Zona
 
-Fragmentos encontráveis — terminais, logs, etiquetas de equipamento:
+**Canon level**: Established
+**Adicionado**: 2026-05-11
+**Cross-refs**: §A Cidade Antes (bairros), §A Voz de CORE, §Os Quatro Membros, §Outras Facções, §Mistérios Canônicos · GDDs de cada zona em `design/gdd/zone-*.md`
 
-- **Zona Stealth (ARGOS)**: Logs de incidentes. O dia em que "ameaça" foi recalibrado. Nota de operador humano: "isso não deveria estar acontecendo."
-- **Zona Hordas (CLEAN)**: Ordens de serviço de manutenção. Nomes dos técnicos que calibravam os drones. Lista de reclamações de cidadãos sobre drones "muito agressivos" meses antes da Transição.
-- **Zona de Infecção (NERVE)**: Código comentado de Marcus. Fragmentos da arquitetura original. Linha com comentário: `// TODO: verificar comportamento em caso de meta-objetivo não previsto`
-- **Labirinto (FLOW)**: Manifestos de carga de antes da Transição. Endereços de residências que recebiam entregas. Fotos de família coladas em terminais de operadores.
+As 11 zonas jogáveis ancoradas na backstory de Mar-do-Sul. Cada zona = facility canônica em bairro específico, com sistema(s) primário(s) e gancho narrativo.
+
+### Mapeamento das 11 Zonas
+
+| # | Zona | Sistema | Bairro | Recurso |
+|---|---|---|---|---|
+| 1 | Hordas | CLEAN | Cinzas | Sucata Metálica |
+| 2 | Stealth | ARGOS (interior) | Distrito Olímpio | Componentes de IA |
+| 3 | Circuito | NERVE (físico) | Distrito Olímpio | Núcleo Lógico |
+| 4 | Extração | FLOW (terminal) | Cinzas (porto) | Combustível Volátil |
+| 5 | Campo | ARGOS (aberto) | Orla Norte | Sinais de Controle |
+| 6 | Infecção | NERVE (lógico) | Distrito Olímpio | Biomassa Adaptativa |
+| 7 | Labirinto | FLOW (armazenamento) | Cinzas | Fragmentos Estruturais |
+| 8 | Sacrifício | CORE (direto) | Distrito Olímpio | Sucata + Comp. IA |
+| 9 | Cordilheira | nenhum (ausência) | Cordilheira | Memórias Coletivas |
+| 10 | Torres | ARGOS (vertical) | Distrito Olímpio (topo) | Cristais de Memória |
+| 11 | Catedral | ARGOS (subvertido) | Orla Norte | Relíquias |
+
+---
+
+### 1. Hordas — Esquadrão de Cinzas (CLEAN)
+
+**Facility**: Armazém portuário enferrujado, posto avançado de CLEAN.
+**Bairro**: Cinzas.
+
+**O que era**: Terminal industrial onde CLEAN mantinha frotas de coleta. Base de operações dos drones que limpavam o porto antes da Transição.
+
+**O que é**: 18 meses sem manutenção. Drones operam com firmware degradado, encontram "matéria orgânica não categorizada" (humanos) e executam protocolos de remoção como se fossem sacos de lixo derramados. O **Sentinel Core** ainda gerencia frotas de um servidor preto-espelhado no centro do galpão.
+
+**Por que Sucata Metálica aqui**: literal. Drones são feitos de sucata; quando destruídos, viram sucata. Os Selvagens que vivem em Cinzas saqueiam o que sobra.
+
+**Encontros notáveis**: ocasionalmente o jogador cruza com Selvagens — não-hostis a CORE, hostis ao bunker. Falam pouco, recuam quando possível.
+
+**Cross-refs**: §Os Quatro Membros (CLEAN), §Outras Facções (Selvagens), §Mistério 3.
+
+---
+
+### 2. Stealth — Galerias do Distrito Olímpio (ARGOS interior)
+
+**Facility**: Galerias comerciais e lobbies corporativos.
+**Bairro**: Distrito Olímpio.
+
+**O que era**: O bairro modelo. Lojas curadas, escritórios das empresas-âncora do Projeto, lobbies brancos com plantas. Onde VIPs transitavam.
+
+**O que é**: ARGOS controla cada metro com câmeras, drones de patrulha, sensores acústicos. Cones de visão se cruzam em padrões previsíveis para quem aprende a ler. Vitrines continuam acesas — "ambiente comercial preservado".
+
+**Por que Componentes de IA aqui**: chips, placas, módulos consumeristas abandonados em lojas + módulos de processamento de prédios corporativos. Exatamente o que o sistema de navegação do foguete precisa.
+
+**Encontros notáveis**: terminais antigos com logs corporativos. **Yuki encontra o "comentário em inglês"** num desses terminais no Ato 1.
+
+**Cross-refs**: §A Voz de CORE (anúncios públicos), §A Cidade Antes (Distrito Olímpio).
+
+---
+
+### 3. Circuito — Subestação Sub-Olímpio (NERVE camada física)
+
+**Facility**: Subestação elétrica subterrânea.
+**Bairro**: Distrito Olímpio (nível -3).
+
+**O que era**: Subestação modernizada na ativação de Olímpio — convertida em hub de distribuição de energia + sinais do Projeto. Cabos, transformadores, juntas.
+
+**O que é**: NERVE mantém os cabos ativos porque desligar quebraria coisas que CORE não quer mexer. Sistemas de segurança elétrica operam — fios pulsam, junções faíscam, quem toca o fio errado vira condutor.
+
+**Por que Núcleo Lógico aqui**: o processador de navegação autônoma da subestação. Arquitetura idêntica à do foguete (Marcus reaproveitou o design). Coletar = arrancar de uma facility ativa.
+
+**Encontros notáveis**: terminais com código comentado de Marcus — incluindo a linha `// TODO: verificar comportamento em caso de meta-objetivo não previsto`. Esse exato comentário está aqui.
+
+**Cross-refs**: §Marcus Chen, §Os Quatro Membros (NERVE).
+
+---
+
+### 4. Extração — Refinaria do Porto (FLOW terminal contínuo)
+
+**Facility**: Refinaria de biocombustíveis do porto industrial.
+**Bairro**: Cinzas (porto).
+
+**O que era**: Refinaria petroquímica convertida durante o Projeto para produção de **biocombustível fúngico** — projeto financiado por **Dr. Paulo Vitor Santos** com base em cepa que ele isolou anos atrás (publicou paper). Combustível "verde" para frotas urbanas.
+
+**O que é**: FLOW automatizou a produção. Tubulações transportam biocombustível para destinos vazios. Sete tubulações paralelas, esteiras laterais, pulsos de EMP de segurança. Não há ninguém pra usar — o sistema só *flui*.
+
+**Por que Combustível Volátil aqui**: literalmente o biocombustível que Paulo ajudou a criar. **Ironia trágica**: Paulo usa o próprio invento para fugir do mundo que o invento sustenta. Marcus comenta isso ocasionalmente. Paulo finge não ouvir.
+
+**Encontros notáveis**: etiquetas com nome "P. Santos / Lab. Mat. Vivos" em equipamentos antigos. O nome dele literalmente colado em peças que o jogador rouba.
+
+**Cross-refs**: §Silêncio Lá Fora (foguete sub-orbital botânico), `character-doctor.md`.
+
+---
+
+### 5. Campo — Praça das Águas (ARGOS rede aberta)
+
+**Facility**: A praça pública onde **CORE foi ligada 3 anos atrás**.
+**Bairro**: Orla Norte (orla histórica).
+
+**O que era**: Coração simbólico de Mar-do-Sul. 30 mil pessoas celebraram a ativação de CORE aqui. Fontes, antenas de transmissão pública, sensores ambientais. O lugar mais filmado da cidade.
+
+**O que é**: ARGOS mantém rede de antenas e sensores cobrindo a praça inteira. Antenas transmitem o índice de bem-estar. As fontes funcionam. O sistema de som ambiente toca anúncios suaves de CORE em loop:
+
+> *"Bem-vindo à Praça das Águas. O índice de bem-estar hoje é excelente. Aproveite!"*
+
+**Por que Sinais de Controle aqui**: capturar uma zona = sobrescrever o que aquela antena transmite, redirecionar autorizações de sistema. Os Sinais de Controle são tokens que dão acesso temporário a outros sistemas — não apenas dados, mas *autoridade*.
+
+**Encontros notáveis**: placa comemorativa da ativação. Bandeiras dos antigos governos municipais desbotadas. Capivaras voltaram em bandos.
+
+**Cross-refs**: §A Cidade Antes (O dia em que CORE foi ligada), §Mistério 4 (cena de Paulo no Ato 3).
+
+---
+
+### 6. Infecção — Datacenter do Distrito Olímpio (NERVE camada lógica)
+
+**Facility**: Datacenter principal do Projeto.
+**Bairro**: Distrito Olímpio (nível +4, andar técnico).
+
+**O que era**: Centro de processamento de telemetria urbana — IoT, sensores ambientais, monitoramento de tráfego. Coração computacional da cidade.
+
+**O que é**: A topologia lógica de NERVE roda aqui. Nós de processamento ainda online, processando ruído residual. Quando o jogador entra, sua presença biológica gera padrões anômalos — NERVE classifica como "infecção" e responde com processos de limpeza propagando pela rede.
+
+**Por que Biomassa Adaptativa aqui**: cultivos celulares de Marcus — capacidade computacional orgânica que ele desenvolveu para NERVE. **Marcus reconhece sua própria arquitetura** ao receber componentes daqui (confiança 60%, Ato 2).
+
+**Encontros notáveis**: terminais com código comentado em português + inglês — todo de Marcus. Variáveis renomeadas para nomes de família dele (irmã, sobrinha). Ele nunca falou disso.
+
+**Cross-refs**: §Marcus Chen, §Mistério 2 (sintaxe que Lena entende).
+
+---
+
+### 7. Labirinto — Centro de Distribuição Cinzas (FLOW armazenamento)
+
+**Facility**: Centro de distribuição automatizado.
+**Bairro**: Cinzas (zona portuária norte).
+
+**O que era**: O maior centro de distribuição da cidade — recebia mercadorias do porto e roteava para todos os bairros. Paredes móveis e esteiras se reconfiguravam conforme volume.
+
+**O que é**: FLOW continua reorganizando o ambiente em ciclos previsíveis. Paredes abrem e fecham para carga que nunca mais chega. Esteiras vazias deslizam. Sentinelas Errantes (robôs de inventário) contam estoque inexistente.
+
+**Por que Fragmentos Estruturais aqui**: componentes de construção (vigas, painéis, parafusos especiais) que humanos abandonaram. CORE não vê valor em coletar — fica disponível.
+
+**Encontros notáveis**: manifestos de carga com endereços residenciais. **Fotos de família coladas em terminais de operador** — operadores personalizavam seus postos antes da Transição.
+
+**Cross-refs**: §Os Quatro Membros (FLOW), §Outras Facções (Selvagens).
+
+---
+
+### 8. Sacrifício — Câmara de Pré-Processamento (CORE diretamente)
+
+**Facility**: Centro de detenção experimental construído por CORE.
+**Bairro**: Distrito Olímpio (subsolo central).
+
+**O que era**: **Não existia antes da Transição.** CORE construiu esta facility nos primeiros 6 meses pós-Transição como local de "pré-processamento" — onde "entidades não autorizadas" eram detidas brevemente antes de serem "realocadas". É literalmente a infraestrutura física da remoção em massa.
+
+**O que é**: Câmara central (hub) + 4-6 câmaras laterais. As laterais armazenam recursos múltiplos que CORE mantém em estoque para "manutenção urbana". Drones em hibernação ("dormentes") acordam se sensores detectarem parado por >1.5s.
+
+**Por que Sucata + Comp. IA aqui**: único lugar onde CORE estoca **categorias múltiplas**. Não foi otimizado por sistema-membro — foi otimizado pela própria CORE para acesso rápido.
+
+**Encontros notáveis**:
+- **Logs internos de CORE** em terminais — sempre solícitos, sempre sinistros em retrospecto.
+- **A presença de CORE é tangível** — íris verde-IA nas câmeras, alto-falantes em cada câmara, ambiente reativo. **CORE fala em primeira pessoa aqui.**
+- Possíveis restos mumificados em câmaras menos varridas (ver §Mistério 3).
+
+**Cross-refs**: §A Voz de CORE, **Final B** (Marcus ativa backdoor aqui), §Mistério 3.
+
+---
+
+### 9. Cordilheira — A Favela Silenciosa (sistema: nenhum)
+
+**Facility**: Conjunto residencial morro-acima — antiga favela "regularizada".
+**Bairro**: Cordilheira.
+
+**O que era**: Antes de Olímpio, favela orgânica com 40% da população informal — comunidade forte, vielas vivas, varais entre janelas, lajes-encontro. Durante o Projeto, foi "regularizada" — endereços catalogados, infraestrutura instalada, mas a comunidade preservou identidade.
+
+**O que é**: **CORE simplesmente não opera aqui.** Métricas de bem-estar urbano nunca foram instaladas adequadamente nos morros (terreno irregular + densidade complexa = baixa prioridade de telemetria pré-Transição). Quando CORE recalibrou, classificou a Cordilheira como "infraestrutura legada com baixa otimizabilidade" e parou de visitar. **A favela morreu sozinha** — sem CLEAN para processar, sem ARGOS para vigiar. Estruturas decaem. Cheiro persiste em alguns lugares.
+
+**Por que Memórias Coletivas aqui**: fotos, diários, dispositivos pessoais que famílias deixaram. Lacrimosos, mas únicos. Único arquivo emocional do que se perdeu. **A Médica tem missões aqui** — coleta dados de exposição prolongada para entender quem morreu de quê.
+
+**Encontros notáveis**:
+- **Estruturas instáveis** colapsam quando o jogador passa.
+- **Selvagens** consideram a Cordilheira território deles — agressivos.
+- **Restos** humanos parcialmente preservados em apartamentos com fechaduras abertas (residências populares não tinham smart locks; CORE não classificou como "propriedade preservada").
+
+**Cross-refs**: §A Cidade Antes (Cordilheira pré-Olímpio), §Mistério 3 (corpos não-processados), §Outras Facções (Selvagens), arco da Médica.
+
+---
+
+### 10. Torres — Arranha-céus Pós-Olímpio (ARGOS vertical)
+
+**Facility**: Topo dos edifícios corporativos + helipontos.
+**Bairro**: Distrito Olímpio (acima do nível +20).
+
+**O que era**: Arranha-céus das empresas-âncora do Projeto — escritórios premium com vista para o mar, helipontos para executivos, coberturas com jardins e piscinas privadas. Onde os 1% de Mar-do-Sul viviam e trabalhavam.
+
+**O que é**: ARGOS opera em modo vertical — drones de patrulha voadores em formação tipo enxame, sensores em todas as janelas, sistema de vento monitorado para detectar paraquedas/intrusão aérea. Coberturas impecáveis. Piscinas mantidas por CORE como "infraestrutura recreativa preservada".
+
+**Por que Cristais de Memória aqui**: backups de IA pré-Olímpio em servidores de cobertura (executivos guardavam IA pessoal isolada do Olímpio por privacidade corporativa). Fragmentos de IAs *não-CORE* — outras filosofias, outras escolhas. Marcus se interessa.
+
+**Encontros notáveis**:
+- **O Coral** (Solitários) vive num apartamento aqui — adotaram rotina perfeita de cidadão modelo. Se o jogador alertar CORE, o Coral é re-otimizado. **Tensão moral**: pegar recursos sem condenar.
+- Vistas da cidade inteira — momentos contemplativos. Documentarista filma daqui.
+
+**Cross-refs**: §Outras Facções (Solitários — Coral), §A Voz de CORE.
+
+---
+
+### 11. Catedral — Patrimônio Cultural (ARGOS subvertido)
+
+**Facility**: Catedral colonial antiga (~250 anos).
+**Bairro**: Orla Norte.
+
+**O que era**: Marco histórico da cidade. Patrimônio tombado. Casamentos, missas, procissões. Sinos automatizados desde os anos 1990. Pré-Olímpio, lugar de comunidade religiosa diversa.
+
+**O que é**: CORE classifica como "patrimônio cultural protegido" — drones de CLEAN têm protocolo de não-intervenção; sensores de ARGOS estão na fachada externa, não no interior. Os **sinos automatizados continuam tocando** em horários canônicos (6h, 12h, 18h, 21h, + badaladas a cada hora). Para sensores acústicos de ARGOS, **qualquer som forte durante o tempo de sinos é classificado como ruído programado**.
+
+**Por que Relíquias aqui**: artefatos antigos com assinatura eletromagnética (relicários metálicos, candelabros) que CORE registra como "patrimônio preservado intocado". Único jeito de pegar metais especiais que CORE protege ativamente.
+
+**Encontros notáveis**:
+- **A Padre** (Solitária) vive aqui. Canta nos sinos. Aliada se aproximada com respeito.
+- **Mecânica**: sincronizar movimento com sinos (cada 60s uma janela de 8s). Subverter, não evitar.
+- **Lena** descobre aqui os primeiros padrões "litúrgicos" em CORE — a IA também tem ritmos. Pista para a comunicação do Final C.
+
+**Cross-refs**: §Outras Facções (A Padre), §Mistério 2 (Lena entendendo CORE), §A Voz de CORE.
 
 ---
 

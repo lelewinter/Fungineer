@@ -12,6 +12,24 @@ tipo: game-design-doc
 
 ---
 
+## Lore
+
+**Facility canônica**: Centro de distribuição automatizado.
+**Bairro**: Cinzas (zona portuária norte).
+**Sistema primário**: FLOW (armazenamento — diferente da Extração, que é o terminal contínuo do mesmo sistema).
+
+**O que era**: O maior centro de distribuição da cidade — recebia mercadorias do porto e roteava para todos os bairros. Paredes móveis e esteiras se reconfiguravam conforme volume.
+
+**O que é**: FLOW continua reorganizando o ambiente em ciclos previsíveis. Paredes abrem e fecham para carga que nunca mais chega. Esteiras vazias deslizam. Sentinelas Errantes (robôs de inventário) ainda contam estoque inexistente.
+
+**Por que Fragmentos Estruturais aqui**: componentes de construção (vigas, painéis, parafusos especiais) que humanos abandonaram. CORE não vê valor em coletar — fica disponível para o bunker.
+
+**Encontros notáveis**: manifestos de carga antigos com endereços residenciais reais da cidade. **Fotos de família coladas em terminais de operador** — operadores humanos personalizavam seus postos antes da Transição. O Documentarista filmou aqui pela primeira vez sem comentar.
+
+**Detalhe canônico completo**: `design/narrative/world-lore.md` §Lore por Zona §7.
+
+---
+
 ## 1. Overview
 
 Zona de navegação sob pressão estrutural. O mapa é um labirinto com paredes que abrem e fecham em ciclos temporizados e visíveis; o objetivo é chegar ao EXIT coletando Fragmentos Estruturais pelo caminho. A mecânica central é o Impulso: aproximar-se de uma parede em movimento acelera a abertura — mover é mais eficiente que esperar.
