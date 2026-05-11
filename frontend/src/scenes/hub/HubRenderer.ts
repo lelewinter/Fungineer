@@ -20,6 +20,10 @@ export class HubRenderer extends Container {
 
   private cellWidth: number;
   private roomYOffset: Record<string, number> = {};
+  /** Static layer: walls, room base + interior fills, grid, locked rooms.
+   *  Redrawn only when the variant changes or a room is unlocked. */
+  private staticG = new Graphics();
+  /** Animated layer: badges, pulses, flickers, ambient spores. */
   private g = new Graphics();
   private hitLayer = new Container();
   private silhouetteLabels = new Map<string, Text>();
@@ -34,11 +38,19 @@ export class HubRenderer extends Container {
     this.bottomPad = opts.bottomPad ?? 0;
     this.cellWidth = GameConfig.VIEWPORT_WIDTH / 6;
     this.calculateLayout();
+    this.addChild(this.staticG);
     this.addChild(this.g);
     this.addChild(this.hitLayer);
     this.buildHitboxes();
-    this.disposers.push(HubState.hubVariantChanged.connect(() => this.applyVariant()));
-    this.disposers.push(HubState.roomUnlockedSignal.connect(() => this.refreshSilhouettes()));
+    this.drawStatic();
+    this.disposers.push(HubState.hubVariantChanged.connect(() => {
+      this.applyVariant();
+      this.drawStatic();
+    }));
+    this.disposers.push(HubState.roomUnlockedSignal.connect(() => {
+      this.refreshSilhouettes();
+      this.drawStatic();
+    }));
   }
 
   destroyRenderer(): void {
@@ -47,10 +59,20 @@ export class HubRenderer extends Container {
     this.destroy({ children: true });
   }
 
+  /** Per-frame tick. Caller passes seconds since last tick. The animated
+   *  layer redraws at ~30 fps regardless of incoming framerate — every
+   *  effect is a slow pulse/flicker, so half-rate is invisible to the eye
+   *  and roughly doubles the renderer's throughput. */
+  private redrawAccumMs = 0;
+  private readonly redrawIntervalMs = 1000 / 30;
   tick(dt: number): void {
     this.elapsedFrames += Math.round(dt * 60);
     this.elapsedMs += dt * 1000;
-    this.redraw();
+    this.redrawAccumMs += dt * 1000;
+    if (this.redrawAccumMs >= this.redrawIntervalMs) {
+      this.redrawAccumMs = 0;
+      this.redraw();
+    }
   }
 
   private calculateLayout(): void {
@@ -135,13 +157,60 @@ export class HubRenderer extends Container {
   }
 
   // ── Drawing ──────────────────────────────────────────────────────────────
+  /** Heavy, draw-once layer: walls, grid, locked rooms, room base + vignette
+   *  + lighting + border. Re-runs only on variant change or room unlock. */
+  private drawStatic(): void {
+    this.staticG.clear();
+    this.useGraphics(this.staticG);
+    this.drawSideWalls();
+    this.drawGridLines();
+    for (const room of HubData.ROOMS) this.drawRoomStatic(room);
+    this.useGraphics(this.g);
+  }
+
+  /** Light per-frame layer: zone badges, interior animations, rocket shaft,
+   *  ambient spores. */
   private redraw(): void {
     this.g.clear();
-    this.drawSideWalls();
-    for (const room of HubData.ROOMS) this.drawRoom(room);
+    for (const room of HubData.ROOMS) this.drawRoomAnim(room);
     this.drawRocketShaft();
-    this.drawGridLines();
     this.drawAmbientSpores();
+  }
+
+  /** All `draw*` helpers below render into `this.g`. drawStatic temporarily
+   *  swaps that pointer to `staticG` and restores it on exit. */
+  private useGraphics(target: Graphics): void {
+    this.g = target;
+  }
+
+  private drawRoomStatic(room: HubRoom): void {
+    if (HubData.isRocketRoom(room)) return;
+    const x = this.cellWidth * room.col;
+    const y = this.roomYOffset[room.id] ?? 0;
+    const w = this.cellWidth * room.w;
+    const h = this.roomFloorH(room);
+
+    if (!HubState.isRoomUnlocked(room.id)) {
+      this.drawLockedRoom(room, x, y, w, h);
+      return;
+    }
+
+    this.g.rect(x, y, w, h).fill(Color.hex(this.getRoomBaseColor(room)));
+    this.applyRoomLighting(room, x, y, w, h);
+    this.drawRoomVignette(x, y, w, h);
+    this.drawRoomTopLight(x, y, w, h, room);
+    this.g.rect(x, y, w, h).stroke({ color: Color.hex(Color.rgb(0.15, 0.15, 0.15)), width: 1 });
+  }
+
+  private drawRoomAnim(room: HubRoom): void {
+    if (HubData.isRocketRoom(room)) return;
+    if (!HubState.isRoomUnlocked(room.id)) return;
+    const x = this.cellWidth * room.col;
+    const y = this.roomYOffset[room.id] ?? 0;
+    const w = this.cellWidth * room.w;
+    const h = this.roomFloorH(room);
+    this.drawRoomInterior(room, x, y, w, h);
+    this.drawZoneBadgeIfNeeded(room, x, y, w, h);
   }
 
   private drawSideWalls(): void {
@@ -164,27 +233,6 @@ export class HubRenderer extends Container {
       .stroke({ color: Color.hex(seam), width: 1.5, alpha: 0.7 });
     this.g.moveTo(ww - wallW, wallTopY).lineTo(ww - wallW, totalH)
       .stroke({ color: Color.hex(seam), width: 1.5, alpha: 0.7 });
-  }
-
-  private drawRoom(room: HubRoom): void {
-    if (HubData.isRocketRoom(room)) return;
-    const x = this.cellWidth * room.col;
-    const y = this.roomYOffset[room.id] ?? 0;
-    const w = this.cellWidth * room.w;
-    const h = this.roomFloorH(room);
-
-    if (!HubState.isRoomUnlocked(room.id)) {
-      this.drawLockedRoom(room, x, y, w, h);
-      return;
-    }
-
-    this.g.rect(x, y, w, h).fill(Color.hex(this.getRoomBaseColor(room)));
-    this.drawRoomInterior(room, x, y, w, h);
-    this.applyRoomLighting(room, x, y, w, h);
-    this.drawRoomVignette(x, y, w, h);
-    this.drawRoomTopLight(x, y, w, h, room);
-    this.drawZoneBadgeIfNeeded(room, x, y, w, h);
-    this.g.rect(x, y, w, h).stroke({ color: Color.hex(Color.rgb(0.15, 0.15, 0.15)), width: 1 });
   }
 
   // ── Integrated Rocket Shaft ───────────────────────────────────────────────

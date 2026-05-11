@@ -75,7 +75,12 @@ export class HubNPCManager extends Container {
     }
   }
 
-  /** Called every frame from HubScene.update. */
+  private redrawAccumMs = 0;
+  private readonly redrawIntervalMs = 1000 / 30;
+
+  /** Called every frame from HubScene.update. State updates always run, but
+   *  the graphics layer redraws at ~30 fps — the bob is the only per-frame
+   *  visual change and humans can't tell the difference at that rate. */
   tick(dt: number): void {
     this.elapsed += dt;
     for (const [, state] of this.states) {
@@ -86,7 +91,11 @@ export class HubNPCManager extends Container {
         this.tryWander(state);
       }
     }
-    this.redraw();
+    this.redrawAccumMs += dt * 1000;
+    if (this.redrawAccumMs >= this.redrawIntervalMs) {
+      this.redrawAccumMs = 0;
+      this.redraw();
+    }
   }
 
   private tryWander(state: NPCState): void {
