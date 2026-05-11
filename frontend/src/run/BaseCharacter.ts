@@ -6,6 +6,7 @@ import { GameState } from '../state/GameState';
 import type { BaseEnemy } from './BaseEnemy';
 import type { RunWorld } from './RunWorld';
 import { CombatSfx, spawnDamageNumber } from './fx/DamageNumbers';
+import { Juice } from './fx/Juice';
 
 export interface CharacterStats {
   name: string;
@@ -121,7 +122,12 @@ export class BaseCharacter {
     GameState.damageDealt.emit(this as unknown as never, effective, { ...this.position });
     if (this.world) spawnDamageNumber(this.world, this.position, effective, 0xff7a7a);
     CombatSfx.partyHit();
-    if (this.current_hp <= 0) this.die();
+    // Juicy feedback for getting hit. Bigger hits = bigger thump.
+    Juice.shake(Math.min(0.55, 0.18 + effective / 80), Math.min(60, 18 + effective));
+    if (this.current_hp <= 0) {
+      Juice.shake(0.7, 90);
+      this.die();
+    }
   }
 
   heal(amount: number): void {

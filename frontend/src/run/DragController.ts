@@ -3,28 +3,38 @@ import type { Party } from './Party';
 import { GameConfig } from '../state/GameConfig';
 import { GameState } from '../state/GameState';
 
-/** Translates pointer/touch events into party anchor movement.
- *  Pointer deltas (in CSS pixels) are scaled by the inverse of App.world.scale
- *  so movement feels 1:1 regardless of window letterboxing. */
+/** Vampire-Survivors-style "follow the finger" controller.
+ *
+ *  While the pointer is down (or hovering on desktop), the party walks at a
+ *  constant speed toward the finger's world-space position. There's no drag
+ *  start/stop — the finger is the steering input. Releasing the pointer
+ *  freezes movement.
+ *
+ *  Pointer position is mapped through the camera's transform so the
+ *  destination tracks the world even as the camera scrolls. */
 export class DragController {
   private app: App;
   private party: Party;
-  private dragActive = false;
-  private moveTarget = { x: 0, y: 0 };
+  private cameraNode: { x: number; y: number } | null;
+  private pointerDown = false;
+  private pointerWorld = { x: 0, y: 0 };
   private stillnessTimer = 0;
   private lastX = 0;
   private lastY = 0;
-  private static MOVE_THRESHOLD = 3;
+  private static readonly MOVE_THRESHOLD = 3;
+  private static readonly STOP_RADIUS = 6;
+  private static readonly MOVE_SPEED = 320; // world px / s
 
   // Listeners
   private onDown = (e: PointerEvent): void => this.handleDown(e);
   private onMove = (e: PointerEvent): void => this.handleMove(e);
   private onUp = (e: PointerEvent): void => this.handleUp(e);
 
-  constructor(app: App, party: Party) {
+  constructor(app: App, party: Party, cameraNode?: { x: number; y: number }) {
     this.app = app;
     this.party = party;
-    this.moveTarget = { ...party.anchor };
+    this.cameraNode = cameraNode ?? null;
+    this.pointerWorld = { ...party.anchor };
     const c = app.pixi.canvas;
     c.addEventListener('pointerdown', this.onDown);
     c.addEventListener('pointermove', this.onMove);
@@ -47,37 +57,53 @@ export class DragController {
     return s === 'PLAYING' || s === 'BOSS_FIGHT';
   }
 
-  private handleDown(_e: PointerEvent): void {
+  private toWorld(e: PointerEvent): { x: number; y: number } {
+    const rect = this.app.pixi.canvas.getBoundingClientRect();
+    const scale = this.app.world.scale.x || 1;
+    // CSS-pixel coords inside the canvas, then back through world fit + camera
+    // pan so the finger maps to the arena cell currently under it.
+    const cssX = (e.clientX - rect.left - this.app.world.x) / scale;
+    const cssY = (e.clientY - rect.top - this.app.world.y) / scale;
+    const camX = this.cameraNode?.x ?? 0;
+    const camY = this.cameraNode?.y ?? 0;
+    return { x: cssX - camX, y: cssY - camY };
+  }
+
+  private handleDown(e: PointerEvent): void {
     if (!this.isPlaying()) return;
-    this.dragActive = true;
-    this.moveTarget = { ...this.party.anchor };
+    this.pointerDown = true;
+    this.pointerWorld = this.toWorld(e);
   }
 
   private handleMove(e: PointerEvent): void {
-    if (!this.dragActive || !this.isPlaying()) return;
-    const scale = this.app.world.scale.x || 1;
-    this.moveTarget.x += e.movementX / scale;
-    this.moveTarget.y += e.movementY / scale;
+    if (!this.isPlaying()) return;
+    // Track the latest pointer position even when not pressed (cheap; just a
+    // vec3 update). Movement is gated on `pointerDown` in update().
+    this.pointerWorld = this.toWorld(e);
   }
 
   private handleUp(_e: PointerEvent): void {
-    this.dragActive = false;
+    this.pointerDown = false;
   }
 
   update(dt: number): void {
-    if (!this.isPlaying()) {
-      if (!this.dragActive) this.moveTarget = { ...this.party.anchor };
-      return;
+    if (!this.isPlaying()) return;
+
+    if (this.pointerDown) {
+      const dx = this.pointerWorld.x - this.party.anchor.x;
+      const dy = this.pointerWorld.y - this.party.anchor.y;
+      const dist = Math.hypot(dx, dy);
+      if (dist > DragController.STOP_RADIUS) {
+        // Constant-speed walk toward the finger. Capped at the remaining
+        // distance so we don't overshoot when the finger is close.
+        const step = Math.min(dist, DragController.MOVE_SPEED * dt);
+        this.party.anchor.x += (dx / dist) * step;
+        this.party.anchor.y += (dy / dist) * step;
+      }
     }
 
-    if (!this.dragActive) this.moveTarget = { ...this.party.anchor };
-
-    this.moveTarget.x = Math.max(40, Math.min(GameConfig.ARENA_WIDTH - 40, this.moveTarget.x));
-    this.moveTarget.y = Math.max(40, Math.min(GameConfig.ARENA_HEIGHT - 40, this.moveTarget.y));
-
-    const t = Math.min(1, GameConfig.DRAG_LERP_FACTOR * dt);
-    this.party.anchor.x += (this.moveTarget.x - this.party.anchor.x) * t;
-    this.party.anchor.y += (this.moveTarget.y - this.party.anchor.y) * t;
+    this.party.anchor.x = Math.max(40, Math.min(GameConfig.ARENA_WIDTH - 40, this.party.anchor.x));
+    this.party.anchor.y = Math.max(40, Math.min(GameConfig.ARENA_HEIGHT - 40, this.party.anchor.y));
 
     // Stillness tracking (Siege Mode)
     const moved = Math.hypot(this.party.anchor.x - this.lastX, this.party.anchor.y - this.lastY);
