@@ -1,0 +1,45 @@
+# Cloudflare Pages cache rules.
+# These are critical for the PWA update flow — get them wrong and users get
+# stuck on the old version (the SW will keep being served from CDN/disk cache).
+#
+# Rules of thumb:
+#   - Hashed assets (anything Vite emits under /assets/) -> immutable, 1 year.
+#   - HTML / SW / manifest -> no-cache (always revalidate). They're the "index"
+#     that points at the hashed assets, so they MUST be fresh.
+
+/*
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: SAMEORIGIN
+  Referrer-Policy: strict-origin-when-cross-origin
+
+# Vite outputs hashed JS/CSS under /assets/. Safe to cache forever — the hash
+# in the filename changes on every content change, so a new deploy yields a
+# new URL automatically. immutable tells the browser "never even revalidate".
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# Game art / vfx — also content-addressed by the hash in filenames once Vite
+# touches them. If you ever serve raw (un-hashed) images, drop this section.
+# (Audio inherits the wildcard below.)
+
+# The service worker file. MUST be fresh on every load — the browser already
+# enforces a 24h max for SWs, but we want it shorter than that. Without this,
+# CF could serve a stale sw.js after deploy and users miss the update.
+/sw.js
+  Cache-Control: no-cache, no-store, must-revalidate
+  Service-Worker-Allowed: /
+
+# Manifest changes per-deploy (icons might rev). Always revalidate.
+/manifest.webmanifest
+  Cache-Control: no-cache, no-store, must-revalidate
+  Content-Type: application/manifest+json
+
+# The HTML entry — small, must be fresh so it points at the latest hashed JS.
+/
+  Cache-Control: no-cache, no-store, must-revalidate
+/index.html
+  Cache-Control: no-cache, no-store, must-revalidate
+
+# Workbox precache manifest (emitted as a sibling of sw.js in some configs).
+/workbox-*.js
+  Cache-Control: public, max-age=31536000, immutable
