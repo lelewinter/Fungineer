@@ -30,6 +30,9 @@ export class HUD extends Container {
   private hpRows: HpRow[] = [];
   private hpStack: Container;
   private backpackSlots: Graphics[] = [];
+  private xpBarBg = new Graphics();
+  private xpBarFill = new Graphics();
+  private xpLabel!: Text;
   private disposers: Array<() => void> = [];
 
   constructor() {
@@ -143,9 +146,41 @@ export class HUD extends Container {
       this.backpackSlots.push(slot);
     }
 
+    // XP bar — slim strip directly under the timer. Fills as the player
+    // collects gems; resets and bumps the level number on each level-up.
+    const xpBarW = 160;
+    const xpBarH = 6;
+    const xpBarX = W / 2 - xpBarW / 2;
+    const xpBarY = 36;
+    this.xpBarBg
+      .roundRect(xpBarX, xpBarY, xpBarW, xpBarH, 3)
+      .fill({ color: 0x0a0e09, alpha: 0.9 })
+      .stroke({ color: 0x6dffba, width: 1, alpha: 0.55 });
+    this.addChild(this.xpBarBg);
+    this.addChild(this.xpBarFill);
+    this.xpLabel = new Text({
+      text: 'LV 1',
+      style: { fontFamily: FontFamily.mono, fontSize: 9, fill: 0x6dffba, fontWeight: '700', letterSpacing: 1 },
+    });
+    this.xpLabel.anchor.set(0.5);
+    this.xpLabel.x = W / 2;
+    this.xpLabel.y = xpBarY + xpBarH + 6;
+    this.addChild(this.xpLabel);
+    this.drawXp(0, GameState.xp_to_next, GameState.level, xpBarX, xpBarY, xpBarW, xpBarH);
+
     this.disposers.push(GameState.waveStarted.connect((w) => this.onWaveStarted(w)));
     this.disposers.push(GameState.bossSpawned.connect(() => this.onBossSpawned()));
     this.disposers.push(GameState.backpackChanged.connect((c) => this.onBackpackChanged(c)));
+    this.disposers.push(GameState.xpChanged.connect((cur, toNext, lvl) =>
+      this.drawXp(cur, toNext, lvl, xpBarX, xpBarY, xpBarW, xpBarH)));
+  }
+
+  private drawXp(cur: number, toNext: number, lvl: number, x: number, y: number, w: number, h: number): void {
+    const ratio = Math.max(0, Math.min(1, toNext > 0 ? cur / toNext : 0));
+    this.xpBarFill.clear()
+      .roundRect(x + 1, y + 1, (w - 2) * ratio, h - 2, 2)
+      .fill({ color: 0x6dffba });
+    this.xpLabel.text = `LV ${lvl}`;
   }
 
   registerCharacter(character: BaseCharacter): void {
@@ -221,15 +256,16 @@ export class HUD extends Container {
       this.timerLabel.text = `${mm}:${ss}`;
     }
 
-    // Power label with cooldown / status
+    // Power label with cooldown / status + power level
     const p = GameState.active_power as PowerResource | null;
     if (p) {
+      const lv = p.level > 1 ? `  Lv.${p.level}` : '';
       if (p.cooldown_remaining > 0) {
-        this.powerLabel.text = `${p.power_name} [${p.cooldown_remaining.toFixed(1)}s]`;
+        this.powerLabel.text = `${p.power_name}${lv} [${p.cooldown_remaining.toFixed(1)}s]`;
       } else if (p.is_active) {
-        this.powerLabel.text = `${p.power_name} [ON]`;
+        this.powerLabel.text = `${p.power_name}${lv} [ON]`;
       } else {
-        this.powerLabel.text = `${p.power_name}  ▸ TAP`;
+        this.powerLabel.text = `${p.power_name}${lv}  ▸ TAP`;
       }
       this.drawPowerButton(p);
     }

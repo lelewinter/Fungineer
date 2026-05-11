@@ -22,9 +22,10 @@ export class SiegeMode extends PowerResource {
       this.graceTimer -= dt;
       return;
     }
+    const lvl = this.levelMult();
     const active = GameState.siege_mode_active;
     if (active && !this.wasActive) {
-      GameState.power_damage_multiplier = GameConfig.SIEGE_MODE_DAMAGE_MULTIPLIER;
+      GameState.power_damage_multiplier = GameConfig.SIEGE_MODE_DAMAGE_MULTIPLIER * lvl;
       this.wasActive = true;
     } else if (!active && this.wasActive) {
       GameState.power_damage_multiplier = GameConfig.SIEGE_MODE_DAMAGE_PENALTY;
@@ -72,8 +73,8 @@ export class Overclock extends PowerResource {
 
   override onActivate(_party: BaseCharacter[], _world: RunWorld): void {
     this.is_active = true;
-    this.durationLeft = this.duration;
-    GameState.power_attack_speed_multiplier = GameConfig.OVERCLOCK_ATTACK_MULT;
+    this.durationLeft = this.duration * this.levelMult();
+    GameState.power_attack_speed_multiplier = GameConfig.OVERCLOCK_ATTACK_MULT * this.levelMult();
   }
 
   override onDeactivate(_party: BaseCharacter[], _world: RunWorld): void {

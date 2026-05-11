@@ -117,7 +117,7 @@ export const GameConfig = {
   GHOST_DRIVE_COOLDOWN: 20,
 
   // ── Extraction ─────────────────────────────────────────────────
-  EXTRACTION_RADIUS: 60,
+  EXTRACTION_RADIUS: 90,
 
   // ── Deterioration ──────────────────────────────────────────────
   DETERIORATION_STAGE1_RUNS: 6,
