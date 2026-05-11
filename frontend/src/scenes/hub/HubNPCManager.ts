@@ -2,7 +2,7 @@ import { Container, Graphics } from 'pixi.js';
 import { Color } from '../../core/Color';
 import { Signal } from '../../core/Signal';
 import { GameConfig } from '../../state/GameConfig';
-import { HubData } from '../../state/HubData';
+import { HubData, type HubRoom } from '../../state/HubData';
 import { HubState } from '../../state/HubState';
 import { randomRange } from '../../core/types';
 
@@ -18,6 +18,8 @@ interface NPCState {
 export class HubNPCManager extends Container {
   readonly npcClicked = new Signal<[npcId: string]>();
 
+  private readonly SURFACE_H = 110;
+  private floorH = 0;
   private cellWidth: number;
   private roomYOffset: Record<string, number> = {};
   private states: Map<string, NPCState> = new Map();
@@ -34,11 +36,16 @@ export class HubNPCManager extends Container {
   }
 
   private calculateDimensions(): void {
-    let y = 0;
+    this.floorH = (GameConfig.VIEWPORT_HEIGHT - this.SURFACE_H) / 5;
     for (const room of HubData.ROOMS) {
-      this.roomYOffset[room.id] = y;
-      y += room.h;
+      this.roomYOffset[room.id] = room.floor === 1
+        ? 0
+        : this.SURFACE_H + (room.floor - 2) * this.floorH;
     }
+  }
+
+  private roomH(room: HubRoom): number {
+    return room.floor === 1 ? this.SURFACE_H : this.floorH;
   }
 
   private initializePositions(): void {
@@ -49,7 +56,7 @@ export class HubNPCManager extends Container {
         this.states.set(npcId, {
           room: room.id,
           x: this.cellWidth * room.col + randomRange(10, this.cellWidth * room.w - 10),
-          y: yOff + randomRange(20, room.h - 20),
+          y: yOff + randomRange(20, this.roomH(room) - 20),
           bobPhase: Math.random(),
           wanderTimer: randomRange(5, this.wanderInterval),
         });
@@ -73,14 +80,16 @@ export class HubNPCManager extends Container {
 
   private tryWander(state: NPCState): void {
     if (Math.random() <= 0.6) return; // 40% per cycle
-    const candidates = HubData.ROOMS.filter((r) => r.type !== 'surface' && r.type !== 'surface-exit');
+    const candidates = HubData.ROOMS.filter(
+      (r) => r.type !== 'surface' && r.type !== 'surface-exit' && !HubData.isRocketRoom(r),
+    );
     if (candidates.length <= 1) return;
     const next = candidates[Math.floor(Math.random() * candidates.length)]!;
     if (next.id === state.room) return;
     state.room = next.id;
     const yOff = this.roomYOffset[next.id] ?? 0;
     state.x = this.cellWidth * next.col + randomRange(10, this.cellWidth * next.w - 10);
-    state.y = yOff + randomRange(20, next.h - 20);
+    state.y = yOff + randomRange(20, this.roomH(next) - 20);
   }
 
   private redraw(): void {

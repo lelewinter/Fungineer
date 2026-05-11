@@ -17,7 +17,7 @@ export interface HubRoom {
   label: string;
   col: number;
   w: number;
-  h: number;
+  floor: number;   // 1=surface, 2-6=underground
   type: string;
   light: string;
   npcs: string[];
@@ -53,23 +53,37 @@ const NPCS: HubNpc[] = [
   { id: 'viktor',  nome: 'Viktor',  hint: 'Cínico',          trust: 40,  color: C(0.549, 0.416, 0.243), accent: C(0.91, 0.58, 0.23),    glyph: 'V' },
 ];
 
+// 6-column × 6-floor cross-section layout (matches Hub.html mockup).
+// Cols 2-3 on floors 2-5 are the rocket shaft (type: rocket-*).
 const ROOMS: HubRoom[] = [
-  { id: 'surface',       label: 'SUPERFÍCIE',       col: 0, w: 6, h: 150, type: 'surface',         light: 'dim',         npcs: [] },
-  { id: 'saida_hordas',  label: 'SAÍDA · HORDAS',   col: 0, w: 6, h: 200, type: 'surface-exit',    light: 'red',         zone_id: 'hordas',     npcs: [] },
-  { id: 'vigia',         label: 'VIGIA',            col: 0, w: 2, h: 150, type: 'tech',            light: 'red',         silhouette: 'posto de vigia',         npcs: ['elena'] },
-  { id: 'armamentos',    label: 'ARMAMENTOS',       col: 2, w: 2, h: 150, type: 'storage',         light: 'amber',       silhouette: 'depósito de armas',      npcs: [] },
-  { id: 'enfermaria',    label: 'MYCELIUM LAB',     col: 4, w: 2, h: 150, type: 'mycelium-lab',    light: 'hospital',    zone_id: 'infeccao',   silhouette: 'laboratorio de bioformas', npcs: ['amara'] },
-  { id: 'lab',           label: 'CÂMARA DE ESPOROS', col: 0, w: 2, h: 150, type: 'spore-chamber',  light: 'cool',        zone_id: 'sacrificio', silhouette: 'camara de esporos',      npcs: ['priya'] },
-  { id: 'sala_comum',    label: 'SALA COMUM',       col: 2, w: 2, h: 150, type: 'common',          light: 'amber',       silhouette: 'sala de convivência',    npcs: ['richard'] },
-  { id: 'cozinha',       label: 'FUNGUS KITCHEN',   col: 4, w: 2, h: 150, type: 'fungus-kitchen',  light: 'warm',        silhouette: 'cozinha de fungos',      npcs: ['tomas'] },
-  { id: 'workshop',      label: 'HYPHAE FORGE',     col: 0, w: 2, h: 150, type: 'hyphae-forge',    light: 'amber',       silhouette: 'forja de hifas',         npcs: [] },
-  { id: 'arquivo',       label: 'ARQUIVO',          col: 2, w: 2, h: 150, type: 'archive',         light: 'office',      zone_id: 'extracao',   silhouette: 'arquivo vivo',           npcs: ['bae'] },
-  { id: 'server',        label: 'NEURAL MUSHROOM',  col: 4, w: 2, h: 150, type: 'neural-mushroom', light: 'neon-green',  zone_id: 'circuito',   silhouette: 'rede neural micótica',   npcs: ['yuki'] },
-  { id: 'gestao',        label: 'GESTÃO',           col: 0, w: 2, h: 150, type: 'office',          light: 'office',      silhouette: 'sala de gestão',         npcs: [] },
-  { id: 'quarto_lena',   label: 'QUARTO',           col: 2, w: 2, h: 150, type: 'bedroom',         light: 'pink-dim',    silhouette: 'quarto',                 npcs: ['lena'] },
-  { id: 'corredor',      label: 'CORREDOR',         col: 4, w: 2, h: 150, type: 'transit',         light: 'dim',         silhouette: 'corredor',               npcs: [] },
-  { id: 'tunel_stealth', label: 'TÚNEL STEALTH',    col: 0, w: 3, h: 150, type: 'tunnel-cool',     light: 'neon-green',  zone_id: 'stealth',    silhouette: 'túnel stealth',          npcs: [] },
-  { id: 'tunel_hordas',  label: 'TÚNEL HORDAS',     col: 3, w: 3, h: 150, type: 'tunnel-warm',     light: 'amber-hot',   silhouette: 'túnel das hordas',       npcs: [] },
+  // Floor 1 — Surface exit (full width)
+  { id: 'saida_hordas', label: 'SAÍDA · HORDAS', col: 0, w: 6, floor: 1,
+    type: 'surface-exit', light: 'red', zone_id: 'hordas', npcs: [] },
+
+  // Floor 2
+  { id: 'vigia',       label: 'VIGIA',     col: 0, w: 2, floor: 2, type: 'tech',          light: 'red',      zone_id: 'stealth',   silhouette: 'posto de vigia',           npcs: ['elena'] },
+  { id: 'rocket_top',  label: '',           col: 2, w: 2, floor: 2, type: 'rocket-top',    light: 'dim',      npcs: [] },
+  { id: 'deposito',    label: 'DEPÓSITO',  col: 4, w: 2, floor: 2, type: 'storage',       light: 'amber',    silhouette: 'depósito de armas',        npcs: [] },
+
+  // Floor 3
+  { id: 'lab_rival',   label: 'CÂMARA DE ESPOROS', col: 0, w: 2, floor: 3, type: 'spore-chamber', light: 'cool',  zone_id: 'sacrificio', silhouette: 'camara de esporos',       npcs: ['priya'] },
+  { id: 'rocket_mid1', label: '',                   col: 2, w: 2, floor: 3, type: 'rocket',        light: 'dim',   npcs: [] },
+  { id: 'enfermaria',  label: 'MYCELIUM LAB',       col: 4, w: 2, floor: 3, type: 'mycelium-lab',  light: 'hospital', zone_id: 'infeccao', silhouette: 'laboratorio de bioformas', npcs: ['amara'] },
+
+  // Floor 4
+  { id: 'workshop',    label: 'HYPHAE FORGE', col: 0, w: 2, floor: 4, type: 'hyphae-forge', light: 'amber',    silhouette: 'forja de hifas',           npcs: [] },
+  { id: 'rocket_mid2', label: '',              col: 2, w: 2, floor: 4, type: 'rocket',       light: 'dim',      npcs: [] },
+  { id: 'sala',        label: 'SALA COMUM',   col: 4, w: 2, floor: 4, type: 'common',       light: 'amber',    silhouette: 'sala de convivência',      npcs: ['richard'] },
+
+  // Floor 5
+  { id: 'cozinha',     label: 'FUNGUS KITCHEN', col: 0, w: 2, floor: 5, type: 'fungus-kitchen', light: 'warm',  silhouette: 'cozinha de fungos',       npcs: ['tomas'] },
+  { id: 'rocket_base', label: '',               col: 2, w: 2, floor: 5, type: 'rocket-base',    light: 'dim',   npcs: [] },
+  { id: 'arquivo',     label: 'ARQUIVO',        col: 4, w: 2, floor: 5, type: 'archive',        light: 'office', zone_id: 'extracao', silhouette: 'arquivo vivo',            npcs: ['bae'] },
+
+  // Floor 6
+  { id: 'server',      label: 'NEURAL MUSHROOM', col: 0, w: 2, floor: 6, type: 'neural-mushroom', light: 'neon-green', zone_id: 'circuito', silhouette: 'rede neural micótica', npcs: ['yuki'] },
+  { id: 'gestao',      label: 'GESTÃO',          col: 2, w: 2, floor: 6, type: 'office',          light: 'office',                         silhouette: 'sala de gestão',        npcs: [] },
+  { id: 'quarto_lena', label: 'QUARTO',          col: 4, w: 2, floor: 6, type: 'bedroom',         light: 'pink-dim',                       silhouette: 'quarto',                npcs: ['lena'] },
 ];
 
 export const ZONE_SCENE: Record<string, string> = {
@@ -82,13 +96,12 @@ export const ZONE_SCENE: Record<string, string> = {
 };
 
 export const ROOM_TO_ZONE: Record<string, string> = {
-  saida_hordas:  'hordas',
-  tunel_hordas:  'hordas',
-  tunel_stealth: 'stealth',
-  enfermaria:    'infeccao',
-  server:        'circuito',
-  arquivo:       'extracao',
-  lab:           'sacrificio',
+  saida_hordas: 'hordas',
+  vigia:        'stealth',
+  lab_rival:    'sacrificio',
+  enfermaria:   'infeccao',
+  server:       'circuito',
+  arquivo:      'extracao',
 };
 
 const ZONES: HubZone[] = [
@@ -105,11 +118,11 @@ const DIALOGS: Record<string, HubDialog> = {
   marcus:  { briefing: 'Engenheiro. Especialista em estrutura.', mission: 'Hordas (coleta de sucata estrutural)', quote: 'Mais sucata para a base. Sempre há algo para consertar.' },
   amara:   { briefing: 'Médica dedicada. Conhecimento biomédico avançado.', mission: 'Infecção (análise de bioformas)', quote: 'A doença evolui. Precisamos de amostras para estudar.' },
   yuki:    { briefing: 'Hacker. Descobriu que o micélio fala em protocolos — que as IAs nunca aprenderam a ouvir.', mission: 'Rede Neural Fúngica (decodificar sinais)', quote: 'As máquinas mortas gritam. Os cogumelos sussurram. Escuto os dois.' },
-  elena:   { briefing: 'Ex-militar. Estratégia de combate.', mission: 'Hordas (tática de confronto)', quote: 'Preparação e coragem. Nada mais importa.' },
+  elena:   { briefing: 'Ex-militar. Estratégia de combate.', mission: 'Stealth (furtividade e reconhecimento)', quote: 'Preparação e coragem. Nada mais importa.' },
   bae:     { briefing: 'Documentarista. Preserva o conhecimento.', mission: 'Extração (arqueologia de dados)', quote: 'História respira através de cada artefato.' },
   priya:   { briefing: 'Rival do Paulo. Botânica também — mas aposta em mutação forçada onde ele aposta em simbiose.', mission: 'Câmara de Esporos (mutações experimentais)', quote: 'Meu lab, minhas regras. Paulo rega as plantas; eu as quebro.' },
   tomas:   { briefing: 'Mecânico brilhante. Improvisa do nada.', mission: 'Workshop (manufatura e reparo)', quote: 'Com as ferramentas certas, construo o impossível.' },
-  lena:    { briefing: 'Criança. Perspectiva inesperada.', mission: 'Stealth (mobilidade e furtividade)', quote: 'Os pequenos espaços, os grandes segredos.' },
+  lena:    { briefing: 'Criança. Perspectiva inesperada.', mission: 'Arquivo (mobilidade e furtividade)', quote: 'Os pequenos espaços, os grandes segredos.' },
   richard: { briefing: 'Ex-executivo. Logística e planejamento.', mission: 'Qualquer zona (coordenação geral)', quote: 'Eficiência é sobrevivência.' },
   viktor:  { briefing: 'Cínico desencantado. Sarcasmo cortante.', mission: 'Qualquer zona (sem ilusões)', quote: 'Vamos fazer isso. Não importa o quão fútil seja.' },
 };

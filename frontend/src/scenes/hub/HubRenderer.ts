@@ -4,13 +4,17 @@ import { Signal } from '../../core/Signal';
 import { seededRng, strHash } from '../../core/hash';
 import { GameConfig } from '../../state/GameConfig';
 import { HubData, type HubRoom } from '../../state/HubData';
-import { HubState } from '../../state/HubState';
+import { HubState, ROCKET_RECIPE } from '../../state/HubState';
 
-/** Mirrors src/scenes/hub/HubRenderer.gd — bunker grid, room interiors,
- *  ambient spores, lighting, zone badges. Uses a single Graphics rebuilt each frame
- *  (cheap at this scene complexity). */
+/** Bunker cross-section grid — 6 columns × 6 floors.
+ *  Floor 1: surface exit (full-width). Floors 2-6: underground rooms.
+ *  Cols 2-3 on floors 2-5 are the integrated rocket shaft overlay. */
 export class HubRenderer extends Container {
   readonly roomClicked = new Signal<[roomId: string]>();
+  readonly rocketShaftClicked = new Signal<[]>();
+
+  private readonly SURFACE_H = 110;
+  private floorH = 0;
 
   private cellWidth: number;
   private roomYOffset: Record<string, number> = {};
@@ -18,6 +22,7 @@ export class HubRenderer extends Container {
   private hitLayer = new Container();
   private silhouetteLabels = new Map<string, Text>();
   private elapsedFrames = 0;
+  private elapsedMs = 0;
   private variantColors = HubState.getVariantData();
   private disposers: Array<() => void> = [];
 
@@ -38,26 +43,37 @@ export class HubRenderer extends Container {
     this.destroy({ children: true });
   }
 
-  /** Called every frame from HubScene.update. */
   tick(dt: number): void {
     this.elapsedFrames += Math.round(dt * 60);
+    this.elapsedMs += dt * 1000;
     this.redraw();
   }
 
   private calculateLayout(): void {
-    let y = 0;
+    this.floorH = (GameConfig.VIEWPORT_HEIGHT - this.SURFACE_H) / 5;
     for (const room of HubData.ROOMS) {
-      this.roomYOffset[room.id] = y;
-      y += room.h;
+      this.roomYOffset[room.id] = room.floor === 1
+        ? 0
+        : this.SURFACE_H + (room.floor - 2) * this.floorH;
     }
+  }
+
+  private getTotalH(): number {
+    return this.SURFACE_H + 5 * this.floorH;
+  }
+
+  private roomFloorH(room: HubRoom): number {
+    return room.floor === 1 ? this.SURFACE_H : this.floorH;
   }
 
   private buildHitboxes(): void {
     for (const room of HubData.ROOMS) {
+      if (HubData.isRocketRoom(room)) continue;
       const x = this.cellWidth * room.col;
       const y = this.roomYOffset[room.id] ?? 0;
       const w = this.cellWidth * room.w;
-      const hit = new Graphics().rect(0, 0, w, room.h).fill({ color: 0x000000, alpha: 0.001 });
+      const h = this.roomFloorH(room);
+      const hit = new Graphics().rect(0, 0, w, h).fill({ color: 0x000000, alpha: 0.001 });
       hit.x = x;
       hit.y = y;
       hit.eventMode = 'static';
@@ -80,12 +96,23 @@ export class HubRenderer extends Container {
         label.alpha = 0.6;
         label.anchor.set(0.5, 0);
         label.x = x + w * 0.5;
-        label.y = y + Math.min(room.h * 0.5, room.h * 0.5 + 25) + 12;
+        label.y = y + h * 0.5 + 10;
         label.visible = !HubState.isRoomUnlocked(room.id);
         this.addChild(label);
         this.silhouetteLabels.set(room.id, label);
       }
     }
+
+    // Rocket shaft hitbox — spans floors 2-5, cols 2-3
+    const rocketHit = new Graphics()
+      .rect(0, 0, this.cellWidth * 2, this.floorH * 4)
+      .fill({ color: 0x000000, alpha: 0.001 });
+    rocketHit.x = this.cellWidth * 2;
+    rocketHit.y = this.SURFACE_H;
+    rocketHit.eventMode = 'static';
+    rocketHit.cursor = 'pointer';
+    rocketHit.on('pointertap', () => this.rocketShaftClicked.emit());
+    this.hitLayer.addChild(rocketHit);
   }
 
   private refreshSilhouettes(): void {
@@ -103,35 +130,27 @@ export class HubRenderer extends Container {
     this.g.clear();
     this.drawSideWalls();
     for (const room of HubData.ROOMS) this.drawRoom(room);
+    this.drawRocketShaft();
     this.drawGridLines();
     this.drawAmbientSpores();
   }
 
-  /** Dirt/rock side walls flanking underground floors. Mirrors the Hub.html
-   *  cross-section detail — adds vertical depth to the bunker. */
   private drawSideWalls(): void {
-    let totalH = 0;
-    let surfaceH = 0;
-    for (const room of HubData.ROOMS) {
-      totalH += room.h;
-      if (room.type === 'surface' || room.type === 'surface-exit') surfaceH += room.h;
-    }
+    const surfaceH = this.SURFACE_H;
+    const totalH = this.getTotalH();
     const wallW = 10;
     const ww = GameConfig.VIEWPORT_WIDTH;
     const rock = Color.rgb(0.04, 0.03, 0.02);
     const seam = Color.rgb(0.18, 0.13, 0.09);
-    // Layered fill so the wall doesn't look flat
     this.g
       .rect(0, surfaceH, wallW, totalH - surfaceH).fill(Color.hex(rock))
       .rect(ww - wallW, surfaceH, wallW, totalH - surfaceH).fill(Color.hex(rock));
-    // Horizontal strata lines every ~22px
     for (let y = surfaceH + 12; y < totalH; y += 22 + ((y * 13) % 9)) {
       this.g.moveTo(0, y).lineTo(wallW - 1, y + (((y * 7) % 4) - 2))
         .stroke({ color: Color.hex(seam), width: 1, alpha: 0.55 });
       this.g.moveTo(ww - wallW + 1, y + (((y * 11) % 4) - 2)).lineTo(ww, y)
         .stroke({ color: Color.hex(seam), width: 1, alpha: 0.55 });
     }
-    // Inner seam line where wall meets rooms
     this.g.moveTo(wallW, surfaceH).lineTo(wallW, totalH)
       .stroke({ color: Color.hex(seam), width: 1.5, alpha: 0.7 });
     this.g.moveTo(ww - wallW, surfaceH).lineTo(ww - wallW, totalH)
@@ -139,10 +158,11 @@ export class HubRenderer extends Container {
   }
 
   private drawRoom(room: HubRoom): void {
+    if (HubData.isRocketRoom(room)) return;
     const x = this.cellWidth * room.col;
     const y = this.roomYOffset[room.id] ?? 0;
     const w = this.cellWidth * room.w;
-    const h = room.h;
+    const h = this.roomFloorH(room);
 
     if (!HubState.isRoomUnlocked(room.id)) {
       this.drawLockedRoom(room, x, y, w, h);
@@ -150,9 +170,6 @@ export class HubRenderer extends Container {
     }
 
     this.g.rect(x, y, w, h).fill(Color.hex(this.getRoomBaseColor(room)));
-
-    // Save the drawing offset for interior. Pixi Graphics supports translate via no-op
-    // — we just pass absolute coords to the helpers.
     this.drawRoomInterior(room, x, y, w, h);
     this.applyRoomLighting(room, x, y, w, h);
     this.drawRoomVignette(x, y, w, h);
@@ -161,35 +178,172 @@ export class HubRenderer extends Container {
     this.g.rect(x, y, w, h).stroke({ color: Color.hex(Color.rgb(0.15, 0.15, 0.15)), width: 1 });
   }
 
-  /** Darken the room edges with a feathered alpha ring to give depth. */
+  // ── Integrated Rocket Shaft ───────────────────────────────────────────────
+
+  /** Draws the full-height rocket inside the shaft (cols 2-3, floors 2-5). */
+  private drawRocketShaft(): void {
+    const built = HubState.rocket_pieces_built;
+    const total = ROCKET_RECIPE.length;
+    const progress = built / Math.max(1, total);
+    const t = this.elapsedMs;
+
+    const shaftX = this.cellWidth * 2;
+    const shaftY = this.SURFACE_H;
+    const shaftW = this.cellWidth * 2;
+    const shaftH = this.floorH * 4;
+    const cx = shaftX + shaftW * 0.5;
+
+    // Void background
+    this.g.rect(shaftX, shaftY, shaftW, shaftH)
+      .fill(Color.hex(Color.rgb(0.03, 0.02, 0.015)));
+
+    // Faint floor separators inside shaft
+    for (let f = 1; f < 4; f++) {
+      const ly = shaftY + f * this.floorH;
+      this.g.moveTo(shaftX, ly).lineTo(shaftX + shaftW, ly)
+        .stroke({ color: Color.hex(Color.rgb(0.14, 0.11, 0.09)), width: 1, alpha: 0.6 });
+    }
+
+    // Rocket geometry
+    const topY = shaftY + 16;
+    const bottomY = shaftY + shaftH - 20;
+    const totalH = bottomY - topY;
+    const bodyW = 52;
+    const noseH = totalH * 0.13;
+    const noseEnd = topY + noseH;
+    const finH = totalH * 0.10;
+    const finTop = bottomY - finH;
+    const bodyH = finTop - noseEnd;
+    const bodyLeft = cx - bodyW * 0.5;
+    const bodyRight = cx + bodyW * 0.5;
+
+    // Where built portion ends (measured from top of body downward)
+    const buildY = noseEnd + bodyH * (1 - progress);
+
+    const purple: RGBA = Color.rgb(0.72, 0.45, 0.85);
+    const cyan: RGBA = Color.rgb(0.30, 0.78, 0.72);
+    const amber: RGBA = Color.rgb(0.91, 0.58, 0.23);
+    const earth: RGBA = Color.rgb(0.55, 0.35, 0.20);
+    const gray: RGBA = { r: 0.35, g: 0.32, b: 0.28, a: 1 };
+
+    // Scaffolding poles (behind rocket)
+    const poleX1 = shaftX + 11;
+    const poleX2 = shaftX + shaftW - 11;
+    this.g.moveTo(poleX1, topY - 6).lineTo(poleX1, bottomY + 10)
+      .stroke({ color: Color.hex(gray), width: 2, alpha: 0.38 });
+    this.g.moveTo(poleX2, topY - 6).lineTo(poleX2, bottomY + 10)
+      .stroke({ color: Color.hex(gray), width: 2, alpha: 0.38 });
+    // Cross-bars at each floor boundary
+    for (let f = 0; f <= 4; f++) {
+      const barY = shaftY + f * this.floorH;
+      this.g.moveTo(poleX1, barY).lineTo(poleX1 + 16, barY)
+        .stroke({ color: Color.hex(gray), width: 1.5, alpha: 0.30 });
+      this.g.moveTo(poleX2 - 16, barY).lineTo(poleX2, barY)
+        .stroke({ color: Color.hex(gray), width: 1.5, alpha: 0.30 });
+    }
+
+    // Nose cone
+    const noseColor = built >= 1 ? purple : gray;
+    this.g.poly([cx, topY, bodyRight, noseEnd, bodyLeft, noseEnd])
+      .fill(Color.hex(noseColor));
+    const strokeC: RGBA = { r: noseColor.r * 0.75, g: noseColor.g * 0.75, b: noseColor.b * 0.75, a: 1 };
+    this.g.poly([cx, topY, bodyRight, noseEnd, bodyLeft, noseEnd])
+      .stroke({ color: Color.hex(strokeC), width: 1.5 });
+
+    // Body — 4 sections, each mapping to a rocket piece (indices 1-4)
+    const sectionH = bodyH / 4;
+    for (let i = 0; i < 4; i++) {
+      const sy = noseEnd + i * sectionH;
+      const pieceIdx = i + 1;
+      const isBuilt = pieceIdx < built;
+      const isNext = pieceIdx === built;
+      let c: RGBA;
+      if (isBuilt) {
+        c = cyan;
+      } else if (isNext) {
+        c = { r: cyan.r * 0.55 + gray.r * 0.45, g: cyan.g * 0.55 + gray.g * 0.45, b: cyan.b * 0.55 + gray.b * 0.45, a: 1 };
+      } else {
+        c = gray;
+      }
+      this.g.rect(bodyLeft, sy, bodyW, sectionH).fill(Color.hex(c));
+      this.g.rect(bodyLeft, sy, bodyW, sectionH)
+        .stroke({ color: Color.hex(Color.rgb(0.12, 0.18, 0.15)), width: 1 });
+
+      if (isBuilt) {
+        // Horizontal plating stripes
+        for (let s = 1; s < 4; s++) {
+          const ly = sy + sectionH * s / 4;
+          this.g.moveTo(bodyLeft + 4, ly).lineTo(bodyRight - 4, ly)
+            .stroke({ color: Color.hex(cyan), width: 0.8, alpha: 0.50 });
+        }
+        // Porthole on middle sections
+        if (i === 1 || i === 2) {
+          const ph = 0.5 + 0.5 * Math.abs(Math.sin(t * 0.003 + i * 1.3));
+          this.g.circle(cx, sy + sectionH * 0.5, 5.5)
+            .fill({ color: Color.hex(Color.rgb(0.85, 0.92, 0.78)), alpha: ph });
+          this.g.circle(cx, sy + sectionH * 0.5, 3)
+            .fill({ color: 0xffffff, alpha: 0.55 * ph });
+        }
+      }
+    }
+
+    // Animated welding seam where built meets unbuilt
+    if (built > 0 && built < total) {
+      const dashPulse = 0.4 + 0.6 * Math.abs(Math.sin(t * 0.006));
+      this.g.moveTo(bodyLeft - 5, buildY).lineTo(bodyRight + 5, buildY)
+        .stroke({ color: Color.hex(amber), width: 1.8, alpha: 0.9 * dashPulse });
+      this.g.circle(cx - 15, buildY, 2.4).fill({ color: Color.hex(amber), alpha: dashPulse });
+      this.g.circle(cx + 15, buildY, 2.0).fill({ color: Color.hex(amber), alpha: 1 - dashPulse });
+    }
+
+    // Engine fins
+    const finColor = built >= 5 ? earth : gray;
+    this.g.poly([bodyLeft, finTop, shaftX + 16, bottomY - 4, bodyLeft, finTop + finH * 0.55])
+      .fill(Color.hex(finColor));
+    this.g.poly([bodyRight, finTop, shaftX + shaftW - 16, bottomY - 4, bodyRight, finTop + finH * 0.55])
+      .fill(Color.hex(finColor));
+
+    // Base glow and flame jets
+    if (built > 0) {
+      const pulse = 0.6 + 0.4 * Math.abs(Math.sin(t * 0.002));
+      this.g.ellipse(cx, bottomY, 18 + pulse * 10, 8)
+        .fill({ color: Color.hex(amber), alpha: 0.22 * pulse });
+      if (built >= 5) {
+        for (let j = 0; j < 5; j++) {
+          const fx = cx + (j - 2) * 7;
+          const fLen = 10 + Math.abs(Math.sin(t * 0.004 + j * 0.9)) * 9;
+          const fa: RGBA = { r: amber.r * pulse, g: amber.g * pulse, b: amber.b * pulse, a: 1 };
+          this.g.moveTo(fx, bottomY).lineTo(fx + Math.sin(j * 1.4) * 2, bottomY + fLen)
+            .stroke({ color: Color.hex(fa), width: 2.5 });
+        }
+      }
+    }
+
+    // Shaft border on top
+    this.g.rect(shaftX, shaftY, shaftW, shaftH)
+      .stroke({ color: Color.hex(Color.rgb(0.22, 0.18, 0.15)), width: 1 });
+  }
+
+  // ── Room rendering ───────────────────────────────────────────────────────
+
   private drawRoomVignette(x: number, y: number, w: number, h: number): void {
     const layers = 4;
     for (let i = 0; i < layers; i++) {
       const t = (i + 1) / layers;
       const ringSize = t * 6;
       this.g
-        .rect(x, y, w, ringSize)
-        .fill({ color: 0x000000, alpha: 0.05 + 0.04 * (1 - t) })
-        .rect(x, y + h - ringSize, w, ringSize)
-        .fill({ color: 0x000000, alpha: 0.05 + 0.04 * (1 - t) })
-        .rect(x, y + ringSize, ringSize, h - ringSize * 2)
-        .fill({ color: 0x000000, alpha: 0.05 + 0.04 * (1 - t) })
-        .rect(x + w - ringSize, y + ringSize, ringSize, h - ringSize * 2)
-        .fill({ color: 0x000000, alpha: 0.05 + 0.04 * (1 - t) });
+        .rect(x, y, w, ringSize).fill({ color: 0x000000, alpha: 0.05 + 0.04 * (1 - t) })
+        .rect(x, y + h - ringSize, w, ringSize).fill({ color: 0x000000, alpha: 0.05 + 0.04 * (1 - t) })
+        .rect(x, y + ringSize, ringSize, h - ringSize * 2).fill({ color: 0x000000, alpha: 0.05 + 0.04 * (1 - t) })
+        .rect(x + w - ringSize, y + ringSize, ringSize, h - ringSize * 2).fill({ color: 0x000000, alpha: 0.05 + 0.04 * (1 - t) });
     }
   }
 
-  /** A subtle horizontal highlight near the top edge — like a ceiling light strip. */
   private drawRoomTopLight(x: number, y: number, w: number, _h: number, room: HubRoom): void {
     const c = this.getLightColor(room.light);
-    this.g
-      .rect(x + 2, y + 2, w - 4, 1.5)
-      .fill({ color: Color.hex(c), alpha: 0.35 });
-    // Soft glow under the strip
+    this.g.rect(x + 2, y + 2, w - 4, 1.5).fill({ color: Color.hex(c), alpha: 0.35 });
     for (let i = 0; i < 4; i++) {
-      this.g
-        .rect(x + 2, y + 4 + i, w - 4, 1)
-        .fill({ color: Color.hex(c), alpha: 0.04 - i * 0.008 });
+      this.g.rect(x + 2, y + 4 + i, w - 4, 1).fill({ color: Color.hex(c), alpha: 0.04 - i * 0.008 });
     }
   }
 
@@ -206,13 +360,13 @@ export class HubRenderer extends Container {
       this.g.moveTo(x + 6, vy).lineTo(x + w - 6, vy + 4)
         .stroke({ color: Color.hex(Color.rgb(0.22, 0.16, 0.10)), width: 1, alpha: 0.6 });
     }
-    const cx = x + w * 0.5;
-    const cy = y + h * 0.5;
+    const rcx = x + w * 0.5;
+    const rcy = y + h * 0.5;
     const boxW = Math.min(w * 0.55, 80);
     const boxH = Math.min(h * 0.45, 50);
-    this.g.rect(cx - boxW * 0.5, cy - boxH * 0.5, boxW, boxH)
+    this.g.rect(rcx - boxW * 0.5, rcy - boxH * 0.5, boxW, boxH)
       .fill({ color: Color.hex(Color.rgb(0.28, 0.25, 0.22)), alpha: 0.35 });
-    this.g.rect(cx - boxW * 0.5, cy - boxH * 0.5, boxW, boxH)
+    this.g.rect(rcx - boxW * 0.5, rcy - boxH * 0.5, boxW, boxH)
       .stroke({ color: Color.hex(Color.rgb(0.45, 0.40, 0.35)), width: 1, alpha: 0.5 });
     this.g.rect(x, y, w, h).stroke({ color: Color.hex(Color.rgb(0.10, 0.08, 0.05)), width: 1 });
   }
@@ -238,8 +392,6 @@ export class HubRenderer extends Container {
       case 'office': return Color.rgb(0.12, 0.12, 0.10);
       case 'bedroom': return Color.rgb(0.12, 0.08, 0.10);
       case 'transit': return Color.rgb(0.10, 0.09, 0.08);
-      case 'tunnel-warm': return Color.rgb(0.15, 0.08, 0.04);
-      case 'tunnel-cool': return Color.rgb(0.05, 0.10, 0.12);
       default: return Color.rgb(0.08, 0.08, 0.08);
     }
   }
@@ -265,8 +417,6 @@ export class HubRenderer extends Container {
       case 'office': this.drawDesk(x, y, w, h); break;
       case 'bedroom': this.drawBed(x, y, w, h); break;
       case 'transit': this.drawDoor(x, y, w, h); break;
-      case 'tunnel-warm': this.drawRails(x, y, w, h, Color.rgb(0.91, 0.58, 0.23)); break;
-      case 'tunnel-cool': this.drawRails(x, y, w, h, Color.rgb(0.0, 1.0, 0.533)); break;
     }
   }
 
@@ -311,21 +461,17 @@ export class HubRenderer extends Container {
     const zone = HubData.getZone(room.zone_id);
     if (!zone) return;
     const pulse = Math.abs(Math.sin(this.elapsedFrames * 0.02)) * 0.3 + 0.7;
-    const cx = x + w - 10;
-    const cy = (this.roomYOffset[room.id] ?? 0) + 10;
-    // Outer halo (large, low alpha)
-    this.g.circle(cx, cy, 14).fill({ color: Color.hex(zone.color), alpha: 0.08 * pulse });
-    this.g.circle(cx, cy, 10).fill({ color: Color.hex(zone.color), alpha: 0.16 * pulse });
-    // Bright core
+    const bcx = x + w - 10;
+    const bcy = (this.roomYOffset[room.id] ?? 0) + 10;
+    this.g.circle(bcx, bcy, 14).fill({ color: Color.hex(zone.color), alpha: 0.08 * pulse });
+    this.g.circle(bcx, bcy, 10).fill({ color: Color.hex(zone.color), alpha: 0.16 * pulse });
     const c: RGBA = { r: zone.color.r * pulse, g: zone.color.g * pulse, b: zone.color.b * pulse, a: 1 };
-    this.g.circle(cx, cy, 5).fill(Color.hex(c));
-    // Hot center
-    this.g.circle(cx, cy, 2.5).fill({ color: 0xffffff, alpha: 0.85 * pulse });
+    this.g.circle(bcx, bcy, 5).fill(Color.hex(c));
+    this.g.circle(bcx, bcy, 2.5).fill({ color: 0xffffff, alpha: 0.85 * pulse });
   }
 
   private drawGridLines(): void {
-    let totalH = 0;
-    for (const room of HubData.ROOMS) totalH += room.h;
+    const totalH = this.getTotalH();
     for (let col = 0; col < 7; col++) {
       const x = this.cellWidth * col;
       this.g.moveTo(x, 0).lineTo(x, totalH)
@@ -336,7 +482,7 @@ export class HubRenderer extends Container {
   private drawAmbientSpores(): void {
     const W = GameConfig.VIEWPORT_WIDTH;
     const H = GameConfig.VIEWPORT_HEIGHT;
-    const t = this.elapsedFrames * (1000 / 60) * 0.0006;
+    const t = this.elapsedMs * 0.0006;
     const purple = Color.rgb(0.72, 0.45, 0.85);
     const cyan = Color.rgb(0.30, 0.78, 0.72);
     for (let i = 0; i < 18; i++) {
@@ -354,10 +500,11 @@ export class HubRenderer extends Container {
 
   private isPointInUnlockedRoom(px: number, py: number): boolean {
     for (const room of HubData.ROOMS) {
+      if (HubData.isRocketRoom(room)) continue;
       const rx = this.cellWidth * room.col;
       const ry = this.roomYOffset[room.id] ?? 0;
       const rw = this.cellWidth * room.w;
-      const rh = room.h;
+      const rh = this.roomFloorH(room);
       if (px >= rx && px <= rx + rw && py >= ry && py <= ry + rh) {
         return HubState.isRoomUnlocked(room.id);
       }
@@ -439,8 +586,8 @@ export class HubRenderer extends Container {
     this.g.rect(x + w * 0.1, tableY, w * 0.8, tableH).fill(Color.hex(Color.rgb(0.55, 0.42, 0.24)));
     const amber = Color.rgb(0.91, 0.58, 0.23);
     for (let i = 0; i < 4; i++) {
-      const cx = x + w * 0.2 + i * w * 0.2;
-      this.g.circle(cx, tableY + tableH * 0.5, 6).fill(Color.hex(amber));
+      const icx = x + w * 0.2 + i * w * 0.2;
+      this.g.circle(icx, tableY + tableH * 0.5, 6).fill(Color.hex(amber));
     }
   }
 
@@ -476,12 +623,8 @@ export class HubRenderer extends Container {
     const spacing = h * 0.15;
     const bookW = (w - 16) / 6;
     const colors = [
-      Color.rgb(1.0, 0.4, 0.2),
-      Color.rgb(0.8, 0.2, 0.2),
-      Color.rgb(0.6, 0.3, 0.15),
-      Color.rgb(0.7, 0.5, 0.3),
-      Color.rgb(0.5, 0.7, 0.4),
-      Color.rgb(0.4, 0.6, 0.5),
+      Color.rgb(1.0, 0.4, 0.2), Color.rgb(0.8, 0.2, 0.2), Color.rgb(0.6, 0.3, 0.15),
+      Color.rgb(0.7, 0.5, 0.3), Color.rgb(0.5, 0.7, 0.4), Color.rgb(0.4, 0.6, 0.5),
     ];
     for (let r = 0; r < 3; r++) {
       const sy = shelfYStart + r * spacing;
@@ -531,28 +674,19 @@ export class HubRenderer extends Container {
     this.g.circle(x + w * 0.65, y + h * 0.48, 4).fill(Color.hex(Color.rgb(0.8, 0.8, 0.8)));
   }
 
-  private drawRails(x: number, y: number, w: number, h: number, c: RGBA): void {
-    const railY = y + h * 0.5;
-    this.g.moveTo(x, railY).lineTo(x + w, railY).stroke({ color: Color.hex(c), width: 4 });
-    for (let i = 0; i < 8; i++) {
-      const cx = x + (w / 8) * (i + 0.5);
-      this.g.moveTo(cx, railY - 12).lineTo(cx, railY + 12).stroke({ color: Color.hex(c), width: 2 });
-    }
-  }
-
   // ── Bio/fungus interiors ─────────────────────────────────────────────────
   private drawSporeChamber(x: number, y: number, w: number, h: number): void {
     const purple = Color.rgb(0.72, 0.45, 0.85);
     const glow = Color.rgb(0.85, 0.60, 1.0);
     const pulse = Math.abs(Math.sin(this.elapsedFrames * 0.04)) * 0.3 + 0.7;
     for (let i = 0; i < 3; i++) {
-      const cx = x + w * (0.22 + i * 0.29);
-      const cy = y + h * 0.62;
-      this.g.rect(cx - 2, cy, 4, 14).fill(Color.hex(Color.rgb(0.85, 0.78, 0.62)));
+      const icx = x + w * (0.22 + i * 0.29);
+      const icy = y + h * 0.62;
+      this.g.rect(icx - 2, icy, 4, 14).fill(Color.hex(Color.rgb(0.85, 0.78, 0.62)));
       const mod1: RGBA = { r: purple.r * pulse, g: purple.g * pulse, b: purple.b * pulse, a: 1 };
-      this.g.circle(cx, cy, 8).fill(Color.hex(mod1));
+      this.g.circle(icx, icy, 8).fill(Color.hex(mod1));
       const mod2: RGBA = { r: glow.r * pulse * 0.6, g: glow.g * pulse * 0.6, b: glow.b * pulse * 0.6, a: 1 };
-      this.g.circle(cx, cy - 2, 6).fill(Color.hex(mod2));
+      this.g.circle(icx, icy - 2, 6).fill(Color.hex(mod2));
     }
     for (let i = 0; i < 6; i++) {
       const sx = x + w * (0.15 + i * 0.12);
@@ -572,10 +706,10 @@ export class HubRenderer extends Container {
         .stroke({ color: Color.hex(c), width: 1.5 });
     }
     for (let i = 0; i < 4; i++) {
-      const cx = x + w * (0.15 + i * 0.22);
-      const cy = y + h * 0.75;
-      this.g.rect(cx - 1, cy - 6, 2, 6).fill(Color.hex(Color.rgb(0.85, 0.82, 0.72)));
-      this.g.circle(cx, cy - 6, 4).fill(Color.hex(cyan));
+      const icx = x + w * (0.15 + i * 0.22);
+      const icy = y + h * 0.75;
+      this.g.rect(icx - 1, icy - 6, 2, 6).fill(Color.hex(Color.rgb(0.85, 0.82, 0.72)));
+      this.g.circle(icx, icy - 6, 4).fill(Color.hex(cyan));
     }
   }
 
@@ -607,12 +741,9 @@ export class HubRenderer extends Container {
     }
     for (let i = 0; i < 4; i++) {
       const rx = x + w * (0.25 + i * 0.17);
-      const points = [
-        [rx, y + h * 0.65],
-        [rx + 3, y + h * 0.5],
-        [rx - 2, y + h * 0.35],
-        [rx + 1, y + h * 0.22],
-      ] as const;
+      const points: Array<[number, number]> = [
+        [rx, y + h * 0.65], [rx + 3, y + h * 0.5], [rx - 2, y + h * 0.35], [rx + 1, y + h * 0.22],
+      ];
       for (let p = 0; p < points.length - 1; p++) {
         this.g.moveTo(points[p]![0], points[p]![1])
           .lineTo(points[p + 1]![0], points[p + 1]![1])
@@ -625,11 +756,8 @@ export class HubRenderer extends Container {
     const green = Color.rgb(0.30, 0.78, 0.60);
     const pulse = Math.abs(Math.sin(this.elapsedFrames * 0.04)) * 0.5 + 0.5;
     const nodes: Array<[number, number]> = [
-      [x + w * 0.2, y + h * 0.3],
-      [x + w * 0.5, y + h * 0.4],
-      [x + w * 0.8, y + h * 0.3],
-      [x + w * 0.3, y + h * 0.65],
-      [x + w * 0.7, y + h * 0.65],
+      [x + w * 0.2, y + h * 0.3], [x + w * 0.5, y + h * 0.4], [x + w * 0.8, y + h * 0.3],
+      [x + w * 0.3, y + h * 0.65], [x + w * 0.7, y + h * 0.65],
     ];
     for (let i = 0; i < nodes.length; i++) {
       for (let j = i + 1; j < nodes.length; j++) {

@@ -54,6 +54,18 @@ export class HubScene extends Scene {
       this.renderer.roomClicked.connect((roomId) => this.onRoomClicked(roomId)),
     );
     this.disposers.push(
+      this.renderer.rocketShaftClicked.connect(() => {
+        this.hubAudio.playOpenPanelSfx();
+        const panel = new HubRocketPanel();
+        panel.closed.connect(() => {
+          this.hubAudio.playClosePanelSfx();
+          HubState.hubRocketClosed.emit();
+        });
+        this.openModal(panel);
+        HubState.hubRocketOpened.emit();
+      }),
+    );
+    this.disposers.push(
       HubState.hubVariantChanged.connect(() => this.updateBackground()),
     );
     this.disposers.push(
