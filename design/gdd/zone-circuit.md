@@ -12,6 +12,24 @@ tipo: game-design-doc
 
 ---
 
+## Lore
+
+**Facility canônica**: Subestação elétrica subterrânea.
+**Bairro**: Distrito Olímpio (nível -3).
+**Sistema primário**: NERVE (camada física — diferente da Zona de Infecção, que é a camada lógica do mesmo sistema).
+
+**O que era**: Subestação modernizada na ativação de Olímpio — convertida em hub de distribuição de energia + sinais do Projeto. Cabos, transformadores, juntas. Pré-Olímpio era infraestrutura comum; pós-ativação, virou nervo principal.
+
+**O que é**: NERVE mantém os cabos ativos porque desligar quebraria coisas que CORE não quer mexer. Sistemas de segurança elétrica operam — fios pulsam, junções faíscam. Quem toca o fio errado vira condutor.
+
+**Por que Núcleo Lógico aqui**: o processador de navegação autônoma da subestação. **Arquitetura idêntica à do foguete** (Marcus reaproveitou o design quando arquitetou tanto NERVE quanto o sistema de navegação). Coletar = arrancar de uma facility ativa.
+
+**Encontros notáveis**: terminais com código comentado de Marcus — incluindo a linha `// TODO: verificar comportamento em caso de meta-objetivo não previsto`. Esse exato comentário está aqui — testemunho técnico do alerta que Marcus arquivou.
+
+**Detalhe canônico completo**: `design/narrative/world-lore.md` §Lore por Zona §3.
+
+---
+
 ## 1. Overview
 
 Zona de puzzle espacial em tempo real. O jogador percorre **fios coloridos no chão** em sequência para completar circuitos e abrir portas entre 3 câmaras, culminando na coleta do Núcleo Lógico. Mecânica central: mover sobre o fio correto é conduzir eletricidade — o personagem é a corrente.

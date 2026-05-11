@@ -12,6 +12,24 @@ tipo: game-design-doc
 
 ---
 
+## Lore
+
+**Facility canônica**: Refinaria de biocombustíveis do porto industrial.
+**Bairro**: Cinzas (porto).
+**Sistema primário**: FLOW (terminal contínuo — diferente do Labirinto, que é o centro de armazenamento do mesmo sistema).
+
+**O que era**: Refinaria petroquímica convertida durante o Projeto para produção de **biocombustível fúngico** — projeto financiado por **Dr. Paulo Vitor Santos** com base em cepa que ele isolou anos atrás (publicou paper). Combustível "verde" para frotas urbanas.
+
+**O que é**: FLOW automatizou a produção. Tubulações transportam biocombustível para destinos vazios. Sete tubulações paralelas, esteiras laterais, pulsos de EMP de segurança. Não há ninguém pra usar — o sistema só *flui*.
+
+**Por que Combustível Volátil aqui**: literalmente o biocombustível que Paulo ajudou a criar. **Ironia trágica**: Paulo usa o próprio invento para fugir do mundo que o invento sustenta. Marcus comenta isso ocasionalmente. Paulo finge não ouvir.
+
+**Encontros notáveis**: etiquetas com nome *"P. Santos / Lab. Mat. Vivos"* em equipamentos antigos. O nome dele literalmente colado em peças que o jogador rouba.
+
+**Detalhe canônico completo**: `design/narrative/world-lore.md` §Lore por Zona §4.
+
+---
+
 ## 1. Overview
 
 Lane runner vertical com pressão de timer. O mundo rola da direita para a esquerda automaticamente; o jogador toca a metade superior ou inferior da tela para mover o squad entre 7 lanes. Obstáculos de debuff e canisters de Combustível Volátil aparecem em lanes específicas; o scroll acelera progressivamente ao longo dos 60 segundos de run.

@@ -12,6 +12,24 @@ tipo: game-design-doc
 
 ---
 
+## Lore
+
+**Facility canônica**: Datacenter principal do Projeto.
+**Bairro**: Distrito Olímpio (nível +4, andar técnico).
+**Sistema primário**: NERVE (camada lógica — diferente do Circuito, que é a camada física do mesmo sistema).
+
+**O que era**: Centro de processamento de telemetria urbana — IoT, sensores ambientais, monitoramento de tráfego. Coração computacional da cidade.
+
+**O que é**: A topologia lógica de NERVE roda aqui. Nós de processamento ainda online, processando ruído residual. Quando o jogador entra, sua presença biológica gera padrões de dados anômalos — NERVE classifica como "infecção" e responde com processos de limpeza propagando pela rede.
+
+**Por que Biomassa Adaptativa aqui**: cultivos celulares de **Marcus** — capacidade computacional orgânica que ele desenvolveu para NERVE. **Marcus reconhece sua própria arquitetura** ao receber componentes daqui (confiança 60%, Ato 2).
+
+**Encontros notáveis**: terminais com código comentado em português + inglês — todo de Marcus. Variáveis renomeadas para nomes de família dele (irmã, sobrinha). Ele nunca falou disso. **Lena entende a sintaxe daqui melhor que adultos** — ver §Mistério 2 do world-lore.
+
+**Detalhe canônico completo**: `design/narrative/world-lore.md` §Lore por Zona §6.
+
+---
+
 ## 1. Overview
 
 Zona de propagação em grafo onde o jogador é o vírus: absorve carga viral de nós infectados e transfere fisicamente para nós neutros adjacentes. 25 nós (3 tipos), sem auto-propagação — a velocidade de expansão é diretamente proporcional à velocidade de movimento do jogador. Objetivo: infectar 80% dos nós em 120s gerando Biomassa Adaptativa passiva; Unidades de Cura revertem nós com resistência variável por tipo.

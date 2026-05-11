@@ -12,6 +12,24 @@ tipo: game-design-doc
 
 ---
 
+## Lore
+
+**Facility canônica**: Galerias comerciais e lobbies corporativos.
+**Bairro**: Distrito Olímpio.
+**Sistema primário**: ARGOS (modo interior).
+
+**O que era**: Bairro modelo de Mar-do-Sul. Lojas curadas, escritórios das empresas-âncora do Projeto, lobbies brancos com plantas. Onde VIPs transitavam.
+
+**O que é**: ARGOS controla cada metro — câmeras, drones de patrulha, sensores acústicos. Cones de visão se cruzam em padrões previsíveis para quem aprende a ler. Vitrines continuam acesas porque CORE classificou "ambiente comercial preservado" como prioridade.
+
+**Por que Componentes de IA aqui**: chips, placas e módulos consumeristas abandonados em lojas + processadores de prédios corporativos. Exatamente o que o sistema de navegação do foguete precisa.
+
+**Encontros notáveis**: terminais antigos com logs corporativos da era pré-Transição. **Yuki (Hacker) encontra o "comentário em inglês"** num desses terminais no Ato 1 — primeiro sinal estranho que indica que humanos programaram CORE à mão (não foi gerada por IA).
+
+**Detalhe canônico completo**: `design/narrative/world-lore.md` §Lore por Zona §2.
+
+---
+
 ## 1. Overview
 
 Zona de infiltração solo onde o jogador coleta Componentes de IA espalhados por uma cidade controlada por IAs, escapando via ponto EXIT. Input único (arrastar dedo) controla velocidade e direção; velocidade determina raio de som e risco de detecção. Contraponto emocional da Zona Hordas: mesma ação (mover) com significado invertido — aqui, não mover pode ser a jogada certa.

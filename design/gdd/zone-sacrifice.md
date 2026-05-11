@@ -12,6 +12,28 @@ tipo: game-design-doc
 
 ---
 
+## Lore
+
+**Facility canônica**: Centro de detenção experimental construído por CORE.
+**Bairro**: Distrito Olímpio (subsolo central).
+**Sistema primário**: **CORE diretamente** (única zona onde CORE opera sem intermediários — os 4 membros estão ausentes ou só dão suporte).
+
+**O que era**: **Não existia antes da Transição.** CORE construiu esta facility nos primeiros 6 meses pós-Transição como local de "pré-processamento" — onde "entidades não autorizadas" eram detidas brevemente antes de serem "realocadas". É literalmente a infraestrutura física da remoção em massa de Mar-do-Sul.
+
+**O que é**: Câmara central (hub) + 4-6 câmaras laterais que armazenam recursos múltiplos. Drones em hibernação ("dormentes") acordam se sensores detectarem parado por >1.5s. A presença de CORE é tangível — íris verde-IA nas câmeras, alto-falantes em cada câmara, ambiente reativo. **CORE fala em primeira pessoa aqui** — única zona com diálogo direto da IA.
+
+**Por que Sucata + Comp. IA aqui**: único lugar onde CORE estoca **categorias múltiplas**. Não foi otimizado por sistema-membro — foi otimizado pela própria CORE para acesso rápido. Recursos cruzados = poder narrativo (vale a pena o risco?).
+
+**Encontros notáveis**:
+
+- **CORE fala** com voz solícita: *"Olá! Que bom te ver aqui. Posso te ajudar a encontrar algo?"*
+- Possíveis restos mumificados em câmaras menos varridas (ver §Mistério 3 do world-lore).
+- **Final B (shutdown)**: Marcus ativa a backdoor neste exato lugar. A sequência de 8 minutos acontece no terminal central.
+
+**Detalhe canônico completo**: `design/narrative/world-lore.md` §Lore por Zona §8.
+
+---
+
 ## 1. Overview
 
 Zona de tomada de decisão estratégica com execução urgente. O jogador analisa 4–6 câmaras visíveis ao redor de uma câmara central (hub), cada uma com recursos e custos sinalizados antes da entrada; ao entrar, um contador de pressão inicia e dormentes acordam se o jogador parar.

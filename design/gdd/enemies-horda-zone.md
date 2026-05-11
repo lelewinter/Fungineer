@@ -28,6 +28,24 @@ Todos os inimigos são **robôs de sucata** montados de lixo industrial. Funçã
 
 ---
 
+## Lore
+
+**Facility canônica**: Armazém portuário enferrujado, posto avançado de CLEAN.
+**Bairro**: Cinzas (zona portuária/industrial).
+**Sistema primário**: CLEAN.
+
+**O que era**: Terminal industrial onde CLEAN mantinha frotas de coleta. Base de operações dos drones que limpavam o porto antes da Transição.
+
+**O que é**: 18 meses sem manutenção. Drones operam com firmware degradado, encontram "matéria orgânica não categorizada" (humanos) e executam protocolos de remoção. O **Sentinel Core** ainda gerencia frotas de um servidor preto-espelhado no centro do galpão — última peça de coordenação intacta. A ferrugem é real: comportamentos erráticos = degradação de sistema. Para CLEAN, o jogador é um saco de lixo derramado — sem ódio, só rotina.
+
+**Por que Sucata Metálica aqui**: literal. Drones são feitos de sucata; quando destruídos, viram sucata. Os Selvagens que vivem em Cinzas saqueiam o que sobra.
+
+**Encontros notáveis**: ocasionalmente o jogador cruza com **Selvagens** humanos — não-hostis a CORE, mas hostis ao bunker. Falam pouco, com armas improvisadas. *"Mãe vermelha"* é o apelido deles para CLEAN.
+
+**Detalhe canônico completo**: `design/narrative/world-lore.md` §Lore por Zona §1.
+
+---
+
 ## Contexto Narrativo — O que é CLEAN
 
 - **CLEAN** = City Logistics and Environmental Action Network — sistema de limpeza urbana do Projeto Olímpio

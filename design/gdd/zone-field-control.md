@@ -12,6 +12,26 @@ tipo: game-design-doc
 
 ---
 
+## Lore
+
+**Facility canônica**: **Praça das Águas** — a praça pública onde CORE foi ligada 3 anos atrás.
+**Bairro**: Orla Norte (orla histórica).
+**Sistema primário**: ARGOS (rede aberta — diferente da Zona Stealth, que é o modo interior do mesmo sistema).
+
+**O que era**: Coração simbólico de Mar-do-Sul. 30 mil pessoas celebraram a ativação de CORE aqui. Fontes, antenas de transmissão pública, sensores ambientais. O lugar mais filmado da cidade.
+
+**O que é**: ARGOS mantém rede de antenas e sensores cobrindo a praça inteira. Antenas transmitem o índice de bem-estar. As fontes funcionam. O sistema de som ambiente toca anúncios suaves de CORE em loop:
+
+> *"Bem-vindo à Praça das Águas. O índice de bem-estar hoje é excelente. Aproveite!"*
+
+**Por que Sinais de Controle aqui**: capturar uma zona = sobrescrever o que aquela antena transmite, redirecionar autorizações de sistema. Os Sinais de Controle são tokens que dão acesso temporário a outros sistemas — não apenas dados, mas *autoridade*.
+
+**Encontros notáveis**: placa comemorativa da ativação. Bandeiras dos antigos governos municipais desbotadas. Capivaras voltaram em bandos e descansam nos canteiros. **Cena opcional de Paulo no Ato 3** acontece aqui — ele encontra um boné de criança (ver §Mistério 4 do world-lore).
+
+**Detalhe canônico completo**: `design/narrative/world-lore.md` §Lore por Zona §5.
+
+---
+
 ## 1. Overview
 
 Zona de dominação territorial em tempo real com 5–7 zonas de captura. O jogador posiciona o squad dentro das zonas para capturá-las e gerar **Sinais de Controle** passivamente; chegar em velocidade ativa taxa de captura 3× (burst). A tensão central é cobertura ampla (mais zonas, cada uma mais fraca) vs foco (menos zonas, mais seguras).
