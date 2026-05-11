@@ -63,7 +63,7 @@ const ROOMS: HubRoom[] = [
   // Floor 2
   { id: 'vigia',       label: 'VIGIA',     col: 0, w: 2, floor: 2, type: 'tech',          light: 'red',      zone_id: 'stealth',   silhouette: 'posto de vigia',           npcs: ['elena'] },
   { id: 'rocket_top',  label: '',           col: 2, w: 2, floor: 2, type: 'rocket-top',    light: 'dim',      npcs: [] },
-  { id: 'deposito',    label: 'DEPÓSITO',  col: 4, w: 2, floor: 2, type: 'storage',       light: 'amber',    silhouette: 'depósito de armas',        npcs: [] },
+  { id: 'deposito',    label: 'TRANSMISSÃO', col: 4, w: 2, floor: 2, type: 'tech',        light: 'neon-green', zone_id: 'campo', silhouette: 'sala de transmissão',     npcs: [] },
 
   // Floor 3
   { id: 'lab_rival',   label: 'CÂMARA DE ESPOROS', col: 0, w: 2, floor: 3, type: 'spore-chamber', light: 'cool',  zone_id: 'sacrificio', silhouette: 'camara de esporos',       npcs: ['priya'] },
@@ -71,7 +71,7 @@ const ROOMS: HubRoom[] = [
   { id: 'enfermaria',  label: 'MYCELIUM LAB',       col: 4, w: 2, floor: 3, type: 'mycelium-lab',  light: 'hospital', zone_id: 'infeccao', silhouette: 'laboratorio de bioformas', npcs: ['amara'] },
 
   // Floor 4
-  { id: 'workshop',    label: 'HYPHAE FORGE', col: 0, w: 2, floor: 4, type: 'hyphae-forge', light: 'amber',    silhouette: 'forja de hifas',           npcs: [] },
+  { id: 'workshop',    label: 'LABIRINTO',    col: 0, w: 2, floor: 4, type: 'transit',      light: 'dim',      zone_id: 'labirinto', silhouette: 'corredores recursivos', npcs: [] },
   { id: 'rocket_mid2', label: '',              col: 2, w: 2, floor: 4, type: 'rocket',       light: 'dim',      npcs: [] },
   { id: 'sala',        label: 'SALA COMUM',   col: 4, w: 2, floor: 4, type: 'common',       light: 'amber',    silhouette: 'sala de convivência',      npcs: ['richard'] },
 
@@ -91,7 +91,9 @@ export const ZONE_SCENE: Record<string, string> = {
   stealth:    'stealth',
   circuito:   'circuit',
   extracao:   'extraction',
+  campo:      'field',
   infeccao:   'infection',
+  labirinto:  'maze',
   sacrificio: 'sacrifice',
 };
 
@@ -102,6 +104,8 @@ export const ROOM_TO_ZONE: Record<string, string> = {
   enfermaria:   'infeccao',
   server:       'circuito',
   arquivo:      'extracao',
+  deposito:     'campo',
+  workshop:     'labirinto',
 };
 
 const ZONES: HubZone[] = [
@@ -111,6 +115,8 @@ const ZONES: HubZone[] = [
   { id: 'circuito',   name: 'Rede Neural Fúngica',  color: C(0.0, 1.0, 0.533),   briefing: 'Onde o micélio encontrou os cabos mortos das IAs. Yuki decodifica os sinais. Colheita: núcleos lógicos.', allow_squad: false },
   { id: 'extracao',   name: 'Estufa Abandonada',    color: C(0.62, 0.55, 0.35),  briefing: 'Arqueologia botânica — sementes pré-colapso ainda dormentes. Bae documenta o que Paulo sonha reviver.', allow_squad: false },
   { id: 'sacrificio', name: 'Câmara de Esporos',    color: C(0.78, 0.35, 0.55),  briefing: 'Laboratório da Priya. Mutações experimentais que só ela ousa cultivar. O preço é cruel.',   allow_squad: false },
+  { id: 'campo',      name: 'Setor de Transmissão', color: C(0.102, 0.435, 0.800), briefing: 'Relés de controle da IA marcam o território por sinais. Perturbe a malha — colha sinais de controle.', allow_squad: false },
+  { id: 'labirinto',  name: 'Labirinto Subterrâneo', color: C(0.290, 0.565, 0.643), briefing: 'Complexo abandonado, drones em patrulha recursiva. Os corredores são a parede; sobreviver é mapeá-los. Colha fragmentos estruturais.', allow_squad: false },
 ];
 
 const DIALOGS: Record<string, HubDialog> = {
