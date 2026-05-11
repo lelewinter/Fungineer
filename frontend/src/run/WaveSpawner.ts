@@ -35,6 +35,19 @@ export class WaveSpawner {
   private factories: WaveFactories;
   private world: RunWorld;
 
+  // Vampire-Survivors-style continuous trickle. Once wave 2 has spawned, a
+  // single enemy drops in every `trickleInterval` seconds. The interval shrinks
+  // linearly from TRICKLE_START_S to TRICKLE_MIN_S over TRICKLE_RAMP_S. Spitters
+  // become eligible after TRICKLE_SPITTER_AT_S so the early trickle stays
+  // melee-pressure.
+  private trickleEnabled = false;
+  private trickleAccum = 0;
+  private static readonly TRICKLE_START_S = 1.4;
+  private static readonly TRICKLE_MIN_S = 0.45;
+  private static readonly TRICKLE_RAMP_S = 90;
+  private static readonly TRICKLE_SPITTER_AT_S = 35;
+  private static readonly TRICKLE_BRUISER_CHANCE_AFTER_S = 25;
+
   constructor(world: RunWorld, factories: WaveFactories, zoneId = 0) {
     this.world = world;
     this.factories = factories;
@@ -75,11 +88,43 @@ export class WaveSpawner {
     if (!this.wave2Done && this.runTimer >= GameConfig.WAVE_2_DELAY) {
       this.wave2Done = true;
       this.spawnWave2();
+      this.trickleEnabled = true;
+    }
+    if (this.trickleEnabled && !this.bossDone) {
+      this.tickTrickle(dt);
     }
     if (!this.bossDone && this.runTimer >= GameConfig.BOSS_SPAWN_TIME) {
       this.bossDone = true;
       this.spawnBoss();
     }
+  }
+
+  private tickTrickle(dt: number): void {
+    this.trickleAccum += dt;
+    const sinceStart = Math.max(0, this.runTimer - GameConfig.WAVE_2_DELAY);
+    const lerp = Math.min(1, sinceStart / WaveSpawner.TRICKLE_RAMP_S);
+    const interval = WaveSpawner.TRICKLE_START_S
+      + (WaveSpawner.TRICKLE_MIN_S - WaveSpawner.TRICKLE_START_S) * lerp;
+    while (this.trickleAccum >= interval) {
+      this.trickleAccum -= interval;
+      this.spawnTrickleEnemy();
+    }
+  }
+
+  private spawnTrickleEnemy(): void {
+    const t = this.runTimer;
+    const r = Math.random();
+    let enemy: BaseEnemy;
+    if (t >= WaveSpawner.TRICKLE_SPITTER_AT_S && r < 0.18) {
+      enemy = this.factories.spitter();
+    } else if (t >= WaveSpawner.TRICKLE_BRUISER_CHANCE_AFTER_S && r < 0.30) {
+      enemy = this.factories.bruiser();
+    } else {
+      enemy = this.factories.runner();
+    }
+    enemy.position = this.randomEdgePosition();
+    enemy.setWorld(this.world);
+    this.world.addEnemy(enemy);
   }
 
   private spawnWave1(): void {

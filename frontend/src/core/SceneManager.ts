@@ -50,7 +50,7 @@ class SceneManager {
         await tween({
           durationMs: fadeMs,
           ease: Easing.easeInCubic,
-          onUpdate: (t) => { overlay.alpha = t; },
+          onUpdate: (t) => { if (!overlay.destroyed) overlay.alpha = t; },
         });
       }
 
@@ -77,9 +77,9 @@ class SceneManager {
         await tween({
           durationMs: fadeMs,
           ease: Easing.easeOutCubic,
-          onUpdate: (t) => { overlay.alpha = 1 - t; },
+          onUpdate: (t) => { if (!overlay.destroyed) overlay.alpha = 1 - t; },
         });
-        overlay.alpha = 0;
+        if (!overlay.destroyed) overlay.alpha = 0;
       }
     } finally {
       this.busy = false;
