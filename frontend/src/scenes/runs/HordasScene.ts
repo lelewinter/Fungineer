@@ -55,6 +55,7 @@ export class HordasScene extends Scene {
   private hud!: HUD;
   private rescueOffered = false;
   private powerOffered = false;
+  private power2Offered = false;
   private endShown = false;
 
   // Signal disposers
@@ -278,12 +279,16 @@ export class HordasScene extends Scene {
 
   // ── Wave callbacks ─────────────────────────────────────────────────────
   private onWaveCleared(wave: number): void {
-    if (wave === 1 && !this.rescueOffered) {
+    // Waves now arrive continuously and escalate; offers are paced by wave #.
+    if (wave === 2 && !this.rescueOffered) {
       this.rescueOffered = true;
       if (this.party.size() >= GameConfig.MAX_PARTY_SIZE) return;
       this.offerRescue();
-    } else if (wave === 2 && !this.powerOffered) {
+    } else if (wave === 4 && !this.powerOffered) {
       this.powerOffered = true;
+      this.offerPower();
+    } else if (wave === 9 && !this.power2Offered) {
+      this.power2Offered = true;
       this.offerPower();
     }
   }
