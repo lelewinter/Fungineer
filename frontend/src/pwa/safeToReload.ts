@@ -17,6 +17,7 @@ import { sceneManager } from '../core/SceneManager';
 // to import every scene class (would create a circular dep with main.ts).
 const SAFE_SCENES: ReadonlySet<string> = new Set([
   'BootScene',
+  'StartScene',
   'HubScene',
   'WorldMapScene',
   'ZoneRoom',
