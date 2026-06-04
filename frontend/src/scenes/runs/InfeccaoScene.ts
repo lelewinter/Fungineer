@@ -224,6 +224,7 @@ export class InfeccaoScene extends Scene {
       this.cells[this.py]![this.px] = -1;
       this.pelletsLeft -= 1;
       this.banked += 1;
+      audioManager.playSfx('res://assets/audio/sfx/game/munch.wav', 0.3);
     } else if (v === 2) {
       this.cells[this.py]![this.px] = -1;
       this.pelletsLeft -= 1;
@@ -232,6 +233,7 @@ export class InfeccaoScene extends Scene {
       for (const g of this.ghosts) g.scared = POWER_TIME;
       const p = this.playerScreen();
       this.juice.pop(p.x, p.y);
+      audioManager.playSfx('res://assets/audio/sfx/game/powerup.wav', 0.5);
       this.juice.flash(0x4d7adb, 0.16, 0.3);
     }
   }

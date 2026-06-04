@@ -1,5 +1,6 @@
 import { assets } from './AssetLoader';
 import { sfxSynth } from './SfxSynth';
+import { musicSynth } from './MusicSynth';
 
 interface Channel {
   el: HTMLAudioElement;
@@ -15,6 +16,11 @@ class AudioManager {
   private cache = new Map<string, HTMLAudioElement>();
   /** SFX paths whose file failed to load — routed to the procedural synth. */
   private missingSfx = new Set<string>();
+  /** Music paths whose file 404'd — routed to the generative MusicSynth. */
+  private missingMusic = new Set<string>();
+  private synthMusicActive = false;
+  /** Most recently requested track; guards against stale fallbacks. */
+  private lastMusicPath: string | null = null;
   private unlocked = false;
 
   unlockOnFirstGesture(): void {
@@ -39,6 +45,7 @@ class AudioManager {
   setMusicVolume(v: number): void {
     this.musicVolume = Math.max(0, Math.min(1, v));
     if (this.music) this.music.el.volume = this.music.baseVolume * this.musicVolume;
+    musicSynth.setUserVolume(this.musicVolume);
   }
 
   setSfxVolume(v: number): void {
@@ -50,12 +57,22 @@ class AudioManager {
       this.pendingMusic = { path, opts };
       return;
     }
+    this.lastMusicPath = path;
 
-    const url = assets.toUrl(path);
-    const next = new Audio(url);
+    // Known-missing track → procedural generative music.
+    if (this.missingMusic.has(path)) {
+      this.startSynthMusic(path, opts);
+      return;
+    }
+
+    const next = new Audio(assets.toUrl(path));
     next.loop = opts.loop ?? true;
     const baseVolume = opts.volume ?? 1.0;
     next.volume = 0;
+    next.addEventListener('error', () => {
+      this.missingMusic.add(path);
+      if (this.lastMusicPath === path) this.startSynthMusic(path, opts);
+    }, { once: true });
 
     if (opts.fadeMs && this.music) {
       this.fade(this.music, this.music.el.volume, 0, opts.fadeMs, () => {
@@ -69,14 +86,40 @@ class AudioManager {
     try {
       await next.play();
     } catch {
-      // Autoplay blocked — will resume on first user gesture (see unlockOnFirstGesture).
+      // We are past the unlock gate, so a rejection here means the file is
+      // absent (404), not an autoplay block → fall back to generative music.
+      this.missingMusic.add(path);
+      if (this.lastMusicPath === path) this.startSynthMusic(path, opts);
+      return;
+    }
+    // A real file is playing — retire any generative fallback.
+    if (this.synthMusicActive) {
+      musicSynth.stop(opts.fadeMs ?? 0);
+      this.synthMusicActive = false;
     }
     this.music = newChannel;
     this.fade(newChannel, 0, baseVolume * this.musicVolume, opts.fadeMs ?? 0);
   }
 
+  /** Route a missing track to the generative MusicSynth, silencing any
+   *  half-started (silent) HTMLAudio element. */
+  private startSynthMusic(path: string, opts: { volume?: number; fadeMs?: number }): void {
+    if (this.music) {
+      this.music.el.pause();
+      this.music = null;
+    }
+    this.synthMusicActive = true;
+    musicSynth.setUserVolume(this.musicVolume);
+    musicSynth.play(path, { volume: opts.volume ?? 1.0, fadeMs: opts.fadeMs ?? 0 });
+  }
+
   stopMusic(fadeMs: number = 0): void {
     this.pendingMusic = null;
+    this.lastMusicPath = null;
+    if (this.synthMusicActive) {
+      musicSynth.stop(fadeMs);
+      this.synthMusicActive = false;
+    }
     if (!this.music) return;
     const ch = this.music;
     if (fadeMs > 0) {

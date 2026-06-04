@@ -44,23 +44,33 @@ Complete_01.wav  Complete_02.wav
 
 ## SFX de gameplay (`audio/sfx/game/`)
 
-Disparados pelo `RunJuice` (kit de game-feel das zonas):
+Disparados pelo `RunJuice` (kit de game-feel das zonas) e por zonas específicas:
 
 ```
 hit_01.wav    dano em corrida / near-miss
 hit_02.wav    derrota (impacto mais grave)
 alarm.wav     perigo / início de perseguição
-jump.wav      pulo/hop (Catedral, Cordilheira, ...)
+jump.wav      pulo/hop (Catedral, Cordilheira)
+push.wav      empurrar caixa (Labirinto / Sokoban)
+munch.wav     comer pellet (Infecção / Pac-Man) — alterna dois tons
+powerup.wav   power pellet / pickup importante (Infecção)
 ```
 
 ## Síntese procedural (fallback)
 
-**Enquanto não houver arquivo no caminho acima, o jogo NÃO fica mudo.** O
-`AudioManager` detecta o 404 e cai para um sintetizador Web Audio embutido
-(`src/core/SfxSynth.ts`) que gera o efeito proceduralmente a partir do nome do
-arquivo (família `Click_/Confirm_/Complete_/hit_/alarm/jump` + índice numérico).
-Assim que um `.wav` real for colocado na pasta, ele tem prioridade — o synth só
-toca quando o arquivo realmente falha em carregar.
+**Enquanto não houver arquivo nos caminhos acima, o jogo NÃO fica mudo.** O
+`AudioManager` detecta o 404 e cai para sintetizadores Web Audio embutidos
+(contexto compartilhado em `src/core/audioContext.ts`):
+
+- **SFX** → `src/core/SfxSynth.ts`: gera o efeito a partir do nome do arquivo
+  (família `Click_/Confirm_/Complete_/hit_/alarm/jump/push/munch/powerup` +
+  índice numérico de variação).
+- **Música** → `src/core/MusicSynth.ts`: gera uma trilha gerativa em loop
+  (pads + baixo + melodia) cujo "mood" vem do caminho (`menu`, `battle`,
+  `field`, `dungeon`, `night`). Respeita fade e o volume de música.
+
+Assim que um arquivo real for colocado na pasta, ele tem prioridade — os synths
+só tocam quando o arquivo realmente falha em carregar.
 
 ## Formato de áudio
 

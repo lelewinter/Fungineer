@@ -8,12 +8,15 @@
  * the *whole* sound design is audible with zero binary assets.
  *
  * Voices are derived from the filename family (`Click_/Confirm_/Complete_` plus
- * the semantic `game/` set: hit, alarm, jump, pickup) and the numeric suffix is
- * used as a small variation index so repeated clicks don't sound identical.
+ * the semantic `game/` set: hit, alarm, jump, push, munch, powerup, pickup) and
+ * the numeric suffix is used as a small variation index so repeated clicks
+ * don't sound identical.
  *
  * If real audio files are dropped in later they take precedence — the synth is
  * only ever reached when a file genuinely fails to load.
  */
+
+import { getAudioContext, resumeAudioContext } from './audioContext';
 
 type OscType = OscillatorType;
 
@@ -38,27 +41,18 @@ interface SfxSpec {
 }
 
 class SfxSynth {
-  private ctx: AudioContext | null = null;
   private master: GainNode | null = null;
   private noise: AudioBuffer | null = null;
-  private supported: boolean;
+  private munchToggle = false;
 
-  constructor() {
-    this.supported =
-      typeof window !== 'undefined' &&
-      (typeof window.AudioContext !== 'undefined' ||
-        typeof (window as unknown as { webkitAudioContext?: unknown }).webkitAudioContext !== 'undefined');
-  }
-
-  /** Resume the context after a user gesture (autoplay policy). Safe to call
-   *  repeatedly; no-op until the context exists. */
+  /** Resume the shared context after a user gesture (autoplay policy). */
   resume(): void {
-    if (this.ctx && this.ctx.state === 'suspended') void this.ctx.resume();
+    resumeAudioContext();
   }
 
   /** Play a synthesised effect for the given resource path at `gain` (0..1). */
   play(path: string, gain: number): void {
-    if (!this.supported || gain <= 0) return;
+    if (gain <= 0) return;
     const ctx = this.ensureContext();
     if (!ctx) return;
     if (ctx.state === 'suspended') void ctx.resume();
@@ -71,6 +65,9 @@ class SfxSynth {
       case 'hit': return this.voiceHit(spec, g);
       case 'alarm': return this.voiceAlarm(g);
       case 'jump': return this.voiceJump(g);
+      case 'push': return this.voicePush(g);
+      case 'munch': return this.voiceMunch(g);
+      case 'powerup': return this.voicePowerup(g);
       case 'pickup': return this.voicePickup(spec, g);
       case 'click':
       default:
@@ -126,10 +123,31 @@ class SfxSynth {
     this.tone(820 + (spec.index - 1) * 60, { type: 'triangle', dur: 0.06, attack: 0.001, gain: 0.4 * gain });
   }
 
+  /** Heavy block slide — Sokoban box push. Low scrape over a dull thud. */
+  private voicePush(gain: number): void {
+    this.burstNoise({ dur: 0.14, freq: 240, q: 0.8, gain: 0.32 * gain });
+    this.tone(120, { type: 'sine', slideTo: 90, dur: 0.16, attack: 0.004, gain: 0.5 * gain });
+  }
+
+  /** Pac-Man "wakka" — alternates two short pitches on each pellet eaten. */
+  private voiceMunch(gain: number): void {
+    this.munchToggle = !this.munchToggle;
+    const f = this.munchToggle ? 440 : 300;
+    this.tone(f, { type: 'square', slideTo: f * 0.7, dur: 0.05, attack: 0.001, gain: 0.22 * gain });
+  }
+
+  /** Bright four-note rising arpeggio — power pellet / pickup of significance. */
+  private voicePowerup(gain: number): void {
+    const notes = [440, 554.37, 659.25, 880]; // A4 C#5 E5 A5
+    notes.forEach((f, i) => {
+      this.tone(f, { type: 'triangle', dur: 0.09, attack: 0.002, gain: 0.34 * gain, at: i * 0.05 });
+    });
+  }
+
   // ── Primitives ───────────────────────────────────────────────────────────
 
   private tone(freq: number, opts: ToneOpts): void {
-    const ctx = this.ctx;
+    const ctx = getAudioContext();
     const master = this.master;
     if (!ctx || !master) return;
     const dur = opts.dur ?? 0.1;
@@ -157,7 +175,7 @@ class SfxSynth {
   }
 
   private burstNoise(opts: { dur: number; freq: number; q: number; gain: number }): void {
-    const ctx = this.ctx;
+    const ctx = getAudioContext();
     const master = this.master;
     if (!ctx || !master) return;
     const buf = this.ensureNoise(ctx);
@@ -187,21 +205,14 @@ class SfxSynth {
   }
 
   private ensureContext(): AudioContext | null {
-    if (this.ctx) return this.ctx;
-    if (!this.supported) return null;
-    const Ctor =
-      window.AudioContext ??
-      (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-    try {
-      this.ctx = new Ctor();
-      this.master = this.ctx.createGain();
+    const ctx = getAudioContext();
+    if (!ctx) return null;
+    if (!this.master) {
+      this.master = ctx.createGain();
       this.master.gain.value = 0.9;
-      this.master.connect(this.ctx.destination);
-      return this.ctx;
-    } catch {
-      this.supported = false;
-      return null;
+      this.master.connect(ctx.destination);
     }
+    return ctx;
   }
 
   private ensureNoise(ctx: AudioContext): AudioBuffer | null {
