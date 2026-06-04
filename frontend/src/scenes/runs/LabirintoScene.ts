@@ -197,6 +197,7 @@ export class LabirintoScene extends Scene {
       if (this.boxAt(bx, by)) return;
       const wasOnSlot = this.slots.some((s) => s.x === b.x && s.y === b.y);
       b.x = bx; b.y = by;
+      audioManager.playSfx('res://assets/audio/sfx/game/push.wav', 0.4);
       const nowOnSlot = this.slots.some((s) => s.x === bx && s.y === by);
       if (nowOnSlot && !wasOnSlot) {
         this.juice.pop(this.offsetX + bx * this.tile + this.tile / 2, this.offsetY + by * this.tile + this.tile / 2);

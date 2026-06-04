@@ -192,10 +192,13 @@ export class CordilheiraScene extends Scene {
       if (Math.hypot(dx, dy) > 18 && this.hopAnim >= 1) {
         if (Math.abs(dy) > Math.abs(dx)) {
           const nextRow = Math.max(0, Math.min(ROW_COUNT - 1, this.rowIdx + (dy < 0 ? -1 : 1)));
-          this.fromY = this.playerY();
-          this.toY = TOP + nextRow * ROW_H + ROW_H / 2;
-          this.rowIdx = nextRow;
-          this.hopAnim = 0;
+          if (nextRow !== this.rowIdx) {
+            this.fromY = this.playerY();
+            this.toY = TOP + nextRow * ROW_H + ROW_H / 2;
+            this.rowIdx = nextRow;
+            this.hopAnim = 0;
+            this.juice.jump(this.px, this.toY);
+          }
         } else {
           this.px = Math.max(16, Math.min(VW - 16, this.px + (dx > 0 ? 36 : -36)));
         }
