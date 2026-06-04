@@ -1,9 +1,9 @@
-import { Container, FederatedPointerEvent, Graphics, Text } from 'pixi.js';
+import { Container, Graphics, Text } from 'pixi.js';
 import { Scene } from '../../core/Scene';
 import { sceneManager } from '../../core/SceneManager';
 import { Color } from '../../core/Color';
 import { GameConfig } from '../../state/GameConfig';
-import { HubState, HUB_VARIANTS, type HubVariantKey } from '../../state/HubState';
+import { HubState, HUB_VARIANTS, ROCKET_RECIPE, type HubVariantKey } from '../../state/HubState';
 import { HubData, ROOM_TO_ZONE } from '../../state/HubData';
 import { ZONES } from '../../state/Zones';
 import { StubRunScene } from '../runs/StubRunScene';
@@ -18,11 +18,9 @@ import { LabirintoScene } from '../runs/LabirintoScene';
 import { CordilheiraScene } from '../runs/CordilheiraScene';
 import { TorresScene } from '../runs/TorresScene';
 import { CatedralScene } from '../runs/CatedralScene';
-import { WorldMapScene } from '../WorldMapScene';
 import { HubAudio } from './HubAudio';
 import { HubRenderer } from './HubRenderer';
 import { HubNPCManager } from './HubNPCManager';
-import { HubRocket } from './HubRocket';
 import { HubCharacterCard } from '../../ui/hub/HubCharacterCard';
 import { HubRocketPanel } from '../../ui/hub/HubRocketPanel';
 import { HubZoomPanel } from '../../ui/hub/HubZoomPanel';
@@ -37,7 +35,6 @@ export class HubScene extends Scene {
   private modalLayer = new Container();
   private renderer = new HubRenderer();
   private npcManager = new HubNPCManager();
-  private rocketBadge = new HubRocket();
   private hubAudio = new HubAudio();
   private activeModal: Modal | null = null;
   private disposers: Array<() => void> = [];
@@ -54,12 +51,13 @@ export class HubScene extends Scene {
     this.worldLayer.addChild(this.renderer);
     this.worldLayer.addChild(this.npcManager);
 
-    this.uiLayer.addChild(this.rocketBadge);
-    this.makeBadgeInteractive();
-    this.buildVariantSelector();
+    this.buildResourceStrip();
 
     this.disposers.push(
       this.renderer.roomClicked.connect((roomId) => this.onRoomClicked(roomId)),
+    );
+    this.disposers.push(
+      this.renderer.surfaceZoneClicked.connect((zoneId) => this.onSurfaceZoneClicked(zoneId)),
     );
     this.disposers.push(
       this.renderer.rocketShaftClicked.connect(() => {
@@ -181,69 +179,90 @@ export class HubScene extends Scene {
     }
   }
 
-  private makeBadgeInteractive(): void {
-    this.rocketBadge.eventMode = 'static';
-    this.rocketBadge.cursor = 'pointer';
-    this.rocketBadge.on('pointertap', (e: FederatedPointerEvent) => {
-      e.stopPropagation();
-      this.hubAudio.playOpenPanelSfx();
-      const panel = new HubRocketPanel();
-      panel.closed.connect(() => {
-        this.hubAudio.playClosePanelSfx();
-        HubState.hubRocketClosed.emit();
-      });
-      this.openModal(panel);
-      HubState.hubRocketOpened.emit();
-    });
-  }
+  // ── Resource strip (folds the old World Map stock readout into the hub) ────
+  private resourceText: Text | null = null;
+  private themeBtn: PixiButton | null = null;
 
-  private buildVariantSelector(): void {
+  private buildResourceStrip(): void {
+    const VW = GameConfig.VIEWPORT_WIDTH;
+    const VH = GameConfig.VIEWPORT_HEIGHT;
+    const stripH = 28;
+    const y = VH - 34;
+
     const bar = new Container();
-    bar.x = 12;
-    bar.y = 60;
-    let x = 0;
-    const keys = Object.keys(HUB_VARIANTS) as HubVariantKey[];
-    for (const key of keys) {
-      const btn = new PixiButton({
-        label: key.toUpperCase(),
-        width: 80,
-        height: 22,
-        fontSize: 9,
-        onClick: () => {
-          HubState.setHubVariant(key);
-        },
-      });
-      btn.x = x;
-      x += 84;
-      bar.addChild(btn);
-    }
+    const bg = new Graphics()
+      .rect(0, y, VW, stripH).fill({ color: 0x050807, alpha: 0.82 })
+      .moveTo(0, y).lineTo(VW, y).stroke({ color: Color.hex(Color.rgb(0.35, 0.45, 0.40)), width: 1, alpha: 0.55 });
+    bar.addChild(bg);
+
+    const txt = new Text({
+      text: '',
+      style: {
+        fontFamily: '"IBM Plex Mono", ui-monospace, monospace',
+        fontSize: 10,
+        fontWeight: '600',
+        fill: Color.hex(Color.rgb(0.88, 0.93, 0.82)),
+        dropShadow: { color: 0x000000, alpha: 0.8, blur: 2, distance: 1, angle: Math.PI / 2 },
+      },
+    });
+    txt.anchor.set(0, 0.5);
+    txt.x = 10;
+    txt.y = y + stripH / 2;
+    bar.addChild(txt);
+    this.resourceText = txt;
+
+    // Compact theme cycler (replaces the old top variant bar).
+    const tbW = 78;
+    const tbH = 20;
+    const themeBtn = new PixiButton({
+      label: '',
+      width: tbW,
+      height: tbH,
+      fontSize: 9,
+      fill: 0x18221b,
+      hoverFill: 0x243328,
+      textColor: 0x9fe9cf,
+      onClick: () => this.cycleVariant(),
+    });
+    themeBtn.x = VW - tbW - 8;
+    themeBtn.y = y + (stripH - tbH) / 2;
+    bar.addChild(themeBtn);
+    this.themeBtn = themeBtn;
+
     this.uiLayer.addChild(bar);
 
-    const mapBtn = new PixiButton({
-      label: 'WORLD MAP',
-      width: 100,
-      height: 22,
-      fontSize: 9,
-      onClick: () => {
-        void sceneManager.replace(new WorldMapScene());
-      },
-    });
-    mapBtn.x = GameConfig.VIEWPORT_WIDTH - 110;
-    mapBtn.y = 60;
-    this.uiLayer.addChild(mapBtn);
+    this.refreshResourceStrip();
+    this.refreshThemeBtn();
+    this.disposers.push(HubState.stockChanged.connect(() => this.refreshResourceStrip()));
+    this.disposers.push(HubState.rocketPieceBuilt.connect(() => this.refreshResourceStrip()));
+    this.disposers.push(HubState.hubVariantChanged.connect(() => this.refreshThemeBtn()));
+  }
 
-    const hint = new Text({
-      text: 'Toque numa sala para entrar · ESC fecha painel',
-      style: {
-        fontFamily: '"Space Grotesk", system-ui, sans-serif',
-        fontSize: 9,
-        fill: Color.hex(Color.rgb(0.55, 0.62, 0.50)),
-      },
-    });
-    hint.anchor.set(0.5, 1);
-    hint.x = GameConfig.VIEWPORT_WIDTH / 2;
-    hint.y = GameConfig.VIEWPORT_HEIGHT - 8;
-    this.uiLayer.addChild(hint);
+  private cycleVariant(): void {
+    const keys = Object.keys(HUB_VARIANTS) as HubVariantKey[];
+    const i = keys.indexOf(HubState.hub_variant);
+    const next = keys[(i + 1) % keys.length]!;
+    HubState.setHubVariant(next);
+  }
+
+  private refreshThemeBtn(): void {
+    this.themeBtn?.setLabel(`◑ ${HubState.hub_variant.toUpperCase()}`);
+  }
+
+  private refreshResourceStrip(): void {
+    if (!this.resourceText) return;
+    const idx = HubState.rocket_pieces_built;
+    const nextName = idx >= ROCKET_RECIPE.length ? 'FOGUETE COMPLETO' : ROCKET_RECIPE[idx]!.name;
+    const s = HubState.stock;
+    const survivors = HubState.rescued_characters.length + 1;
+    this.resourceText.text =
+      `▲ ${nextName}  ·  Suc ${s.scrap} IA ${s.ai_components} Bio ${s.biomassa_adaptativa}  ·  Sobrev ${survivors}/10`;
+  }
+
+  private onSurfaceZoneClicked(zoneId: string): void {
+    this.hubAudio.playClickSfx();
+    this.openZoomView(`surface_${zoneId}`, zoneId);
+    HubState.hubRoomSelected.emit(`surface_${zoneId}`);
   }
 
   private updateBackground(): void {

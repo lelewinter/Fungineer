@@ -19,8 +19,6 @@ const SAFE_SCENES: ReadonlySet<string> = new Set([
   'BootScene',
   'StartScene',
   'HubScene',
-  'WorldMapScene',
-  'ZoneRoom',
 ]);
 
 export function isSafeToReload(): boolean {

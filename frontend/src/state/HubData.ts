@@ -63,7 +63,7 @@ const ROOMS: HubRoom[] = [
   // Floor 2
   { id: 'vigia',       label: 'VIGIA',     col: 0, w: 2, floor: 2, type: 'tech',          light: 'red',      zone_id: 'stealth',   silhouette: 'posto de vigia',           npcs: ['elena'] },
   { id: 'rocket_top',  label: '',           col: 2, w: 2, floor: 2, type: 'rocket-top',    light: 'dim',      npcs: [] },
-  { id: 'deposito',    label: 'DEPÓSITO',  col: 4, w: 2, floor: 2, type: 'storage',       light: 'amber',    silhouette: 'depósito de armas',        npcs: [] },
+  { id: 'deposito',    label: 'CAMPO',  col: 4, w: 2, floor: 2, type: 'storage',       light: 'amber',    zone_id: 'campo',    silhouette: 'depósito de armas',        npcs: [] },
 
   // Floor 3
   { id: 'lab_rival',   label: 'CÂMARA DE ESPOROS', col: 0, w: 2, floor: 3, type: 'spore-chamber', light: 'cool',  zone_id: 'sacrificio', silhouette: 'camara de esporos',       npcs: ['priya'] },
@@ -82,7 +82,7 @@ const ROOMS: HubRoom[] = [
 
   // Floor 6
   { id: 'server',      label: 'NEURAL MUSHROOM', col: 0, w: 2, floor: 6, type: 'neural-mushroom', light: 'neon-green', zone_id: 'circuito', silhouette: 'rede neural micótica', npcs: ['yuki'] },
-  { id: 'gestao',      label: 'GESTÃO',          col: 2, w: 2, floor: 6, type: 'office',          light: 'office',                         silhouette: 'sala de gestão',        npcs: [] },
+  { id: 'gestao',      label: 'LABIRINTO',          col: 2, w: 2, floor: 6, type: 'office',          light: 'office',     zone_id: 'labirinto',               silhouette: 'sala de gestão',        npcs: [] },
   { id: 'quarto_lena', label: 'QUARTO',          col: 4, w: 2, floor: 6, type: 'bedroom',         light: 'pink-dim',                       silhouette: 'quarto',                npcs: ['lena'] },
 ];
 
@@ -102,7 +102,12 @@ export const ROOM_TO_ZONE: Record<string, string> = {
   enfermaria:   'infeccao',
   server:       'circuito',
   arquivo:      'extracao',
+  deposito:     'campo',
+  gestao:       'labirinto',
 };
+
+/** Surface ruins reachable from the hub's surface band (zone ids). */
+export const SURFACE_ZONE_IDS = ['cordilheira', 'torres', 'catedral'] as const;
 
 const ZONES: HubZone[] = [
   { id: 'hordas',     name: 'Zona Hordas',          color: C(0.72, 0.45, 0.85),  briefing: 'Enxame de drones IA caçando esporos. Sozinhos fracos, em banda vorazes. Colheita: biomassa bruta.', allow_squad: true  },
@@ -111,6 +116,11 @@ const ZONES: HubZone[] = [
   { id: 'circuito',   name: 'Rede Neural Fúngica',  color: C(0.0, 1.0, 0.533),   briefing: 'Onde o micélio encontrou os cabos mortos das IAs. Yuki decodifica os sinais. Colheita: núcleos lógicos.', allow_squad: false },
   { id: 'extracao',   name: 'Estufa Abandonada',    color: C(0.62, 0.55, 0.35),  briefing: 'Arqueologia botânica — sementes pré-colapso ainda dormentes. Bae documenta o que Paulo sonha reviver.', allow_squad: false },
   { id: 'sacrificio', name: 'Câmara de Esporos',    color: C(0.78, 0.35, 0.55),  briefing: 'Laboratório da Priya. Mutações experimentais que só ela ousa cultivar. O preço é cruel.',   allow_squad: false },
+  { id: 'campo',      name: 'Zona de Transmissão',  color: C(0.30, 0.55, 0.90),  briefing: 'A IA controla o território por sinais. Perturbe as antenas e tome os pontos de controle. Colheita: sinais de controle.', allow_squad: true  },
+  { id: 'labirinto',  name: 'Complexo Subterrâneo', color: C(0.45, 0.62, 0.70),  briefing: 'Corredores que se fecham e abrem. Drones de patrulha ainda operam. Navegue sem ficar preso. Colheita: fragmentos estruturais.', allow_squad: false },
+  { id: 'cordilheira', name: 'Favela Silenciosa',   color: C(0.62, 0.56, 0.50),  briefing: 'Superfície sem IA — só os que ficaram. Hostis, mas humanos. Atravesse com calma. Colheita: memórias coletivas.', allow_squad: false },
+  { id: 'torres',     name: 'Arranha-céus',         color: C(0.35, 0.50, 0.78),  briefing: 'Torres podres da superfície. Subir é metade da batalha; o que cai do alto é a outra metade. Colheita: cristais de memória.', allow_squad: false },
+  { id: 'catedral',   name: 'A Catedral',           color: C(0.85, 0.74, 0.48),  briefing: 'Relíquias, ritmo, ressonância. Pise certo e ela canta com você. Colheita: relíquias.', allow_squad: false },
 ];
 
 const DIALOGS: Record<string, HubDialog> = {
