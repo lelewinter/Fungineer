@@ -25,14 +25,14 @@ export interface RocketRecipe {
 }
 
 export const ROCKET_RECIPE: RocketRecipe[] = [
-  { name: 'Base Estrutural', scrap: 3 },
-  { name: 'Motor Principal', combustivel_volatil: 3 },
-  { name: 'Processador', nucleo_logico: 2 },
-  { name: 'Revestimento', fragmentos_estruturais: 3, scrap: 2 },
-  { name: 'Rede Neural', ai_components: 4, sinais_controle: 20 },
-  { name: 'Sistema Vital', biomassa_adaptativa: 6, combustivel_volatil: 2 },
-  { name: 'Blindagem Externa', fragmentos_estruturais: 3, ai_components: 3 },
-  { name: 'Ignição Final', scrap: 2, nucleo_logico: 1, sinais_controle: 30, biomassa_adaptativa: 4 },
+  { name: 'Esqueleto Ferroquelado',  scrap: 3 },
+  { name: 'Mosto de Propulsão',      combustivel_volatil: 3 },
+  { name: 'Coração Catalítico',      nucleo_logico: 2 },
+  { name: 'Casca Ablativa',          fragmentos_estruturais: 3, scrap: 2 },
+  { name: 'Rede Nervosa Micelial',   ai_components: 4, sinais_controle: 20 },
+  { name: 'Resina Micelial Viva',    biomassa_adaptativa: 6, combustivel_volatil: 2 },
+  { name: 'Orvalho Oxidante',        fragmentos_estruturais: 3, ai_components: 3 },
+  { name: 'Ignição Biológica Final', scrap: 2, nucleo_logico: 1, sinais_controle: 30, biomassa_adaptativa: 4 },
 ];
 
 export interface Survivor {
