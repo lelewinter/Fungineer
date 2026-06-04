@@ -1,4 +1,4 @@
-import { Graphics } from 'pixi.js';
+import { Container, Graphics } from 'pixi.js';
 import { Scene } from '../../core/Scene';
 import { audioManager } from '../../core/AudioManager';
 import { Color } from '../../core/Color';
@@ -6,6 +6,7 @@ import { GameConfig } from '../../state/GameConfig';
 import { HubState } from '../../state/HubState';
 import { ZONES } from '../../state/Zones';
 import type { Vec2 } from '../../core/types';
+import { RunJuice } from '../../run/fx/RunJuice';
 import { buildHud, buildEndOverlay, bindDrag, type RunHud, type DragInput } from './RunFrame';
 
 const VW = GameConfig.VIEWPORT_WIDTH;
@@ -25,11 +26,13 @@ interface Blob { pos: Vec2; vel: Vec2; r: number; predator: boolean }
  *  and devour anything smaller than them — including you. Higher mass =
  *  slower, so growth is also exposure. */
 export class StealthScene extends Scene {
+  private content = new Container();
   private bg = new Graphics();
   private blobsG = new Graphics();
   private playerG = new Graphics();
   private hud!: RunHud;
   private drag!: DragInput;
+  private juice!: RunJuice;
 
   private playerPos: Vec2 = { x: VW / 2, y: VH / 2 };
   private playerR = START_R;
@@ -47,15 +50,17 @@ export class StealthScene extends Scene {
       const y = 40 + Math.random() * (VH - 60);
       this.bg.circle(x, y, 1).fill({ color: accent, alpha: 0.08 + Math.random() * 0.1 });
     }
-    this.root.addChild(this.bg);
+    this.content.addChild(this.bg);
+    this.root.addChild(this.content);
 
     // Seed: lots of small prey, a few medium, a couple big predators.
     for (let i = 0; i < 24; i++) this.spawnBlob(3 + Math.random() * 3, false);
     for (let i = 0; i < 6; i++)  this.spawnBlob(7 + Math.random() * 3, false);
     for (let i = 0; i < 4; i++)  this.spawnBlob(14 + Math.random() * 5, true);
 
-    this.root.addChild(this.blobsG);
-    this.root.addChild(this.playerG);
+    this.content.addChild(this.blobsG, this.playerG);
+
+    this.juice = new RunJuice(this.root, { accent: Color.hex(ZONE.accent_color), shakeTarget: this.content, ambient: 28 });
 
     this.hud = buildHud(ZONE);
     this.root.addChild(this.hud.container);
@@ -71,11 +76,13 @@ export class StealthScene extends Scene {
   override exit(): void {
     audioManager.stopMusic(300);
     this.drag.cleanup();
+    this.juice.destroy();
   }
 
   override update(dt: number): void {
-    if (this.ended) return;
     const d = Math.min(dt, 1 / 30);
+    this.juice.update(d);
+    if (this.ended) return;
     this.elapsed += d;
     this.timeLeft -= d;
     if (this.timeLeft <= 0) { this.end(this.playerR >= GOAL_MASS); return; }
@@ -111,11 +118,13 @@ export class StealthScene extends Scene {
           const a = this.playerR * this.playerR + b.r * b.r * 0.6;
           this.playerR = Math.sqrt(a);
           this.banked += Math.max(1, Math.floor(b.r / 3));
+          this.juice.pop(b.pos.x, b.pos.y);
           this.blobs.splice(i, 1);
           // Replenish a small prey so the map doesn't go quiet.
           if (Math.random() < 0.5) this.spawnBlob(3 + Math.random() * 3, false);
         } else if (b.r > this.playerR + 1) {
           // Predator eats player.
+          this.juice.hurt(this.playerPos.x, this.playerPos.y);
           this.end(false);
           return;
         }
@@ -163,6 +172,7 @@ export class StealthScene extends Scene {
   private end(victory: boolean): void {
     if (this.ended) return;
     this.ended = true;
+    if (victory) this.juice.victoryFx(); else this.juice.defeatFx();
     if (victory && this.banked > 0) {
       HubState.depositFlow('ai_components', this.banked);
     }

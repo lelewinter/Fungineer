@@ -7,12 +7,15 @@ import { FontFamily } from '../../core/typography';
 import { GameConfig } from '../../state/GameConfig';
 import { GameState, RunState } from '../../state/GameState';
 import { HubState } from '../../state/HubState';
+import { ZONES } from '../../state/Zones';
+import { RunJuice } from '../../run/fx/RunJuice';
 import { HubScene } from '../hub/HubScene';
 import { shuffleInPlace } from '../../core/types';
 import type { Vec2 } from '../../core/types';
 
 const VW = GameConfig.VIEWPORT_WIDTH;
 const VH = GameConfig.VIEWPORT_HEIGHT;
+const ZONE = ZONES[7]!;
 
 const SQUAD_DPS = 15;
 const ENEMY_HP_EACH = 30;
@@ -88,6 +91,8 @@ export class SacrificeScene extends Scene {
   private playerG = new Graphics();
   private labelLayer = new Container();
   private endOverlay = new Container();
+  private content = new Container();
+  private juice!: RunJuice;
 
   private hudLayer = new Container();
   private hudBg = new Graphics();
@@ -129,6 +134,7 @@ export class SacrificeScene extends Scene {
     this.squadHp = this.squadMaxHp;
     this.buildChambers();
     this.buildVisuals();
+    this.juice = new RunJuice(this.root, { accent: Color.hex(ZONE.accent_color), shakeTarget: this.content, ambient: 26 });
     this.buildHud();
     this.bindPointer();
     audioManager.playMusic('res://assets/audio/music/zones/dungeon_theme_1.wav', { loop: true, volume: 0.35, fadeMs: 400 }).catch(() => undefined);
@@ -137,12 +143,14 @@ export class SacrificeScene extends Scene {
   override async exit(): Promise<void> {
     this.unbindPointer();
     audioManager.stopMusic(250);
+    this.juice.destroy();
   }
 
   override update(dt: number): void {
+    const capped = Math.min(dt, 1 / 30);
+    this.juice.update(capped);
     if (this.runEnded) return;
     if (GameState.current_state !== RunState.PLAYING) return;
-    const capped = Math.min(dt, 1 / 30);
     this.pulse += capped;
     this.damageFlash = Math.max(0, this.damageFlash - capped * 3);
 
@@ -164,6 +172,7 @@ export class SacrificeScene extends Scene {
         if (ch.sealTimer >= SEAL_TIME) {
           ch.sealed = true;
           ch.collectingIdx = -1;
+          this.juice.alarm(0xff4d20);
           for (let k = 0; k < 2; k++) {
             const ang = this.pulse + k * Math.PI;
             this.hubEnemies.push({
@@ -203,6 +212,8 @@ export class SacrificeScene extends Scene {
         const dmg = this.enemyCount(ch) * ENEMY_DPS * capped;
         this.squadHp -= dmg;
         this.damageFlash = Math.max(this.damageFlash, 0.4);
+        this.juice.edges(0xff2f3d, 0.05);
+        this.juice.shake(0.02);
         if (this.squadHp <= 0) {
           this.squadHp = 0;
           this.endRun(false);
@@ -226,13 +237,8 @@ export class SacrificeScene extends Scene {
   // ── Build ──────────────────────────────────────────────────────────────
   private buildVisuals(): void {
     this.bg.rect(0, 0, VW, VH).fill(Color.hex(Color.rgb(0.04, 0.02, 0.03)));
-    this.root.addChild(this.bg);
-    this.root.addChild(this.corridorG);
-    this.root.addChild(this.hubG);
-    this.root.addChild(this.enemyG);
-    this.root.addChild(this.chamberG);
-    this.root.addChild(this.playerG);
-    this.root.addChild(this.labelLayer);
+    this.content.addChild(this.bg, this.corridorG, this.hubG, this.enemyG, this.chamberG, this.playerG, this.labelLayer);
+    this.root.addChild(this.content);
   }
 
   private buildChambers(): void {
@@ -418,6 +424,7 @@ export class SacrificeScene extends Scene {
           p.collected = true;
           p.collecting = false;
           ch.collectingIdx = -1;
+          this.juice.pop(p.pos.x, p.pos.y, p.type === 'scrap' ? 0xbf8c33 : 0x66a6ff);
         }
       }
     } else if (this.backpack.length < this.bagCap) {
@@ -478,10 +485,16 @@ export class SacrificeScene extends Scene {
       }
       if (e.hp <= 0) toRemove.push(i);
     }
-    for (let i = toRemove.length - 1; i >= 0; i--) this.hubEnemies.splice(toRemove[i]!, 1);
+    for (let i = toRemove.length - 1; i >= 0; i--) {
+      const e = this.hubEnemies[toRemove[i]!];
+      if (e) this.juice.pop(e.pos.x, e.pos.y, 0xff5a33);
+      this.hubEnemies.splice(toRemove[i]!, 1);
+    }
     if (totalDps > 0) {
       this.squadHp -= totalDps * dt;
       this.damageFlash = Math.max(this.damageFlash, 0.55);
+      this.juice.edges(0xff2f3d, 0.06);
+      this.juice.shake(0.025);
       if (this.squadHp <= 0) {
         this.squadHp = 0;
         this.endRun(false);
@@ -696,6 +709,7 @@ export class SacrificeScene extends Scene {
     if (this.runEnded) return;
     this.runEnded = true;
     this.victory = victory;
+    if (victory) this.juice.victoryFx(); else this.juice.defeatFx();
     if (victory) HubState.depositBackpack(this.backpack);
     HubState.onRunEnded(victory);
     GameState.endRun(victory);
