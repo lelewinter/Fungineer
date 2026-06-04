@@ -25,6 +25,7 @@ export class App {
     this.pixi.ticker.add(() => this.crt.tick());
 
     window.addEventListener('resize', () => this.fit());
+    window.visualViewport?.addEventListener('resize', () => this.fit());
     this.fit();
   }
 
@@ -33,19 +34,21 @@ export class App {
     await pixi.init({
       background: '#0a0a14',
       antialias: false,
-      resizeTo: window,
+      resizeTo: host,
       resolution: Math.min(window.devicePixelRatio || 1, 2),
       autoDensity: true,
       preference: 'webgl',
     });
     host.appendChild(pixi.canvas);
+    pixi.canvas.style.width = '100%';
+    pixi.canvas.style.height = '100%';
     return new App(pixi);
   }
 
   /** Letterbox the 480×854 stage inside the canvas. */
   fit(): void {
-    const w = this.pixi.renderer.width / this.pixi.renderer.resolution;
-    const h = this.pixi.renderer.height / this.pixi.renderer.resolution;
+    const w = this.pixi.screen.width;
+    const h = this.pixi.screen.height;
     const scale = Math.min(w / GameConfig.VIEWPORT_WIDTH, h / GameConfig.VIEWPORT_HEIGHT);
     this.world.scale.set(scale);
     this.world.x = (w - GameConfig.VIEWPORT_WIDTH * scale) / 2;

@@ -20,6 +20,7 @@
         padding: 0;
         background: var(--bg);
         height: 100%;
+        width: 100%;
         overflow: hidden;
         overscroll-behavior: none;
         touch-action: none;
@@ -30,12 +31,18 @@
       #app {
         position: fixed;
         inset: 0;
+        width: 100vw;
+        width: 100dvw;
+        height: 100vh;
+        height: 100dvh;
         display: flex;
         align-items: center;
         justify-content: center;
       }
       canvas {
         display: block;
+        width: 100%;
+        height: 100%;
         image-rendering: pixelated;
         image-rendering: crisp-edges;
       }
