@@ -68,8 +68,12 @@ export class App {
   /** Resize the renderer to the real visible viewport, then re-fit the world. */
   private resize(): void {
     const vv = window.visualViewport;
-    const w = Math.round(vv?.width ?? this.host.clientWidth ?? window.innerWidth);
-    const h = Math.round(vv?.height ?? this.host.clientHeight ?? window.innerHeight);
+    // The canvas fills #app (sized 100dvw × 100dvh), so measuring the host's
+    // own layout box keeps the renderer buffer exactly matched to what is
+    // displayed — no stretch/letterbox from a buffer/display mismatch. We fall
+    // back to visualViewport (then window) only when the host has no layout.
+    const w = Math.round(this.host.clientWidth || vv?.width || window.innerWidth);
+    const h = Math.round(this.host.clientHeight || vv?.height || window.innerHeight);
     if (w <= 0 || h <= 0) return;
     if (w === this.lastW && h === this.lastH) return;
     this.lastW = w;
