@@ -112,7 +112,13 @@ export class RunJuice {
     this.flash(0xff2f3d, 0.22, 0.18);
     this.burst(x, y, { count: 14, color: 0xff5a60, speed: 180, life: 0.4, size: 2.4 });
     this.shake(0.4, 45);
-    audioManager.playSfx('res://assets/audio/sfx/ui/Click_04.wav', 0.55);
+    audioManager.playSfx('res://assets/audio/sfx/game/hit_01.wav', 0.6);
+  }
+
+  /** Light hop / step — the signature beat of the movement-only zones. */
+  jump(x: number, y: number, color: number = this.accent): void {
+    this.burst(x, y, { count: 6, color, speed: 90, life: 0.3, size: 2 });
+    audioManager.playSfx('res://assets/audio/sfx/game/jump.wav', 0.4);
   }
 
   /** A heavy/alarming beat (alarm, chase start, hazard). */
@@ -121,7 +127,7 @@ export class RunJuice {
     this.flash(color, 0.2, 0.22);
     this.shockwave(color, 0.55);
     this.shake(0.45, 60);
-    audioManager.playSfx('res://assets/audio/sfx/ui/Click_01.wav', 0.6);
+    audioManager.playSfx('res://assets/audio/sfx/game/alarm.wav', 0.55);
   }
 
   victoryFx(): void {
@@ -136,7 +142,8 @@ export class RunJuice {
     this.edges(0xff2f3d, 1);
     this.flash(0xff2f3d, 0.32, 0.34);
     this.shake(0.55, 120);
-    audioManager.playSfx('res://assets/audio/sfx/ui/Click_04.wav', 0.75);
+    // index 02 → heavier, lower-pitched impact than a mid-run hit.
+    audioManager.playSfx('res://assets/audio/sfx/game/hit_02.wav', 0.8);
   }
 
   destroy(): void {

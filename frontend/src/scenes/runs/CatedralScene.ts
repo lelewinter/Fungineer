@@ -198,6 +198,7 @@ export class CatedralScene extends Scene {
         this.toXY = this.tileCenter(best.r, best.c);
         this.row = best.r; this.col = best.c;
         this.hopAnim = 0;
+        this.juice.jump(this.toXY.x, this.toXY.y - 18);
         const tile = this.tiles[this.row]![this.col]!;
         if (!tile.lit) {
           tile.lit = true;

@@ -1,4 +1,5 @@
 import { assets } from './AssetLoader';
+import { sfxSynth } from './SfxSynth';
 
 interface Channel {
   el: HTMLAudioElement;
@@ -12,12 +13,15 @@ class AudioManager {
   private sfxVolume = 1.0;
   private musicVolume = 0.6;
   private cache = new Map<string, HTMLAudioElement>();
+  /** SFX paths whose file failed to load — routed to the procedural synth. */
+  private missingSfx = new Set<string>();
   private unlocked = false;
 
   unlockOnFirstGesture(): void {
     if (this.unlocked) return;
     const unlock = (): void => {
       this.unlocked = true;
+      sfxSynth.resume();
       window.removeEventListener('pointerdown', unlock);
       window.removeEventListener('keydown', unlock);
       if (this.pendingMusic) {
@@ -84,17 +88,41 @@ class AudioManager {
   }
 
   async playSfx(path: string, volume: number = 1.0): Promise<void> {
+    const gain = Math.max(0, Math.min(1, volume * this.sfxVolume));
+    if (gain <= 0) return;
+
+    // Asset already known to be missing → straight to the procedural synth.
+    if (this.missingSfx.has(path)) {
+      sfxSynth.play(path, gain);
+      return;
+    }
+
     let template = this.cache.get(path);
     if (!template) {
       template = new Audio(assets.toUrl(path));
       this.cache.set(path, template);
+      // A failed network load fires 'error' asynchronously; remember it so
+      // subsequent calls skip the element entirely and synthesize instead.
+      template.addEventListener('error', () => { this.missingSfx.add(path); }, { once: true });
     }
+    if (template.error) {
+      this.missingSfx.add(path);
+      sfxSynth.play(path, gain);
+      return;
+    }
+
     const clone = template.cloneNode(true) as HTMLAudioElement;
-    clone.volume = Math.max(0, Math.min(1, volume * this.sfxVolume));
+    clone.volume = gain;
     try {
       await clone.play();
     } catch {
-      // ignore — usually autoplay restriction before first gesture
+      // Rejected before the first gesture → autoplay restriction, ignore.
+      // Rejected afterwards → the file is absent (404); fall back to the synth
+      // and remember the path so we don't keep retrying the network.
+      if (this.unlocked) {
+        this.missingSfx.add(path);
+        sfxSynth.play(path, gain);
+      }
     }
   }
 

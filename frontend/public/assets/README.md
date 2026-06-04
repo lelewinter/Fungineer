@@ -37,10 +37,30 @@ audio/music/zones/night_theme_2.wav
 ## SFX de UI (`audio/sfx/ui/`)
 
 ```
-Click_01.wav  Click_02.wav  Click_03.wav
+Click_01.wav  Click_02.wav  Click_03.wav  Click_04.wav
 Confirm_01.wav  Confirm_03.wav  Confirm_04.wav  Confirm_05.wav  Confirm_06.wav  Confirm_07.wav
 Complete_01.wav  Complete_02.wav
 ```
+
+## SFX de gameplay (`audio/sfx/game/`)
+
+Disparados pelo `RunJuice` (kit de game-feel das zonas):
+
+```
+hit_01.wav    dano em corrida / near-miss
+hit_02.wav    derrota (impacto mais grave)
+alarm.wav     perigo / início de perseguição
+jump.wav      pulo/hop (Catedral, Cordilheira, ...)
+```
+
+## Síntese procedural (fallback)
+
+**Enquanto não houver arquivo no caminho acima, o jogo NÃO fica mudo.** O
+`AudioManager` detecta o 404 e cai para um sintetizador Web Audio embutido
+(`src/core/SfxSynth.ts`) que gera o efeito proceduralmente a partir do nome do
+arquivo (família `Click_/Confirm_/Complete_/hit_/alarm/jump` + índice numérico).
+Assim que um `.wav` real for colocado na pasta, ele tem prioridade — o synth só
+toca quando o arquivo realmente falha em carregar.
 
 ## Formato de áudio
 
