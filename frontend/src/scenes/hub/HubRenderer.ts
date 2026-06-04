@@ -12,6 +12,15 @@ import { HubState, ROCKET_RECIPE } from '../../state/HubState';
 export class HubRenderer extends Container {
   readonly roomClicked = new Signal<[roomId: string]>();
   readonly rocketShaftClicked = new Signal<[]>();
+  readonly surfaceZoneClicked = new Signal<[zoneId: string]>();
+
+  /** Surface ruins (clickable) drawn in the sky band above the hordas hatch. */
+  private readonly surfaceZones: ReadonlyArray<{ id: string; label: string }> = [
+    { id: 'cordilheira', label: 'CORDILHEIRA' },
+    { id: 'torres', label: 'TORRES' },
+    { id: 'catedral', label: 'CATEDRAL' },
+  ];
+  private roomLabels: Text[] = [];
 
   private readonly SURFACE_H = 110;
   private floorH = 0;
@@ -33,6 +42,8 @@ export class HubRenderer extends Container {
     this.addChild(this.g);
     this.addChild(this.hitLayer);
     this.buildHitboxes();
+    this.buildSurfaceZones();
+    this.buildRoomLabels();
     this.disposers.push(HubState.hubVariantChanged.connect(() => this.applyVariant()));
     this.disposers.push(HubState.roomUnlockedSignal.connect(() => this.refreshSilhouettes()));
   }
@@ -115,6 +126,149 @@ export class HubRenderer extends Container {
     this.hitLayer.addChild(rocketHit);
   }
 
+  // ── Surface ruins (cordilheira / torres / catedral) ──────────────────────
+  private surfaceRegion(i: number): { x: number; w: number } {
+    const margin = 10;
+    const usable = GameConfig.VIEWPORT_WIDTH - margin * 2;
+    const w = usable / this.surfaceZones.length;
+    return { x: margin + i * w, w };
+  }
+
+  private buildSurfaceZones(): void {
+    const hitH = this.SURFACE_H - 36;
+    for (let i = 0; i < this.surfaceZones.length; i++) {
+      const sz = this.surfaceZones[i]!;
+      const { x, w } = this.surfaceRegion(i);
+
+      const hit = new Graphics().rect(0, 0, w, hitH).fill({ color: 0x000000, alpha: 0.001 });
+      hit.x = x;
+      hit.y = 2;
+      hit.eventMode = 'static';
+      hit.cursor = 'pointer';
+      hit.on('pointertap', (e: FederatedPointerEvent) => {
+        e.stopPropagation();
+        this.surfaceZoneClicked.emit(sz.id);
+      });
+      this.hitLayer.addChild(hit);
+
+      const label = new Text({
+        text: sz.label,
+        style: {
+          fontFamily: '"Space Grotesk", system-ui, sans-serif',
+          fontSize: 9,
+          fontWeight: '700',
+          fill: 0xeaf0e4,
+          letterSpacing: 0.5,
+          align: 'center',
+          dropShadow: { color: 0x000000, alpha: 0.85, blur: 2, distance: 1, angle: Math.PI / 2 },
+        },
+      });
+      label.anchor.set(0.5, 0);
+      label.x = x + w * 0.5;
+      label.y = 5;
+      this.addChild(label);
+    }
+
+    // Hordas — the surface exit hatch occupies the lower strip of the band.
+    const hordasLabel = new Text({
+      text: '▼ HORDAS · SAÍDA',
+      style: {
+        fontFamily: '"Space Grotesk", system-ui, sans-serif',
+        fontSize: 9,
+        fontWeight: '700',
+        fill: 0xff9b7a,
+        letterSpacing: 0.5,
+        align: 'center',
+        dropShadow: { color: 0x000000, alpha: 0.9, blur: 2, distance: 1, angle: Math.PI / 2 },
+      },
+    });
+    hordasLabel.anchor.set(0.5, 1);
+    hordasLabel.x = GameConfig.VIEWPORT_WIDTH * 0.5;
+    hordasLabel.y = this.SURFACE_H - 6;
+    this.addChild(hordasLabel);
+  }
+
+  private drawSurfaceZoneBuildings(): void {
+    const groundY = this.SURFACE_H - 32;
+    const t = this.elapsedMs;
+    for (let i = 0; i < this.surfaceZones.length; i++) {
+      const sz = this.surfaceZones[i]!;
+      const zone = HubData.getZone(sz.id);
+      const accent = zone?.color ?? Color.rgb(0.6, 0.6, 0.6);
+      const { x, w } = this.surfaceRegion(i);
+      const cx = x + w * 0.5;
+      const bw = Math.min(w - 26, 54);
+
+      // Building silhouette — distinct shape per surface zone.
+      const dark = Color.rgb(0.10, 0.11, 0.15);
+      if (sz.id === 'torres') {
+        const bh = 58;
+        this.g.rect(cx - bw * 0.32, groundY - bh, bw * 0.64, bh).fill(Color.hex(dark));
+        this.g.moveTo(cx, groundY - bh).lineTo(cx, groundY - bh - 8)
+          .stroke({ color: Color.hex(accent), width: 1.5, alpha: 0.7 });
+      } else if (sz.id === 'catedral') {
+        const bh = 44;
+        this.g.rect(cx - bw * 0.42, groundY - bh, bw * 0.84, bh).fill(Color.hex(dark));
+        this.g.poly([cx - bw * 0.42, groundY - bh, cx, groundY - bh - 18, cx + bw * 0.42, groundY - bh])
+          .fill(Color.hex(dark));
+      } else {
+        // cordilheira — low cluster of shacks
+        const bh = 30;
+        this.g.rect(cx - bw * 0.5, groundY - bh, bw * 0.5, bh).fill(Color.hex(dark));
+        this.g.rect(cx - bw * 0.05, groundY - bh * 0.7, bw * 0.5, bh * 0.7).fill(Color.hex(dark));
+      }
+
+      // Lit windows.
+      const blink = 0.45 + 0.4 * Math.abs(Math.sin(t * 0.002 + i * 1.7));
+      for (let wy = 0; wy < 3; wy++) {
+        for (let wx = 0; wx < 2; wx++) {
+          this.g.rect(cx - 8 + wx * 9, groundY - 38 + wy * 11, 4, 5)
+            .fill({ color: Color.hex(accent), alpha: 0.30 * blink });
+        }
+      }
+
+      // Glowing zone badge above the building.
+      const pulse = 0.7 + 0.3 * Math.abs(Math.sin(t * 0.003 + i));
+      const by = groundY - 52;
+      this.g.circle(cx, by, 7).fill({ color: Color.hex(accent), alpha: 0.14 * pulse });
+      this.g.circle(cx, by, 4).fill({ color: Color.hex(accent), alpha: 0.85 });
+      this.g.circle(cx, by, 1.8).fill({ color: 0xffffff, alpha: 0.9 * pulse });
+    }
+
+    // A faint ground line separating the sky ruins from the hordas hatch.
+    this.g.moveTo(10, groundY).lineTo(GameConfig.VIEWPORT_WIDTH - 10, groundY)
+      .stroke({ color: Color.hex(Color.rgb(0.30, 0.22, 0.14)), width: 1, alpha: 0.5 });
+  }
+
+  // ── Room name labels (legibility) ─────────────────────────────────────────
+  private buildRoomLabels(): void {
+    for (const room of HubData.ROOMS) {
+      if (HubData.isRocketRoom(room) || room.floor === 1 || !room.label) continue;
+      const x = this.cellWidth * room.col;
+      const y = this.roomYOffset[room.id] ?? 0;
+      const isZone = !!room.zone_id;
+      const label = new Text({
+        text: room.label,
+        style: {
+          fontFamily: '"Space Grotesk", system-ui, sans-serif',
+          fontSize: 9,
+          fontWeight: '700',
+          fill: isZone ? 0xf2f6ec : 0xcdd5c4,
+          letterSpacing: 0.3,
+          align: 'center',
+          dropShadow: { color: 0x000000, alpha: 0.9, blur: 2, distance: 1, angle: Math.PI / 2 },
+        },
+      });
+      // Top-left of the room keeps the label clear of the bottom resource
+      // strip and the top-right zone badge.
+      label.anchor.set(0, 0);
+      label.x = x + 6;
+      label.y = y + 5;
+      this.addChild(label);
+      this.roomLabels.push(label);
+    }
+  }
+
   private refreshSilhouettes(): void {
     for (const [roomId, label] of this.silhouetteLabels) {
       label.visible = !HubState.isRoomUnlocked(roomId);
@@ -131,6 +285,7 @@ export class HubRenderer extends Container {
     this.drawSideWalls();
     for (const room of HubData.ROOMS) this.drawRoom(room);
     this.drawRocketShaft();
+    this.drawSurfaceZoneBuildings();
     this.drawGridLines();
     this.drawAmbientSpores();
   }

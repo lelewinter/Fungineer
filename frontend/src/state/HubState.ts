@@ -180,8 +180,11 @@ class HubStateClass {
   readonly roomUnlockedSignal = new Signal<[roomId: string]>();
 
   // ── Room helpers ──
-  isRoomUnlocked(roomId: string): boolean {
-    return this.room_unlocked[roomId] === true;
+  // The hub is the single main screen, so every room/zone is reachable from
+  // the start (the old rocket-progression gating is retired). Kept as a method
+  // so future modes could re-introduce gating without touching call sites.
+  isRoomUnlocked(_roomId: string): boolean {
+    return true;
   }
 
   unlockRoom(roomId: string): void {
