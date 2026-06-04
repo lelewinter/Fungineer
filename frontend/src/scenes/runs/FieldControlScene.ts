@@ -141,6 +141,16 @@ export class FieldControlScene extends Scene {
   // ── Build ──────────────────────────────────────────────────────────────
   private buildVisuals(): void {
     this.bg.rect(0, 0, VW, VH).fill(Color.hex(Color.rgb(0.03, 0.03, 0.06)));
+    // Praça portuguesa — faint diagonal mosaic paving.
+    for (let gx = -40; gx < VW; gx += 26) {
+      this.bg.moveTo(gx, 60).lineTo(gx - 50, VH).stroke({ color: 0x12121c, width: 1, alpha: 0.3 });
+    }
+    // Dry central fountain (CORE preserves "aesthetic civic infrastructure").
+    this.bg.circle(VW / 2, 430, 34).stroke({ color: 0x2a2a3a, width: 2, alpha: 0.5 });
+    this.bg.circle(VW / 2, 430, 20).stroke({ color: 0x2a2a3a, width: 1.5, alpha: 0.4 });
+    // The inauguration stage at the far end — where Paulo stood, five years ago.
+    this.bg.rect(VW / 2 - 70, 70, 140, 24).fill({ color: 0x0a0a14, alpha: 0.7 })
+      .rect(VW / 2 - 70, 70, 140, 24).stroke({ color: 0x2a2a3a, width: 1, alpha: 0.4 });
     this.content.addChild(this.bg, this.zoneG, this.warningLabels, this.recapG, this.playerG);
     this.root.addChild(this.content);
   }
@@ -391,6 +401,14 @@ export class FieldControlScene extends Scene {
         this.zoneG.arc(z.center.x, z.center.y, z.radius + 6, -Math.PI * 0.5, -Math.PI * 0.5 + Math.PI * 2 * z.bar, false)
           .stroke({ color: barCol, width: 5, alpha: 0.85 });
       }
+      // FLOW relay antenna at the point — glows once the mycelial tap completes.
+      const lit = z.bar >= 1;
+      const ax = z.center.x;
+      const ay = z.center.y;
+      this.zoneG.moveTo(ax, ay - 4).lineTo(ax, ay - 24).stroke({ color: lit ? col : 0x556070, width: 2, alpha: 0.85 });
+      this.zoneG.moveTo(ax - 6, ay - 17).lineTo(ax + 6, ay - 17).stroke({ color: lit ? col : 0x556070, width: 1.5, alpha: 0.7 });
+      if (lit) this.zoneG.circle(ax, ay - 26, 7).fill({ color: col, alpha: 0.16 });
+      this.zoneG.circle(ax, ay - 26, lit ? 3 : 2).fill({ color: lit ? col : 0x99a0b0, alpha: lit ? 0.95 : 0.6 });
       const rate = new Text({
         text: `${z.signalRate.toFixed(1)}/s`,
         style: { fontFamily: FontFamily.mono, fontSize: 9, fill: col, fontWeight: '600' },

@@ -1,4 +1,4 @@
-import { Container, Graphics } from 'pixi.js';
+import { Container, Graphics, Text } from 'pixi.js';
 import { Scene } from '../../core/Scene';
 import { audioManager } from '../../core/AudioManager';
 import { Color } from '../../core/Color';
@@ -50,8 +50,32 @@ export class StealthScene extends Scene {
       const y = 40 + Math.random() * (VH - 60);
       this.bg.circle(x, y, 1).fill({ color: accent, alpha: 0.08 + Math.random() * 0.1 });
     }
+    // Ghost of ARGOS's surveillance grid — camera mounts at regular intervals.
+    for (let gy = 100; gy < VH - 20; gy += 120) {
+      for (let gx = 40; gx < VW; gx += 110) {
+        this.bg.rect(gx - 1, gy - 8, 2, 5).fill({ color: accent, alpha: 0.10 });
+        this.bg.circle(gx, gy, 4).stroke({ color: accent, width: 1, alpha: 0.12 });
+      }
+    }
+    // A few sensors that have partially failed.
+    for (const [dx, dy] of [[120, 220], [300, 560], [70, 700]]) {
+      this.bg.moveTo(dx! - 4, dy! - 4).lineTo(dx! + 4, dy! + 4)
+        .moveTo(dx! + 4, dy! - 4).lineTo(dx! - 4, dy! + 4)
+        .stroke({ color: 0x665544, width: 1, alpha: 0.22 });
+    }
     this.content.addChild(this.bg);
     this.root.addChild(this.content);
+
+    // The comment Marcus left in ARGOS's code — the calibration that made
+    // humans invisible to its tolerance and maximal to its threat response.
+    const mc = new Text({
+      text: '// HUMAN-WRITTEN — DO NOT AUTO-REFACTOR. M.C.',
+      style: { fontFamily: '"IBM Plex Mono", ui-monospace, monospace', fontSize: 7, fill: 0x3f5a52, letterSpacing: 0.5 },
+    });
+    mc.anchor.set(0.5);
+    mc.x = VW / 2;
+    mc.y = VH - 24;
+    this.content.addChild(mc);
 
     // Seed: lots of small prey, a few medium, a couple big predators.
     for (let i = 0; i < 24; i++) this.spawnBlob(3 + Math.random() * 3, false);
@@ -153,14 +177,31 @@ export class StealthScene extends Scene {
     });
   }
 
+  private hexPts(cx: number, cy: number, rad: number): number[] {
+    const p: number[] = [];
+    for (let i = 0; i < 6; i++) {
+      const a = Math.PI / 6 + i * Math.PI / 3;
+      p.push(cx + Math.cos(a) * rad, cy + Math.sin(a) * rad);
+    }
+    return p;
+  }
+
   private draw(): void {
     const accent = Color.hex(ZONE.accent_color);
     this.blobsG.clear();
     for (const b of this.blobs) {
-      const color = b.predator ? 0xc24d4d : (b.r > this.playerR ? 0xc24d4d : accent);
+      const danger = b.predator || b.r > this.playerR;
+      const color = danger ? 0xc24d4d : accent;
       this.blobsG.circle(b.pos.x, b.pos.y, b.r + 2).fill({ color, alpha: 0.15 });
-      this.blobsG.circle(b.pos.x, b.pos.y, b.r).fill({ color, alpha: 0.7 });
-      this.blobsG.circle(b.pos.x, b.pos.y, Math.max(0, b.r - 3)).fill({ color: 0xffffff, alpha: 0.35 });
+      if (danger) {
+        // Active ARGOS patrol — solid cold blob.
+        this.blobsG.circle(b.pos.x, b.pos.y, b.r).fill({ color, alpha: 0.7 });
+        this.blobsG.circle(b.pos.x, b.pos.y, Math.max(0, b.r - 3)).fill({ color: 0xffffff, alpha: 0.35 });
+      } else {
+        // Dormant data fragment — hexagonal.
+        this.blobsG.poly(this.hexPts(b.pos.x, b.pos.y, b.r)).fill({ color, alpha: 0.7 });
+        this.blobsG.poly(this.hexPts(b.pos.x, b.pos.y, Math.max(0, b.r - 3))).fill({ color: 0xffffff, alpha: 0.3 });
+      }
     }
 
     this.playerG.clear();

@@ -1,4 +1,4 @@
-import { Container, Graphics } from 'pixi.js';
+import { Container, Graphics, Text } from 'pixi.js';
 import { Scene } from '../../core/Scene';
 import { audioManager } from '../../core/AudioManager';
 import { Color } from '../../core/Color';
@@ -68,6 +68,14 @@ export class ExtractionScene extends Scene {
     this.hud = buildHud(ZONE);
     this.root.addChild(this.hud.container);
     this.hud.setStatus('escavação profunda');
+
+    // Depth legend down the left margin — the excavation feels stratified.
+    const legendStyle = { fontFamily: '"IBM Plex Mono", ui-monospace, monospace', fontSize: 7, fill: 0x6a5a44, letterSpacing: 1 };
+    const top = new Text({ text: 'SUBNÍVEL −40m', style: legendStyle });
+    top.x = 3; top.y = TOP + 4;
+    const bottom = new Text({ text: 'PRÉ-OLÍMPIO −70m', style: legendStyle });
+    bottom.x = 3; bottom.y = TOP + ROWS * TILE - 12;
+    this.content.addChild(top, bottom);
 
     this.bindPointer();
 
@@ -257,8 +265,10 @@ export class ExtractionScene extends Scene {
         if (v === 'wall') {
           this.gridG.rect(x, y, TILE, TILE).fill({ color: 0x1a1410 });
         } else if (v === 'dirt') {
-          this.gridG.rect(x, y, TILE, TILE).fill({ color: 0x3a2615 });
-          this.gridG.rect(x + 1, y + 1, TILE - 2, TILE - 2).fill({ color: 0x4a2f1a, alpha: 0.6 });
+          // Stratigraphy: modern fill (grey) → packed earth → pre-Olímpio debris.
+          const strat = r < ROWS * 0.25 ? 0x2b2b30 : r < ROWS * 0.6 ? 0x3a2615 : 0x2e1d12;
+          this.gridG.rect(x, y, TILE, TILE).fill({ color: strat });
+          this.gridG.rect(x + 1, y + 1, TILE - 2, TILE - 2).fill({ color: 0x4a2f1a, alpha: 0.35 });
         } else if (v === 'empty') {
           this.gridG.rect(x, y, TILE, TILE).fill({ color: 0x080604 });
         } else if (v === 'rock') {
@@ -266,10 +276,13 @@ export class ExtractionScene extends Scene {
           this.gridG.circle(x + TILE / 2, y + TILE / 2, TILE * 0.4).fill({ color: 0x6e605a });
           this.gridG.circle(x + TILE / 2 - 2, y + TILE / 2 - 2, TILE * 0.18).fill({ color: 0x8e7d70, alpha: 0.6 });
         } else if (v === 'fuel') {
-          this.gridG.rect(x, y, TILE, TILE).fill({ color: 0x3a2615 });
+          this.gridG.rect(x, y, TILE, TILE).fill({ color: 0x2e1d12 });
           const pulse = 0.5 + 0.5 * Math.sin(this.elapsed * 4 + c + r);
-          this.gridG.circle(x + TILE / 2, y + TILE / 2, TILE * 0.32).fill({ color: accent, alpha: 0.85 });
-          this.gridG.circle(x + TILE / 2, y + TILE / 2, TILE * 0.18).fill({ color: 0xffffff, alpha: 0.5 + 0.3 * pulse });
+          // Sealed volatile-compound canister: a cylinder with an amber band.
+          const cw = TILE * 0.42;
+          const ch = TILE * 0.62;
+          this.gridG.roundRect(x + TILE / 2 - cw / 2, y + TILE / 2 - ch / 2, cw, ch, 3).fill({ color: 0xc8821e, alpha: 0.95 });
+          this.gridG.rect(x + TILE / 2 - cw / 2, y + TILE / 2 - 2, cw, 4).fill({ color: 0xffd070, alpha: 0.55 + 0.35 * pulse });
         }
       }
     }

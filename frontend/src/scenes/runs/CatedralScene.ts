@@ -59,6 +59,19 @@ export class CatedralScene extends Scene {
     for (let i = 12; i > 0; i--) {
       this.bg.circle(VW / 2, VH * 0.45, i * 16).fill({ color: accent, alpha: 0.012 });
     }
+    // Soaring nave: arch silhouettes flanking the pyramid + a rose window.
+    for (const ax of [VW * 0.12, VW * 0.88]) {
+      this.bg.moveTo(ax - 16, VH).lineTo(ax - 16, 190)
+        .quadraticCurveTo(ax, 120, ax + 16, 190).lineTo(ax + 16, VH)
+        .fill({ color: 0x130d10, alpha: 0.7 });
+    }
+    this.bg.circle(VW / 2, 64, 24).fill({ color: accent, alpha: 0.06 });
+    this.bg.circle(VW / 2, 64, 24).stroke({ color: accent, width: 1.5, alpha: 0.22 });
+    for (let i = 0; i < 8; i++) {
+      const a = i * Math.PI / 4;
+      this.bg.moveTo(VW / 2, 64).lineTo(VW / 2 + Math.cos(a) * 24, 64 + Math.sin(a) * 24)
+        .stroke({ color: accent, width: 1, alpha: 0.16 });
+    }
     this.content.addChild(this.bg);
     this.root.addChild(this.content);
 
@@ -212,11 +225,13 @@ export class CatedralScene extends Scene {
         const right = { x: x + TILE_W / 2, y };
         const bottom = { x, y: y + TILE_H / 2 };
         const left = { x: x - TILE_W / 2, y };
-        // Top face
+        // Top face — antique mosaic: each unlit tile slightly varies in tone.
+        const j = (((r * 7 + c * 13) % 7) - 3) * 0.012;
+        const unlit = Color.hex(Color.rgb(0.165 + j, 0.125 + j, 0.094 + j * 0.6));
         this.pyramidG
           .moveTo(top.x, top.y).lineTo(right.x, right.y)
           .lineTo(bottom.x, bottom.y).lineTo(left.x, left.y).lineTo(top.x, top.y)
-          .fill({ color: tile.lit ? accent : 0x2a2018, alpha: tile.lit ? 0.85 : 1 });
+          .fill({ color: tile.lit ? accent : unlit, alpha: tile.lit ? 0.85 : 1 });
         // Side faces
         this.pyramidG
           .moveTo(left.x, left.y).lineTo(bottom.x, bottom.y)
@@ -238,8 +253,11 @@ export class CatedralScene extends Scene {
     this.hazardsG.clear();
     for (const h of this.hazards) {
       const c = this.tileCenter(h.row, h.col);
-      this.hazardsG.circle(c.x, c.y - 18, 9).fill({ color: 0xc24d4d, alpha: 0.95 });
-      this.hazardsG.circle(c.x, c.y - 18, 9).stroke({ color: 0xffffff, width: 1, alpha: 0.4 });
+      // ARGOS audio-sampling probe: a metallic pod with a red sensor capsule.
+      this.hazardsG.ellipse(c.x, c.y - 18, 7, 9).fill({ color: 0x5b6a78, alpha: 0.95 });
+      this.hazardsG.ellipse(c.x, c.y - 18, 7, 9).stroke({ color: 0xff3a3a, width: 1.5, alpha: 0.8 });
+      const blink = 0.5 + 0.5 * Math.sin(this.elapsed * 8 + h.col);
+      this.hazardsG.circle(c.x, c.y - 23, 2.4).fill({ color: 0xff2424, alpha: 0.6 + 0.4 * blink });
     }
 
     // Player — hop interpolation with vertical arc.
