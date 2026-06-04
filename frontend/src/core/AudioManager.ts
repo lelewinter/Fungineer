@@ -8,6 +8,7 @@ interface Channel {
 
 class AudioManager {
   private music: Channel | null = null;
+  private pendingMusic: { path: string; opts: { loop?: boolean; volume?: number; fadeMs?: number } } | null = null;
   private sfxVolume = 1.0;
   private musicVolume = 0.6;
   private cache = new Map<string, HTMLAudioElement>();
@@ -19,7 +20,13 @@ class AudioManager {
       this.unlocked = true;
       window.removeEventListener('pointerdown', unlock);
       window.removeEventListener('keydown', unlock);
-      if (this.music && this.music.el.paused) this.music.el.play().catch(() => undefined);
+      if (this.pendingMusic) {
+        const { path, opts } = this.pendingMusic;
+        this.pendingMusic = null;
+        void this.playMusic(path, opts);
+      } else if (this.music && this.music.el.paused) {
+        this.music.el.play().catch(() => undefined);
+      }
     };
     window.addEventListener('pointerdown', unlock, { once: true });
     window.addEventListener('keydown', unlock, { once: true });
@@ -35,6 +42,11 @@ class AudioManager {
   }
 
   async playMusic(path: string, opts: { loop?: boolean; volume?: number; fadeMs?: number } = {}): Promise<void> {
+    if (!this.unlocked) {
+      this.pendingMusic = { path, opts };
+      return;
+    }
+
     const url = assets.toUrl(path);
     const next = new Audio(url);
     next.loop = opts.loop ?? true;
@@ -60,6 +72,7 @@ class AudioManager {
   }
 
   stopMusic(fadeMs: number = 0): void {
+    this.pendingMusic = null;
     if (!this.music) return;
     const ch = this.music;
     if (fadeMs > 0) {
