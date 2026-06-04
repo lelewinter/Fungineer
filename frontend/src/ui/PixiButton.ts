@@ -104,10 +104,18 @@ export class PixiButton extends Container {
       ease,
       signal: ac.signal,
       onUpdate: (t) => {
+        // A button that closes its own panel on click is destroyed mid-press
+        // tween; bail out before touching the freed Pixi node.
+        if (this.destroyed || this.face.destroyed) return;
         const s = from + (target - from) * t;
         this.face.scale.set(s);
       },
     });
+  }
+
+  override destroy(options?: Parameters<Container['destroy']>[0]): void {
+    this.pressAbort?.abort();
+    super.destroy(options);
   }
 
   private draw(): void {

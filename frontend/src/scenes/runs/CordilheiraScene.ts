@@ -1,4 +1,4 @@
-import { Graphics, Text } from 'pixi.js';
+import { Container, Graphics, Text } from 'pixi.js';
 import { Scene } from '../../core/Scene';
 import { audioManager } from '../../core/AudioManager';
 import { Color } from '../../core/Color';
@@ -6,6 +6,7 @@ import { FontFamily, TextColor } from '../../core/typography';
 import { GameConfig } from '../../state/GameConfig';
 import { HubState } from '../../state/HubState';
 import { ZONES } from '../../state/Zones';
+import { RunJuice } from '../../run/fx/RunJuice';
 import { buildHud, buildEndOverlay, type RunHud } from './RunFrame';
 
 const VW = GameConfig.VIEWPORT_WIDTH;
@@ -26,12 +27,14 @@ interface Lane { y: number; dir: 1 | -1; speed: number; hazards: Hazard[]; kind:
  *  hostile gangs/civilians moving along corridor lanes. Drag up to hop a
  *  row; sideways to slide. Reach the rooftop. */
 export class CordilheiraScene extends Scene {
+  private content = new Container();
   private bg = new Graphics();
   private lanesG = new Graphics();
   private hazardsG = new Graphics();
   private playerG = new Graphics();
   private hud!: RunHud;
   private statusLabel!: Text;
+  private juice!: RunJuice;
 
   private lanes: Lane[] = [];
   private px = VW / 2;
@@ -49,7 +52,8 @@ export class CordilheiraScene extends Scene {
 
   override async enter(): Promise<void> {
     this.bg.rect(0, 0, VW, VH).fill({ color: 0x07070a });
-    this.root.addChild(this.bg);
+    this.content.addChild(this.bg);
+    this.root.addChild(this.content);
 
     // Build alternating road / safe rows.
     for (let i = 0; i < ROW_COUNT; i++) {
@@ -72,10 +76,10 @@ export class CordilheiraScene extends Scene {
 
     this.fromY = this.toY = TOP + this.rowIdx * ROW_H + ROW_H / 2;
 
-    this.root.addChild(this.lanesG);
-    this.root.addChild(this.hazardsG);
-    this.root.addChild(this.playerG);
+    this.content.addChild(this.lanesG, this.hazardsG, this.playerG);
     this.drawLanes();
+
+    this.juice = new RunJuice(this.root, { accent: Color.hex(ZONE.accent_color), shakeTarget: this.content, ambient: 26 });
 
     this.hud = buildHud(ZONE);
     this.root.addChild(this.hud.container);
@@ -100,11 +104,13 @@ export class CordilheiraScene extends Scene {
   override exit(): void {
     audioManager.stopMusic(300);
     this.cleanup?.();
+    this.juice.destroy();
   }
 
   override update(dt: number): void {
-    if (this.ended) return;
     const d = Math.min(dt, 1 / 30);
+    this.juice.update(d);
+    if (this.ended) return;
     this.elapsed += d;
     this.timeLeft -= d;
     if (this.timeLeft <= 0) { this.end(false); return; }
@@ -129,6 +135,7 @@ export class CordilheiraScene extends Scene {
       const py = currentLane.y + ROW_H / 2;
       for (const h of currentLane.hazards) {
         if (this.px + 12 > h.x && this.px - 12 < h.x + h.w && Math.abs(py - this.playerY()) < 16) {
+          this.juice.hurt(this.px, this.playerY());
           this.end(false);
           return;
         }
@@ -137,6 +144,7 @@ export class CordilheiraScene extends Scene {
 
     // Reach the goal row.
     if (this.rowIdx === 0 && this.hopAnim >= 1) {
+      this.juice.pop(this.px, this.playerY());
       this.banked += 1;
       this.rowIdx = ROW_COUNT - 1;
       this.fromY = TOP + this.rowIdx * ROW_H + ROW_H / 2;
@@ -236,6 +244,7 @@ export class CordilheiraScene extends Scene {
   private end(victory: boolean): void {
     if (this.ended) return;
     this.ended = true;
+    if (victory) this.juice.victoryFx(); else this.juice.defeatFx();
     if (victory && this.banked > 0) {
       // No "memorias_coletivas" key — bank as scrap thematically.
       HubState.depositFlow('scrap', this.banked * 2);

@@ -1,10 +1,11 @@
-import { Graphics } from 'pixi.js';
+import { Container, Graphics } from 'pixi.js';
 import { Scene } from '../../core/Scene';
 import { audioManager } from '../../core/AudioManager';
 import { Color } from '../../core/Color';
 import { GameConfig } from '../../state/GameConfig';
 import { HubState } from '../../state/HubState';
 import { ZONES } from '../../state/Zones';
+import { RunJuice } from '../../run/fx/RunJuice';
 import { buildHud, buildEndOverlay, type RunHud } from './RunFrame';
 
 const VW = GameConfig.VIEWPORT_WIDTH;
@@ -26,11 +27,13 @@ interface Hazard { row: number; col: number; t: number; falling: boolean }
  *  and light it (collect a relíquia). Falling hazards drop along the pyramid.
  *  Light every tile to win. */
 export class CatedralScene extends Scene {
+  private content = new Container();
   private bg = new Graphics();
   private pyramidG = new Graphics();
   private hazardsG = new Graphics();
   private playerG = new Graphics();
   private hud!: RunHud;
+  private juice!: RunJuice;
 
   private tiles: TileCell[][] = [];
   private row = 0;
@@ -56,7 +59,8 @@ export class CatedralScene extends Scene {
     for (let i = 12; i > 0; i--) {
       this.bg.circle(VW / 2, VH * 0.45, i * 16).fill({ color: accent, alpha: 0.012 });
     }
-    this.root.addChild(this.bg);
+    this.content.addChild(this.bg);
+    this.root.addChild(this.content);
 
     for (let r = 0; r < PYRAMID_SIZE; r++) {
       const row: TileCell[] = [];
@@ -71,9 +75,9 @@ export class CatedralScene extends Scene {
     this.fromXY = { ...start };
     this.toXY = { ...start };
 
-    this.root.addChild(this.pyramidG);
-    this.root.addChild(this.hazardsG);
-    this.root.addChild(this.playerG);
+    this.content.addChild(this.pyramidG, this.hazardsG, this.playerG);
+
+    this.juice = new RunJuice(this.root, { accent: Color.hex(ZONE.accent_color), shakeTarget: this.content, ambient: 24 });
 
     this.hud = buildHud(ZONE);
     this.root.addChild(this.hud.container);
@@ -89,11 +93,13 @@ export class CatedralScene extends Scene {
   override exit(): void {
     audioManager.stopMusic(300);
     this.cleanup?.();
+    this.juice.destroy();
   }
 
   override update(dt: number): void {
-    if (this.ended) return;
     const d = Math.min(dt, 1 / 30);
+    this.juice.update(d);
+    if (this.ended) return;
     this.elapsed += d;
     this.timeLeft -= d;
     if (this.timeLeft <= 0) { this.end(this.litCount >= this.totalTiles * 0.7); return; }
@@ -120,6 +126,8 @@ export class CatedralScene extends Scene {
         h.row = nr;
         h.col = nc;
         if (h.row === this.row && h.col === this.col && this.hopAnim >= 1) {
+          const p = this.tileCenter(this.row, this.col);
+          this.juice.hurt(p.x, p.y - 18);
           this.end(false);
           return;
         }
@@ -181,6 +189,7 @@ export class CatedralScene extends Scene {
         if (!tile.lit) {
           tile.lit = true;
           this.litCount += 1;
+          this.juice.pop(this.toXY.x, this.toXY.y - 18);
         }
       }
     };
@@ -247,6 +256,7 @@ export class CatedralScene extends Scene {
   private end(victory: boolean): void {
     if (this.ended) return;
     this.ended = true;
+    if (victory) this.juice.victoryFx(); else this.juice.defeatFx();
     const reward = victory ? this.litCount : 0;
     if (victory && reward > 0) {
       // No "reliquias" key — bank as fragmentos_estruturais thematically.
