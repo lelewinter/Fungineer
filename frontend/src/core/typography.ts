@@ -11,13 +11,13 @@ export const FontFamily = {
 
 /** Reusable color tokens for text. */
 export const TextColor = {
-  ink: 0xe6f0d9,            // primary text on dark bg
-  muted: 0x9aa697,          // secondary
-  faint: 0x6e7a6c,          // ghost
-  accent: 0xb573d8,          // spore purple
-  bio: 0x4dc7b9,            // turquoise mycelium
-  amber: 0xe89339,
-  red: 0xc24d4d,
+  ink: 0xeef5e6,            // primary text on dark bg
+  muted: 0xc3cdba,          // secondary — brightened for readability
+  faint: 0x97a394,          // ghost — brightened for readability
+  accent: 0xcf8ff0,          // spore purple — brighter
+  bio: 0x6fe3d4,            // turquoise mycelium — brighter
+  amber: 0xf3a955,
+  red: 0xe06767,
   white: 0xffffff,
   black: 0x000000,
 } as const;

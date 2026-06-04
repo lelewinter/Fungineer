@@ -23,7 +23,7 @@ export class App {
     this.crt = new CRTFilter({
       viewportW: GameConfig.VIEWPORT_WIDTH,
       viewportH: GameConfig.VIEWPORT_HEIGHT,
-      intensity: 0.25,
+      intensity: 0.16,
     });
     // The CRT is a full-screen post-process, so it lives on the stage — which
     // is always screen-aligned and unscaled. Applying it to the non-uniformly

@@ -52,17 +52,17 @@ void main(void) {
   vec3 col = vec3(r, base.g, b);
 
   // Scanlines — sin wave keyed off scaled Y resolution.
-  float scan = sin(uv.y * uViewport.y * 1.6) * 0.05 * uIntensity;
+  float scan = sin(uv.y * uViewport.y * 1.6) * 0.03 * uIntensity;
   col -= scan;
 
   // Subtle rolling brightness bar.
-  float roll = sin((uv.y + uTime * 0.07) * 3.14159 * 2.0) * 0.012;
+  float roll = sin((uv.y + uTime * 0.07) * 3.14159 * 2.0) * 0.010;
   col += roll;
 
-  // Soft vignette.
-  vec2 vc = (vTextureCoord - 0.5) * vec2(1.55, 1.0);
-  float vig = 1.0 - dot(vc, vc) * 0.85;
-  col *= mix(1.0, clamp(vig, 0.62, 1.0), uIntensity);
+  // Soft vignette — gentle enough to keep edge text readable.
+  vec2 vc = (vTextureCoord - 0.5) * vec2(1.35, 1.0);
+  float vig = 1.0 - dot(vc, vc) * 0.55;
+  col *= mix(1.0, clamp(vig, 0.80, 1.0), uIntensity);
 
   // Warm tint + mild contrast lift.
   col.r *= 1.025;
