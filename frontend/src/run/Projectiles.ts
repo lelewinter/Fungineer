@@ -1,5 +1,6 @@
 import { Container, Graphics } from 'pixi.js';
 import { Color } from '../core/Color';
+import { tween } from '../core/tween';
 import { GameConfig } from '../state/GameConfig';
 import type { BaseEnemy } from './BaseEnemy';
 import type { BaseCharacter } from './BaseCharacter';
@@ -120,18 +121,17 @@ export class ArtificerProjectile implements Projectile {
       .circle(this.position.x, this.position.y, r)
       .fill({ color: Color.hex(Color.rgb(0.9, 0.5, 1.0)), alpha: 0.6 });
     world.fxLayer.addChild(flash);
-    const start = performance.now();
-    const tick = (): void => {
-      const t = Math.min(1, (performance.now() - start) / 300);
-      flash.alpha = 0.6 * (1 - t);
-      if (t < 1) {
-        requestAnimationFrame(tick);
-      } else {
+    void tween({
+      durationMs: 300,
+      onUpdate: (t) => {
+        if (!flash.destroyed) flash.alpha = 0.6 * (1 - t);
+      },
+    }).then(() => {
+      if (!flash.destroyed) {
         flash.parent?.removeChild(flash);
         flash.destroy();
       }
-    };
-    requestAnimationFrame(tick);
+    });
   }
 }
 

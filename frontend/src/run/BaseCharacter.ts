@@ -61,6 +61,7 @@ export class BaseCharacter {
     this.node.addChild(this.hpBarBg);
     this.node.addChild(this.hpBarFill);
     this.buildVisual();
+    this.drawHpBarBg();
     this.updateHpBar();
   }
 
@@ -100,7 +101,6 @@ export class BaseCharacter {
     this.onTick(dt, world);
     this.node.x = this.position.x;
     this.node.y = this.position.y;
-    this.updateHpBar();
   }
 
   protected tryAttack(world: RunWorld): void {
@@ -118,6 +118,7 @@ export class BaseCharacter {
     const ap = GameState.active_power as { onDamageReceived?: (a: number, s: unknown) => void } | null;
     ap?.onDamageReceived?.(effective, source);
     this.current_hp = Math.max(0, this.current_hp - effective);
+    this.updateHpBar();
     this.hpChanged.emit(this, this.current_hp, this.max_hp);
     GameState.damageDealt.emit(this as unknown as never, effective, { ...this.position });
     if (this.world) spawnDamageNumber(this.world, this.position, effective, 0xff7a7a);
@@ -133,6 +134,7 @@ export class BaseCharacter {
   heal(amount: number): void {
     if (this.is_dead) return;
     this.current_hp = Math.min(this.max_hp, this.current_hp + amount);
+    this.updateHpBar();
     this.hpChanged.emit(this, this.current_hp, this.max_hp);
   }
 
@@ -148,23 +150,14 @@ export class BaseCharacter {
     GameState.registerCharacterDeath(this as unknown as never);
   }
 
+  private drawHpBarBg(): void {
+    this.hpBarBg.rect(-15, -22, 30, 4).fill({ color: 0x333333, alpha: 0.85 });
+  }
+
   protected updateHpBar(): void {
-    const w = 30;
-    const h = 4;
-    const x = -w / 2;
-    const y = -22;
-    this.hpBarBg.clear()
-      .rect(x, y, w, h)
-      .fill({ color: 0x333333, alpha: 0.85 });
     const ratio = this.max_hp > 0 ? this.current_hp / this.max_hp : 0;
     const fillCol = ratio > 0.4 ? 0x33e64d : ratio > 0.2 ? 0xe6c233 : 0xe64d33;
-    this.hpBarFill.clear()
-      .rect(x, y, w * ratio, h)
-      .fill({ color: fillCol });
+    this.hpBarFill.clear().rect(-15, -22, 30 * ratio, 4).fill({ color: fillCol });
   }
 }
 
-/** Helper to register signal-compatible callbacks. Pixi-side classes use the
- *  base game-state signals which expect a node-like target; we cast for now and
- *  refine when GameState ports beyond Phase 1. */
-GameState.characterDied.connect(() => undefined);

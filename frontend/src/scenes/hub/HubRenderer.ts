@@ -31,6 +31,7 @@ export class HubRenderer extends Container {
   private elapsedMs = 0;
   private variantColors = HubState.getVariantData();
   private disposers: Array<() => void> = [];
+  private unlockedRoomBboxes: Array<{ x: number; y: number; w: number; h: number }> = [];
 
   constructor(opts: { topPad?: number; bottomPad?: number } = {}) {
     super();
@@ -43,12 +44,14 @@ export class HubRenderer extends Container {
     this.addChild(this.hitLayer);
     this.buildHitboxes();
     this.drawStatic();
+    this.rebuildRoomBboxCache();
     this.disposers.push(HubState.hubVariantChanged.connect(() => {
       this.applyVariant();
       this.drawStatic();
     }));
     this.disposers.push(HubState.roomUnlockedSignal.connect(() => {
       this.refreshSilhouettes();
+      this.rebuildRoomBboxCache();
       this.drawStatic();
     }));
   }
@@ -556,16 +559,20 @@ export class HubRenderer extends Container {
     }
   }
 
+  private rebuildRoomBboxCache(): void {
+    this.unlockedRoomBboxes = HubData.ROOMS
+      .filter((r) => !HubData.isRocketRoom(r) && HubState.isRoomUnlocked(r.id))
+      .map((r) => ({
+        x: this.cellWidth * r.col,
+        y: this.roomYOffset[r.id] ?? 0,
+        w: this.cellWidth * r.w,
+        h: this.roomFloorH(r),
+      }));
+  }
+
   private isPointInUnlockedRoom(px: number, py: number): boolean {
-    for (const room of HubData.ROOMS) {
-      if (HubData.isRocketRoom(room)) continue;
-      const rx = this.cellWidth * room.col;
-      const ry = this.roomYOffset[room.id] ?? 0;
-      const rw = this.cellWidth * room.w;
-      const rh = this.roomFloorH(room);
-      if (px >= rx && px <= rx + rw && py >= ry && py <= ry + rh) {
-        return HubState.isRoomUnlocked(room.id);
-      }
+    for (const b of this.unlockedRoomBboxes) {
+      if (px >= b.x && px <= b.x + b.w && py >= b.y && py <= b.y + b.h) return true;
     }
     return false;
   }

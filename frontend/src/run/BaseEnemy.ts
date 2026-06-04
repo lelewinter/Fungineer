@@ -62,6 +62,7 @@ export class BaseEnemy {
     this.node.addChild(this.hpBarBg);
     this.node.addChild(this.hpBarFill);
     this.buildVisual();
+    this.drawHpBarBg();
     this.updateHpBar();
   }
 
@@ -84,7 +85,6 @@ export class BaseEnemy {
     this.tickAttack(dt);
     this.node.x = this.position.x;
     this.node.y = this.position.y;
-    this.updateHpBar();
   }
 
   protected findTarget(world: RunWorld): void {
@@ -126,6 +126,7 @@ export class BaseEnemy {
   takeDamage(amount: number, _source: BaseCharacter | null = null): void {
     if (this.is_dead) return;
     this.current_hp = Math.max(0, this.current_hp - amount);
+    this.updateHpBar();
     if (this.world) {
       const color = this.is_elite ? 0xffd966 : 0xffffff;
       spawnDamageNumber(this.world, this.position, amount, color);
@@ -147,17 +148,14 @@ export class BaseEnemy {
     this.node.destroy({ children: true });
   }
 
+  private drawHpBarBg(): void {
+    const w = 26, h = 3, x = -13, y = -18;
+    this.hpBarBg.rect(x, y, w, h).fill({ color: 0x222222, alpha: 0.85 });
+  }
+
   protected updateHpBar(): void {
-    const w = 26;
-    const h = 3;
-    const x = -w / 2;
-    const y = -18;
-    this.hpBarBg.clear()
-      .rect(x, y, w, h)
-      .fill({ color: 0x222222, alpha: 0.85 });
+    const w = 26, h = 3, x = -13, y = -18;
     const ratio = this.max_hp > 0 ? this.current_hp / this.max_hp : 0;
-    this.hpBarFill.clear()
-      .rect(x, y, w * ratio, h)
-      .fill({ color: 0xe64d4d });
+    this.hpBarFill.clear().rect(x, y, w * ratio, h).fill({ color: 0xe64d4d });
   }
 }

@@ -14,6 +14,8 @@ import { type ZoneData } from '../../state/Zones';
 export class StubRunScene extends Scene {
   private zone: ZoneData;
   private elapsed = 0;
+  private particleAccumMs = 0;
+  private static readonly PARTICLE_INTERVAL_MS = 1000 / 30;
   private bg = new Graphics();
   private heroLayer = new Container();
   private particleLayer = new Graphics();
@@ -219,20 +221,26 @@ export class StubRunScene extends Scene {
     const accent = this.zone.accent_color;
     const accentHex = Color.hex(accent);
 
-    // Particle drift
-    this.particleLayer.clear();
-    const W = GameConfig.VIEWPORT_WIDTH;
-    const H = GameConfig.VIEWPORT_HEIGHT;
     const t = this.elapsed;
-    for (let i = 0; i < 36; i++) {
-      const baseX = ((i * 89.7) % W);
-      const baseY = ((i * 41.3) % H);
-      let py = (baseY - t * 14 * (1 + (i % 3) * 0.2)) % H;
-      if (py < 0) py += H;
-      const px = baseX + Math.sin(t * 0.6 + i) * 12;
-      const a = 0.18 + 0.18 * Math.sin(t * 1.8 + i);
-      this.particleLayer.circle(px, py, 1.2 + (i % 3) * 0.4)
-        .fill({ color: accentHex, alpha: a });
+
+    // Particle drift — throttled to 30 fps; position math is cheap but
+    // Graphics.clear() + 36 fill calls every frame at 60 fps is wasteful.
+    this.particleAccumMs += dt * 1000;
+    if (this.particleAccumMs >= StubRunScene.PARTICLE_INTERVAL_MS) {
+      this.particleAccumMs = 0;
+      this.particleLayer.clear();
+      const W = GameConfig.VIEWPORT_WIDTH;
+      const H = GameConfig.VIEWPORT_HEIGHT;
+      for (let i = 0; i < 36; i++) {
+        const baseX = ((i * 89.7) % W);
+        const baseY = ((i * 41.3) % H);
+        let py = (baseY - t * 14 * (1 + (i % 3) * 0.2)) % H;
+        if (py < 0) py += H;
+        const px = baseX + Math.sin(t * 0.6 + i) * 12;
+        const a = 0.18 + 0.18 * Math.sin(t * 1.8 + i);
+        this.particleLayer.circle(px, py, 1.2 + (i % 3) * 0.4)
+          .fill({ color: accentHex, alpha: a });
+      }
     }
 
     // Squad bobbing

@@ -65,9 +65,8 @@ export default defineConfig({
   },
   build: {
     target: 'es2022',
-    // Vite hashes JS/CSS automatically: e.g. assets/index-[hash].js. The
-    // sourcemap stays on for prod debugging; remove if bundle size matters.
-    sourcemap: true,
+    // Vite hashes JS/CSS automatically: e.g. assets/index-[hash].js.
+    sourcemap: false,
     outDir: 'dist',
     assetsInlineLimit: 0,
   },
@@ -93,7 +92,7 @@ export default defineConfig({
         // What gets precached on first install. Audio is too heavy (~100MB of
         // WAVs) so we keep it out of precache and serve from runtime cache.
         globPatterns: [
-          '**/*.{js,css,html,svg,png,webp,woff2}',
+          '**/*.{js,css,html,woff2}',
         ],
         globIgnores: [
           // Keep audio out of precache (runtime cached instead).

@@ -116,6 +116,11 @@ export class HordasScene extends Scene {
   }
 
   override async exit(): Promise<void> {
+    if (this.domFallbackHandler) {
+      window.removeEventListener('pointerdown', this.domFallbackHandler);
+      window.removeEventListener('keydown', this.domFallbackHandler);
+      this.domFallbackHandler = null;
+    }
     window.removeEventListener('keydown', this.keyHandler);
     for (const d of this.disposers) d();
     this.disposers = [];

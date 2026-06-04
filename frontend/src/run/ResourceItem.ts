@@ -37,6 +37,13 @@ export class ResourceItem {
   private spawnT = 0;
   private channelT = 0;
 
+  private drawBodyAccumMs = 0;
+  private static readonly DRAW_BODY_INTERVAL_MS = 1000 / 30;
+
+  private lastChannelT = -1;
+  private lastInRange = false;
+  private lastBackpackFull = false;
+
   private static readonly CHANNEL_S = 0.6;
 
   constructor(party: Party, resourceType: string) {
@@ -78,8 +85,21 @@ export class ResourceItem {
 
     this.node.x = this.position.x;
     this.node.y = this.position.y;
-    this.drawBody(backpackFull);
-    this.drawRing(inRange, backpackFull);
+    this.drawBodyAccumMs += dt * 1000;
+    if (this.drawBodyAccumMs >= ResourceItem.DRAW_BODY_INTERVAL_MS) {
+      this.drawBodyAccumMs = 0;
+      this.drawBody(backpackFull);
+    }
+    if (
+      Math.abs(this.channelT - this.lastChannelT) > 0.01 ||
+      inRange !== this.lastInRange ||
+      backpackFull !== this.lastBackpackFull
+    ) {
+      this.lastChannelT = this.channelT;
+      this.lastInRange = inRange;
+      this.lastBackpackFull = backpackFull;
+      this.drawRing(inRange, backpackFull);
+    }
     return true;
   }
 

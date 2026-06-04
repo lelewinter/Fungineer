@@ -17,6 +17,8 @@ export class ExperienceGem {
   private spawnT = Math.random();
   private value: number;
 
+  private drawAccumMs = 0;
+  private static readonly DRAW_INTERVAL_MS = 1000 / 30;
   private static readonly MAGNET_R = 90;
   private static readonly PICKUP_R = 18;
 
@@ -56,7 +58,11 @@ export class ExperienceGem {
 
     this.node.x = this.position.x;
     this.node.y = this.position.y;
-    this.draw();
+    this.drawAccumMs += dt * 1000;
+    if (this.drawAccumMs >= ExperienceGem.DRAW_INTERVAL_MS) {
+      this.drawAccumMs = 0;
+      this.draw();
+    }
     return true;
   }
 

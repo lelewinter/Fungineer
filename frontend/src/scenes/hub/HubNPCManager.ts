@@ -33,6 +33,7 @@ export class HubNPCManager extends Container {
   private glyphs = new Map<string, Text>();
   private wanderInterval = 15;
   private elapsed = 0;
+  private wanderCandidates: HubRoom[] = [];
 
   constructor(opts: { topPad?: number; bottomPad?: number } = {}) {
     super();
@@ -42,6 +43,8 @@ export class HubNPCManager extends Container {
     this.cellWidth = GameConfig.VIEWPORT_WIDTH / 6;
     this.calculateDimensions();
     this.initializePositions();
+    this.rebuildWanderCache();
+    HubState.roomUnlockedSignal.connect(() => this.rebuildWanderCache());
   }
 
   private calculateDimensions(): void {
@@ -98,14 +101,17 @@ export class HubNPCManager extends Container {
     }
   }
 
-  private tryWander(state: NPCState): void {
-    if (Math.random() <= 0.6) return; // 40% per cycle
-    const candidates = HubData.ROOMS.filter(
+  private rebuildWanderCache(): void {
+    this.wanderCandidates = HubData.ROOMS.filter(
       (r) => r.type !== 'surface' && r.type !== 'surface-exit' && !HubData.isRocketRoom(r)
         && HubState.isRoomUnlocked(r.id),
     );
-    if (candidates.length <= 1) return;
-    const next = candidates[Math.floor(Math.random() * candidates.length)]!;
+  }
+
+  private tryWander(state: NPCState): void {
+    if (Math.random() <= 0.6) return; // 40% per cycle
+    if (this.wanderCandidates.length <= 1) return;
+    const next = this.wanderCandidates[Math.floor(Math.random() * this.wanderCandidates.length)]!;
     if (next.id === state.room) return;
     state.room = next.id;
     const yOff = this.roomYOffset[next.id] ?? 0;
