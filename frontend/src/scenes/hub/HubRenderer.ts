@@ -175,7 +175,7 @@ export class HubRenderer extends Container {
     this.drawRoomVignette(x, y, w, h);
     this.drawRoomTopLight(x, y, w, h, room);
     this.drawZoneBadgeIfNeeded(room, x, y, w, h);
-    this.g.rect(x, y, w, h).stroke({ color: Color.hex(Color.rgb(0.15, 0.15, 0.15)), width: 1 });
+    this.g.rect(x, y, w, h).stroke({ color: Color.hex(Color.rgb(0.46, 0.42, 0.34)), width: 1.5, alpha: 0.86 });
   }
 
   // ── Integrated Rocket Shaft ───────────────────────────────────────────────
@@ -321,7 +321,7 @@ export class HubRenderer extends Container {
 
     // Shaft border on top
     this.g.rect(shaftX, shaftY, shaftW, shaftH)
-      .stroke({ color: Color.hex(Color.rgb(0.22, 0.18, 0.15)), width: 1 });
+      .stroke({ color: Color.hex(Color.rgb(0.52, 0.46, 0.36)), width: 1.5, alpha: 0.9 });
   }
 
   // ── Room rendering ───────────────────────────────────────────────────────
@@ -348,7 +348,7 @@ export class HubRenderer extends Container {
   }
 
   private drawLockedRoom(room: HubRoom, x: number, y: number, w: number, h: number): void {
-    this.drawGradientRect(x, y, w, h, Color.rgb(0.10, 0.08, 0.05), Color.rgb(0.16, 0.12, 0.08));
+    this.drawGradientRect(x, y, w, h, Color.rgb(0.18, 0.14, 0.09), Color.rgb(0.28, 0.20, 0.13));
     const rng = seededRng(strHash(room.id));
     for (let i = 0; i < 22; i++) {
       const px = x + rng() * w;
@@ -368,7 +368,7 @@ export class HubRenderer extends Container {
       .fill({ color: Color.hex(Color.rgb(0.28, 0.25, 0.22)), alpha: 0.35 });
     this.g.rect(rcx - boxW * 0.5, rcy - boxH * 0.5, boxW, boxH)
       .stroke({ color: Color.hex(Color.rgb(0.45, 0.40, 0.35)), width: 1, alpha: 0.5 });
-    this.g.rect(x, y, w, h).stroke({ color: Color.hex(Color.rgb(0.10, 0.08, 0.05)), width: 1 });
+    this.g.rect(x, y, w, h).stroke({ color: Color.hex(Color.rgb(0.40, 0.31, 0.22)), width: 1.5, alpha: 0.75 });
   }
 
   private getRoomBaseColor(room: HubRoom): RGBA {
@@ -422,7 +422,7 @@ export class HubRenderer extends Container {
 
   private applyRoomLighting(room: HubRoom, x: number, y: number, w: number, h: number): void {
     const c = this.getLightColor(room.light);
-    this.g.rect(x, y, w, h).fill({ color: Color.hex(c), alpha: 0.2 });
+    this.g.rect(x, y, w, h).fill({ color: Color.hex(c), alpha: 0.32 });
   }
 
   private getLightColor(light: string): RGBA {
@@ -475,7 +475,7 @@ export class HubRenderer extends Container {
     for (let col = 0; col < 7; col++) {
       const x = this.cellWidth * col;
       this.g.moveTo(x, 0).lineTo(x, totalH)
-        .stroke({ color: Color.hex(this.variantColors.grid), width: 1 });
+        .stroke({ color: Color.hex(this.variantColors.grid), width: 1.25, alpha: 0.92 });
     }
   }
 

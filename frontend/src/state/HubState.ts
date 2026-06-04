@@ -69,8 +69,8 @@ export interface HubVariant {
 export const HUB_VARIANTS: Record<HubVariantKey, HubVariant> = {
   fungus: {
     name: 'Fungus Pântano',
-    bg: Color.rgb(0.08, 0.09, 0.06),
-    grid: Color.rgb(0.18, 0.14, 0.12),
+    bg: Color.rgb(0.12, 0.13, 0.09),
+    grid: Color.rgb(0.34, 0.27, 0.20),
     ink: Color.rgb(0.85, 0.92, 0.78),
     warm_light: Color.rgb(0.72, 0.45, 0.85),
     cool_light: Color.rgb(0.30, 0.78, 0.72),
@@ -79,8 +79,8 @@ export const HUB_VARIANTS: Record<HubVariantKey, HubVariant> = {
   },
   warm: {
     name: 'Warm Gambiarra',
-    bg: Color.rgb(0.09, 0.06, 0.04),
-    grid: Color.rgb(0.15, 0.15, 0.15),
+    bg: Color.rgb(0.14, 0.09, 0.06),
+    grid: Color.rgb(0.36, 0.30, 0.24),
     ink: Color.rgb(0.96, 0.89, 0.78),
     warm_light: Color.rgb(0.91, 0.58, 0.23),
     cool_light: Color.rgb(0.0, 1.0, 0.68),
@@ -89,8 +89,8 @@ export const HUB_VARIANTS: Record<HubVariantKey, HubVariant> = {
   },
   balanced: {
     name: 'Balanced',
-    bg: Color.rgb(0.08, 0.07, 0.06),
-    grid: Color.rgb(0.15, 0.15, 0.15),
+    bg: Color.rgb(0.12, 0.11, 0.09),
+    grid: Color.rgb(0.34, 0.34, 0.30),
     ink: Color.rgb(0.96, 0.89, 0.78),
     warm_light: Color.rgb(0.91, 0.58, 0.23),
     cool_light: Color.rgb(0.0, 1.0, 0.68),
@@ -99,8 +99,8 @@ export const HUB_VARIANTS: Record<HubVariantKey, HubVariant> = {
   },
   blueprint: {
     name: 'Blueprint Cold',
-    bg: Color.rgb(0.05, 0.08, 0.12),
-    grid: Color.rgb(0.15, 0.18, 0.22),
+    bg: Color.rgb(0.08, 0.12, 0.18),
+    grid: Color.rgb(0.26, 0.36, 0.48),
     ink: Color.rgb(0.6, 0.8, 1.0),
     warm_light: Color.rgb(0.0, 1.0, 0.68),
     cool_light: Color.rgb(0.0, 1.0, 0.68),

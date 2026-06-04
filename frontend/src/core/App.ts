@@ -18,7 +18,7 @@ export class App {
     this.crt = new CRTFilter({
       viewportW: GameConfig.VIEWPORT_WIDTH,
       viewportH: GameConfig.VIEWPORT_HEIGHT,
-      intensity: 1.0,
+      intensity: 0.25,
     });
     this.world.filters = [this.crt];
     this.world.filterArea = this.pixi.screen;
@@ -45,11 +45,13 @@ export class App {
     return new App(pixi);
   }
 
-  /** Letterbox the 480×854 stage inside the canvas. */
+  /** Fit landscape views, but cover portrait screens so mobile has no dead area. */
   fit(): void {
     const w = this.pixi.screen.width;
     const h = this.pixi.screen.height;
-    const scale = Math.min(w / GameConfig.VIEWPORT_WIDTH, h / GameConfig.VIEWPORT_HEIGHT);
+    const scaleX = w / GameConfig.VIEWPORT_WIDTH;
+    const scaleY = h / GameConfig.VIEWPORT_HEIGHT;
+    const scale = h >= w ? Math.max(scaleX, scaleY) : Math.min(scaleX, scaleY);
     this.world.scale.set(scale);
     this.world.x = (w - GameConfig.VIEWPORT_WIDTH * scale) / 2;
     this.world.y = (h - GameConfig.VIEWPORT_HEIGHT * scale) / 2;

@@ -62,12 +62,12 @@ void main(void) {
   // Soft vignette.
   vec2 vc = (vTextureCoord - 0.5) * vec2(1.55, 1.0);
   float vig = 1.0 - dot(vc, vc) * 0.85;
-  col *= clamp(vig, 0.35, 1.0);
+  col *= mix(1.0, clamp(vig, 0.62, 1.0), uIntensity);
 
   // Warm tint + mild contrast lift.
   col.r *= 1.025;
   col.b *= 0.97;
-  col = (col - 0.5) * 1.04 + 0.5;
+  col = (col - 0.5) * 1.10 + 0.55;
 
   // Outside the curved frame → black (keeps corners clean after distortion).
   float mask = step(0.0, uv.x) * step(uv.x, 1.0) * step(0.0, uv.y) * step(uv.y, 1.0);
