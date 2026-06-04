@@ -5,6 +5,7 @@ import { audioManager } from '../../core/AudioManager';
 import { assets } from '../../core/AssetLoader';
 import { juice } from '../../core/Juice';
 import { FXSystem } from '../../run/fx/FXSystem';
+import { ScreenFX } from '../../run/fx/ScreenFX';
 import { Color } from '../../core/Color';
 import { GameConfig } from '../../state/GameConfig';
 import { GameState, RunState } from '../../state/GameState';
@@ -20,6 +21,7 @@ import { PowerManager, type PowerResource } from '../../run/power/PowerManager';
 import { SiegeMode, SplitOrbit, Overclock, MagnetPulse, ReflectiveShell, GhostDrive } from '../../run/power/Powers';
 import { Guardian, Striker, Medic, Artificer, CHARACTER_FACTORIES } from '../../run/Characters';
 import { Runner, Bruiser, Spitter, SentinelCore } from '../../run/Enemies';
+import type { BaseEnemy } from '../../run/BaseEnemy';
 
 import { HUD } from '../../ui/run/HUD';
 import { GameOverScreen, VictoryScreen, RescueScreen, PowerOfferScreen, type RescueOption } from '../../ui/run/RunScreens';
@@ -38,6 +40,7 @@ export class HordasScene extends Scene {
   private arenaBg = new Graphics();
   private arenaBorder = new Graphics();
   private fx!: FXSystem;
+  private screenFx!: ScreenFX;
 
   // Run systems
   private world!: RunWorld;
@@ -60,6 +63,7 @@ export class HordasScene extends Scene {
 
   override async enter(): Promise<void> {
     this.root.addChild(this.cameraLayer);
+    this.uiLayer.sortableChildren = true;
     this.root.addChild(this.uiLayer);
 
     this.world = new RunWorld();
@@ -96,6 +100,7 @@ export class HordasScene extends Scene {
       updateDamageNumbers(capped);
       this.fx.update(capped);
     }
+    this.screenFx.update(capped);
     this.hud.update(capped);
     this.updateCamera(capped);
   }
@@ -166,6 +171,8 @@ export class HordasScene extends Scene {
   }
 
   private buildUi(): void {
+    this.screenFx = new ScreenFX();
+    this.uiLayer.addChild(this.screenFx);
     this.hud = new HUD();
     this.uiLayer.addChild(this.hud);
     this.disposers.push(this.hud.powerTapped.connect(() => this.powerManager.toggle()));
@@ -176,6 +183,15 @@ export class HordasScene extends Scene {
       GameState.runEnded.connect((victory, fragments) => this.onRunEnded(victory, fragments)),
     );
     this.disposers.push(
+      GameState.damageDealt.connect((target, amount, position) => this.onDamageEvent(target, amount, position)),
+    );
+    this.disposers.push(
+      GameState.leveledUp.connect(() => this.onLevelUp()),
+    );
+    this.disposers.push(
+      this.world.enemyAdded.connect((enemy) => this.onEnemyAdded(enemy)),
+    );
+    this.disposers.push(
       this.waves.waveCleared.connect((w) => this.onWaveCleared(w)),
     );
     this.disposers.push(
@@ -184,13 +200,65 @@ export class HordasScene extends Scene {
     this.disposers.push(
       GameState.bossSpawned.connect(() => {
         CombatSfx.bossSpawn();
-        juice.addTrauma(0.9);
-        this.fx.burst(this.party.anchor.x, this.party.anchor.y, { count: 30, color: 0xff5a3c, speed: 280, life: 0.8, size: 3 });
+        juice.addTrauma(0.9, 80);
+        this.screenFx.flash(0xff5a3c, 0.35, 0.28);
+        this.screenFx.shockwave(0xff5a3c, 0.65);
+        this.fx.burst(this.party.anchor.x, this.party.anchor.y, { count: 42, color: 0xff5a3c, speed: 320, life: 0.9, size: 3.2 });
       }),
     );
     this.disposers.push(
-      GameState.waveStarted.connect(() => juice.addTrauma(0.22)),
+      GameState.waveStarted.connect(() => {
+        juice.addTrauma(0.22, 25);
+        this.screenFx.flash(0xffd070, 0.16, 0.16);
+      }),
     );
+  }
+
+  private onEnemyAdded(enemy: BaseEnemy): void {
+    this.disposers.push(enemy.died.connect((dead) => {
+      const color = dead.is_elite ? 0xff5a3c : 0xffd070;
+      this.fx.burst(dead.position.x, dead.position.y, {
+        count: dead.is_elite ? 52 : 16,
+        color,
+        speed: dead.is_elite ? 360 : 180,
+        life: dead.is_elite ? 0.95 : 0.45,
+        size: dead.is_elite ? 3.4 : 2.4,
+      });
+      juice.addTrauma(dead.is_elite ? 0.65 : 0.12, dead.is_elite ? 70 : 12);
+      if (dead.is_elite) {
+        this.screenFx.flash(0xfff0a6, 0.28, 0.24);
+        this.screenFx.shockwave(0xfff0a6, 0.55);
+      }
+    }));
+  }
+
+  private onDamageEvent(target: unknown, amount: number, position: { x: number; y: number }): void {
+    const hitEnemy = typeof target === 'object' && target !== null && 'enemy_name' in target;
+    if (hitEnemy) {
+      const elite = Boolean((target as { is_elite?: boolean }).is_elite);
+      this.fx.burst(position.x, position.y, {
+        count: elite ? 10 : 4,
+        color: elite ? 0xffd966 : 0x9fffe0,
+        speed: elite ? 180 : 95,
+        life: 0.24,
+        size: elite ? 2.2 : 1.5,
+      });
+      if (amount >= 30 || elite) juice.addTrauma(elite ? 0.12 : 0.06, elite ? 10 : 0);
+      return;
+    }
+
+    this.screenFx.edges(0xff2f3d, 0.38);
+    this.screenFx.flash(0xff2f3d, 0.18, 0.16);
+    this.fx.burst(position.x, position.y, { count: 12, color: 0xff5a60, speed: 160, life: 0.38, size: 2.2 });
+    juice.addTrauma(amount >= 25 ? 0.34 : 0.2, amount >= 25 ? 45 : 25);
+  }
+
+  private onLevelUp(): void {
+    audioManager.playSfx('res://assets/audio/sfx/ui/Complete_01.wav', 0.7);
+    juice.addTrauma(0.18, 25);
+    this.screenFx.flash(0x6dffba, 0.22, 0.22);
+    this.screenFx.shockwave(0x6dffba, 0.42);
+    this.fx.burst(this.party.anchor.x, this.party.anchor.y, { count: 30, color: 0x6dffba, speed: 220, life: 0.6, size: 2.5 });
   }
 
   private startRun(): void {
@@ -273,11 +341,19 @@ export class HordasScene extends Scene {
     if (this.endShown) return;
     this.endShown = true;
     if (victory) {
+      audioManager.playSfx('res://assets/audio/sfx/ui/Complete_01.wav', 0.8);
+      juice.addTrauma(0.35, [35, 35, 55]);
+      this.screenFx.flash(0x6dffba, 0.28, 0.34);
+      this.screenFx.shockwave(0x6dffba, 0.6);
       HubState.depositBackpack(GameState.backpack);
       const screen = new VictoryScreen(GameState.run_time, fragments);
       screen.hubRequested.connect(() => this.returnToHub());
       this.uiLayer.addChild(screen);
     } else {
+      audioManager.playSfx('res://assets/audio/sfx/ui/Click_04.wav', 0.75);
+      juice.addTrauma(0.55, [80, 40, 80]);
+      this.screenFx.edges(0xff2f3d, 1);
+      this.screenFx.flash(0xff2f3d, 0.32, 0.34);
       const screen = new GameOverScreen(GameState.run_time);
       screen.hubRequested.connect(() => this.returnToHub());
       screen.retryRequested.connect(() => this.retry());
@@ -313,6 +389,7 @@ export class HordasScene extends Scene {
     const shake = juice.update(dt);
     this.cameraLayer.x = this.camBaseX + shake.x;
     this.cameraLayer.y = this.camBaseY + shake.y;
+    this.cameraLayer.rotation = shake.rot;
   }
 
   private onKey(e: KeyboardEvent): void {

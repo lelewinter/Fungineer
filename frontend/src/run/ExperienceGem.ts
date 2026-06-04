@@ -1,6 +1,6 @@
 import { Container, Graphics } from 'pixi.js';
 import { GameState, RunState } from '../state/GameState';
-import { Juice } from './fx/Juice';
+import { juice } from '../core/Juice';
 import type { Party } from './Party';
 import type { Vec2 } from '../core/types';
 
@@ -51,7 +51,7 @@ export class ExperienceGem {
 
     if (dist <= ExperienceGem.PICKUP_R) {
       GameState.addXp(this.value);
-      Juice.shake(0.03, 4);
+      juice.shake(0.03, 4);
       this.done = true;
       return false;
     }

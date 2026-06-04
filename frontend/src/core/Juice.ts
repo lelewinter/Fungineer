@@ -11,15 +11,48 @@
 class Juice {
   private trauma = 0;
   private time = 0;
+  private prefersReducedMotion = false;
 
   /** Max pixel offset and rotation at full trauma. Tunable per feel. */
   maxOffset = 18;
   maxRot = 0.05;
   decayPerSec = 1.4;
 
+  constructor() {
+    if (typeof window !== 'undefined' && window.matchMedia) {
+      this.prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    }
+  }
+
   /** Add trauma (0..1). Clamped. Bigger = stronger shake. */
-  addTrauma(amount: number): void {
+  addTrauma(amount: number, vibrateMs: number | number[] = 0): void {
+    if (this.prefersReducedMotion) {
+      if (this.hasVibration(vibrateMs)) this.vibrate(Array.isArray(vibrateMs) ? vibrateMs.map((ms) => Math.min(20, ms)) : Math.min(20, vibrateMs));
+      return;
+    }
     this.trauma = Math.min(1, this.trauma + amount);
+    if (this.hasVibration(vibrateMs)) this.vibrate(vibrateMs);
+  }
+
+  /** Compatibility alias for run-side callers. */
+  shake(amount: number, vibrateMs: number | number[] = 0): void {
+    this.addTrauma(amount, vibrateMs);
+  }
+
+  vibrate(ms: number | number[]): void {
+    if (typeof navigator === 'undefined' || typeof navigator.vibrate !== 'function') return;
+    if (this.prefersReducedMotion) return;
+    const clamp = (value: number): number => Math.min(200, Math.max(5, Math.round(value)));
+    try {
+      if (Array.isArray(ms)) navigator.vibrate(ms.map(clamp));
+      else navigator.vibrate(clamp(ms));
+    } catch {
+      // Some mobile browsers expose the API but reject calls until a gesture.
+    }
+  }
+
+  private hasVibration(ms: number | number[]): boolean {
+    return Array.isArray(ms) ? ms.some((value) => value > 0) : ms > 0;
   }
 
   get active(): boolean {

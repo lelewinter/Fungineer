@@ -6,6 +6,8 @@ import { HubState } from '../state/HubState';
 import { Signal } from '../core/Signal';
 import type { Party } from './Party';
 import type { Vec2 } from '../core/types';
+import { audioManager } from '../core/AudioManager';
+import { juice } from '../core/Juice';
 
 /** Pickable resource in the arena. Stand still ≥1.5s within radius to collect. */
 export class ResourceItem {
@@ -56,6 +58,8 @@ export class ResourceItem {
       if (this.collectionTimer >= GameConfig.RESOURCE_COLLECTION_TIME) {
         if (GameState.addToBackpack(this.resource_type)) {
           this.collected.emit(this.resource_type);
+          audioManager.playSfx('res://assets/audio/sfx/ui/Complete_01.wav', 0.45);
+          juice.shake(0.08, 18);
           this.done = true;
           return false;
         } else {

@@ -4,6 +4,7 @@ import type { BaseEnemy } from './BaseEnemy';
 import type { ResourceItem } from './ResourceItem';
 import type { Projectile } from './Projectiles';
 import type { Vec2 } from '../core/types';
+import { Signal } from '../core/Signal';
 
 /** Container for all entities in a run. Owns the world transforms (arena coords)
  *  and provides spatial queries. The Pixi container `root` is what the run scene
@@ -21,6 +22,7 @@ export class RunWorld {
   enemies: BaseEnemy[] = [];
   items: ResourceItem[] = [];
   projectiles: Projectile[] = [];
+  readonly enemyAdded = new Signal<[BaseEnemy]>();
 
   constructor() {
     this.root.addChild(this.bgLayer);
@@ -43,6 +45,7 @@ export class RunWorld {
   addEnemy(e: BaseEnemy): void {
     this.enemies.push(e);
     this.enemiesLayer.addChild(e.node);
+    this.enemyAdded.emit(e);
   }
 
   removeEnemy(e: BaseEnemy): void {

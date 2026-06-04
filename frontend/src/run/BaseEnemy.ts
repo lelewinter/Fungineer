@@ -5,6 +5,7 @@ import { Signal } from '../core/Signal';
 import type { BaseCharacter } from './BaseCharacter';
 import type { RunWorld } from './RunWorld';
 import { CombatSfx, spawnDamageNumber } from './fx/DamageNumbers';
+import { GameState } from '../state/GameState';
 
 export interface EnemyStats {
   name: string;
@@ -124,6 +125,7 @@ export class BaseEnemy {
       const color = this.is_elite ? 0xffd966 : 0xffffff;
       spawnDamageNumber(this.world, this.position, amount, color);
     }
+    GameState.damageDealt.emit(this as unknown as never, amount, { ...this.position });
     if (this.is_elite) CombatSfx.bossHit(0.3);
     else CombatSfx.hit(0.28);
     if (this.current_hp <= 0) this.die();
