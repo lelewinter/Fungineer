@@ -24,6 +24,8 @@ import { HubNPCManager } from './HubNPCManager';
 import { HubCharacterCard } from '../../ui/hub/HubCharacterCard';
 import { HubRocketPanel } from '../../ui/hub/HubRocketPanel';
 import { HubZoomPanel } from '../../ui/hub/HubZoomPanel';
+import { AudioButton } from '../../ui/hub/AudioButton';
+import { AudioSettingsModal } from '../../ui/AudioSettingsModal';
 import { Modal } from '../../ui/Modal';
 
 /** Mirrors src/scenes/hub/HubScene.gd. Root scene of the bunker view. */
@@ -51,6 +53,7 @@ export class HubScene extends Scene {
     this.worldLayer.addChild(this.npcManager);
 
     this.buildResourceStrip();
+    this.buildAudioButton();
 
     this.disposers.push(
       this.renderer.roomClicked.connect((roomId) => this.onRoomClicked(roomId)),
@@ -176,6 +179,20 @@ export class HubScene extends Scene {
       case 'catedral':    void sceneManager.replace(new CatedralScene()); break;
       default:            void sceneManager.replace(new StubRunScene(zd));
     }
+  }
+
+  // ── Audio settings button (top-right) ─────────────────────────────────────
+  private buildAudioButton(): void {
+    const btn = new AudioButton();
+    btn.x = GameConfig.VIEWPORT_WIDTH - 26;
+    btn.y = 24;
+    this.uiLayer.addChild(btn);
+    this.disposers.push(
+      btn.clicked.connect(() => {
+        this.hubAudio.playOpenPanelSfx();
+        this.openModal(new AudioSettingsModal());
+      }),
+    );
   }
 
   // ── Resource strip (folds the old World Map stock readout into the hub) ────
