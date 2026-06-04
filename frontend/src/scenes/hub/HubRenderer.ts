@@ -326,11 +326,105 @@ export class HubRenderer extends Container {
 
     this.g.rect(x, y, w, h).fill(Color.hex(this.getRoomBaseColor(room)));
     this.drawRoomInterior(room, x, y, w, h);
+    this.drawAiScar(room, x, y, w, h);
     this.applyRoomLighting(room, x, y, w, h);
     this.drawRoomVignette(x, y, w, h);
     this.drawRoomTopLight(x, y, w, h, room);
+    this.drawFungalAccents(room, x, y, w, h);
     this.drawZoneBadgeIfNeeded(room, x, y, w, h);
     this.g.rect(x, y, w, h).stroke({ color: Color.hex(Color.rgb(0.46, 0.42, 0.34)), width: 1.5, alpha: 0.86 });
+  }
+
+  // ── Lore motif: the colony's fungus reclaiming the dead machine ───────────
+
+  /** Bioluminescent palette keyed to a room's mood. */
+  private fungalTone(room: HubRoom): RGBA {
+    switch (room.type) {
+      case 'lab':
+      case 'spore-chamber':
+      case 'bedroom':
+        return Color.rgb(0.74, 0.47, 0.86); // spore purple
+      case 'server':
+      case 'neural-mushroom':
+      case 'medical':
+      case 'mycelium-lab':
+        return Color.rgb(0.32, 0.86, 0.58); // neural green
+      case 'kitchen':
+      case 'fungus-kitchen':
+      case 'workshop':
+      case 'hyphae-forge':
+      case 'storage':
+        return Color.rgb(0.95, 0.64, 0.30); // warm amber spore
+      default:
+        return Color.rgb(0.30, 0.82, 0.76); // mycelium cyan
+    }
+  }
+
+  /** Mycelium creeping up from a bottom corner + a few glowing caps. Seeded by
+   *  room id so the growth is stable frame-to-frame; only the glow pulses. */
+  private drawFungalAccents(room: HubRoom, x: number, y: number, w: number, h: number): void {
+    const tone = this.fungalTone(room);
+    const dark: RGBA = { r: tone.r * 0.45, g: tone.g * 0.45, b: tone.b * 0.45, a: 1 };
+    const rng = seededRng(strHash('fungus_' + room.id));
+    const t = this.elapsedMs;
+    const fromLeft = rng() < 0.5;
+    const baseX = fromLeft ? x + 4 : x + w - 4;
+    const dir = fromLeft ? 1 : -1;
+    const floorY = y + h - 3;
+
+    // Mycelium threads climbing the wall from the corner.
+    const threads = 3;
+    for (let i = 0; i < threads; i++) {
+      const len = h * (0.3 + rng() * 0.4);
+      const sway = (4 + rng() * 6) * dir;
+      const tx = baseX + dir * (2 + i * 3);
+      this.g
+        .moveTo(tx, floorY)
+        .bezierCurveTo(tx + sway, floorY - len * 0.4, tx - sway, floorY - len * 0.7, tx + sway * 0.5, floorY - len)
+        .stroke({ color: Color.hex(dark), width: 1, alpha: 0.5 });
+    }
+
+    // Glowing caps clustered along the floor corner.
+    const caps = 2 + Math.floor(rng() * 2);
+    for (let i = 0; i < caps; i++) {
+      const cx = baseX + dir * (3 + rng() * w * 0.32);
+      const cyy = floorY - rng() * 5;
+      const r = 2 + rng() * 2.2;
+      const pulse = 0.55 + 0.45 * Math.abs(Math.sin(t * 0.0022 + i * 1.7 + (fromLeft ? 0 : 1)));
+      // stem
+      this.g.rect(cx - 0.8, cyy - r * 1.6, 1.6, r * 1.6).fill({ color: Color.hex(Color.rgb(0.82, 0.78, 0.64)), alpha: 0.8 });
+      // glow halo + cap
+      this.g.circle(cx, cyy - r * 1.6, r * 2.4).fill({ color: Color.hex(tone), alpha: 0.10 * pulse });
+      const capC: RGBA = { r: tone.r * pulse, g: tone.g * pulse, b: tone.b * pulse, a: 1 };
+      this.g.circle(cx, cyy - r * 1.6, r).fill(Color.hex(capC));
+      this.g.circle(cx, cyy - r * 1.6, r * 0.45).fill({ color: 0xffffff, alpha: 0.55 * pulse });
+    }
+
+    // Drifting spore above the cluster.
+    const sy = floorY - (h * 0.4) - ((t * 0.012) % (h * 0.4));
+    this.g.circle(baseX + dir * 8, sy, 1).fill({ color: Color.hex(tone), alpha: 0.4 });
+  }
+
+  /** Faint cold "AI scar" in tech rooms — the rogue system's signature, now
+   *  half-strangled by the colony. */
+  private drawAiScar(room: HubRoom, x: number, y: number, w: number, h: number): void {
+    const t = this.elapsedMs;
+    if (room.type === 'tech') {
+      // ARGOS surveillance eye, dimmed and twitching.
+      const ex = x + w * 0.78;
+      const ey = y + h * 0.3;
+      const blink = 0.25 + 0.35 * Math.abs(Math.sin(t * 0.0016));
+      this.g.circle(ex, ey, 7).stroke({ color: Color.hex(Color.rgb(0.82, 0.22, 0.20)), width: 1, alpha: 0.5 * blink });
+      this.g.circle(ex, ey, 3).fill({ color: Color.hex(Color.rgb(0.90, 0.20, 0.18)), alpha: 0.85 * blink });
+      this.g.circle(ex, ey, 1.2).fill({ color: 0x000000, alpha: 0.7 });
+    } else if (room.type === 'office') {
+      // FLOW logistics: a cold blue routing line being overgrown.
+      const ly = y + h * 0.22;
+      this.g.moveTo(x + w * 0.15, ly).lineTo(x + w * 0.85, ly)
+        .stroke({ color: Color.hex(Color.rgb(0.22, 0.45, 0.82)), width: 1, alpha: 0.4 });
+      const nodeX = x + w * (0.2 + ((t * 0.00006) % 0.6));
+      this.g.circle(nodeX, ly, 1.6).fill({ color: Color.hex(Color.rgb(0.45, 0.70, 0.95)), alpha: 0.55 });
+    }
   }
 
   // ── Integrated Rocket Shaft ───────────────────────────────────────────────
