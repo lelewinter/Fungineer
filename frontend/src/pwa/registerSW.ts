@@ -2,42 +2,30 @@
  * registerSW — wires the service worker into the running game.
  *
  *  1. Registers /sw.js on first load (production only).
- *  2. Polls for updates every UPDATE_CHECK_INTERVAL_MS so long-lived sessions
- *     don't get stuck on an old version — important for users who never
- *     close the tab (game in a PWA window).
- *  3. When `waiting` SW appears (a new version installed but not active):
- *       - if we're in a safe scene -> show the prompt banner immediately
- *       - else -> show the "queued" banner and wait for a safe scene
- *  4. On user accept, sends SKIP_WAITING, waits for `controllerchange`,
- *     then reloads exactly once (no infinite reload loop).
+ *  2. Polls for updates (interval + on tab focus) so long-lived sessions never
+ *     get stranded on an old version.
+ *  3. AUTO-APPLY: when a new SW is `waiting`, we immediately activate it and
+ *     reload — from ANY screen. The player always runs the newest version and
+ *     never gets stuck on an "update prepared" prompt. A brief "Aplicando
+ *     atualização…" flash is shown right before the one-time reload.
  *
- *  Why workbox-window?
- *   - It abstracts the lifecycle (installing/waiting/activated) into one
- *     event API. Hand-rolling the same is ~80 lines of fragile spec code.
- *   - Battle-tested across Chrome/Safari/Firefox edge cases.
- *
- *  iOS Safari notes:
- *   - registration.update() works but is throttled aggressively.
- *   - `controllerchange` fires correctly after skipWaiting() on iOS 16+.
- *   - PWA installed from home screen = fresh SW scope per install — same flow.
+ *  Why auto-apply (no manual gate)?
+ *   - During active development the freshest build is what we want everywhere;
+ *     a queued/gated banner kept users stranded on stale caches.
+ *   - The `controllerchange` + `refreshing` guard guarantees exactly one reload
+ *     (no reload loop).
  */
 
 import { Workbox, type WorkboxLifecycleWaitingEvent } from 'workbox-window';
 import { UpdateBanner } from './UpdateBanner';
-import { isSafeToReload, onSceneChange } from './safeToReload';
 
-// 30 minutes between active update polls. Cheap (one HEAD-ish to /sw.js)
-// and prevents users in long sessions from being stranded on an old build.
+// 30 minutes between active update polls. Cheap and prevents users in long
+// sessions from being stranded on an old build.
 const UPDATE_CHECK_INTERVAL_MS = 30 * 60 * 1000;
 
-// localStorage key for "user dismissed this version" — keyed by SW build id
-// so a dismiss doesn't suppress the *next* build's prompt.
-const DISMISS_KEY = 'fungineer.pwa.dismissedBuild';
-
 export function registerSW(): void {
-  // Bail out cleanly in environments without SW support (older Safari, some
-  // in-app webviews) and during local dev unless vite-plugin-pwa devOptions
-  // are on. import.meta.env.PROD is true only in `vite build` output.
+  // Bail out cleanly where SW is unsupported (older Safari, some webviews) and
+  // during local dev. import.meta.env.PROD is true only in `vite build` output.
   if (!('serviceWorker' in navigator)) {
     console.info('[PWA] Service Worker unsupported — skipping registration.');
     return;
@@ -47,53 +35,23 @@ export function registerSW(): void {
     return;
   }
 
-  // SW URL must be served from the root of our scope (./). vite-plugin-pwa
-  // emits `sw.js` at the dist root and `manifest.webmanifest` next to it.
   const wb = new Workbox('./sw.js', { scope: './' });
 
+  // The banner is only ever used for the brief "applying…" feedback now.
   const banner = new UpdateBanner({
-    onAccept: () => acceptUpdate(),
-    onDismiss: () => dismissUpdate(),
+    onAccept: () => applyUpdate(),
+    onDismiss: () => { /* nothing to dismiss — updates auto-apply */ },
   });
   banner.mount();
 
-  // Track the "current" waiting SW (so we can postMessage to it later).
-  // We keep it module-scoped because the Workbox event payload is local.
-  let pendingBuildId: string | null = null;
-  let dismissedThisSession = false;
+  let applying = false;
 
-  // ── Update flow ─────────────────────────────────────────────────────────
-  function handleWaiting(_event: WorkboxLifecycleWaitingEvent): void {
-    pendingBuildId = String(Date.now()); // opaque tag — real version is the SW itself
-    const dismissedFor = localStorage.getItem(DISMISS_KEY);
-
-    // If the user already dismissed THIS specific waiting build, respect it
-    // until the next deploy. The SW build id rotates each deploy so the
-    // suppression is naturally scoped to one version.
-    if (dismissedFor && dismissedFor === pendingBuildId && dismissedThisSession) {
-      console.info('[PWA] Update available but dismissed for this build.');
-      return;
-    }
-
-    presentUpdate();
-  }
-
-  function presentUpdate(): void {
-    if (isSafeToReload()) banner.showPrompt();
-    else banner.showQueued();
-  }
-
-  function acceptUpdate(): void {
-    // Defence-in-depth: don't apply if scene flipped to gameplay between
-    // banner render and click. Re-check at the last possible moment.
-    if (!isSafeToReload()) {
-      banner.showQueued();
-      return;
-    }
+  /** Activate the waiting SW and reload exactly once. */
+  function applyUpdate(): void {
+    if (applying) return;
+    applying = true;
     banner.showApplying();
 
-    // Listen ONCE for controller swap, then reload. The `refreshing` flag
-    // guards against double-reload from rapid lifecycle events.
     let refreshing = false;
     navigator.serviceWorker.addEventListener('controllerchange', () => {
       if (refreshing) return;
@@ -104,56 +62,41 @@ export function registerSW(): void {
     wb.messageSkipWaiting();
   }
 
-  function dismissUpdate(): void {
-    dismissedThisSession = true;
-    if (pendingBuildId) localStorage.setItem(DISMISS_KEY, pendingBuildId);
-    banner.hide();
+  // `waiting` fires whenever a new SW has installed and is ready to take over
+  // (same-tab discovery or `event.isExternal` from another tab). Either way we
+  // apply it immediately, from whatever screen the player is on.
+  function handleWaiting(_event: WorkboxLifecycleWaitingEvent): void {
+    applyUpdate();
   }
 
-  // ── Workbox events ──────────────────────────────────────────────────────
-  // `waiting` fires whenever a new SW has installed and is waiting to take
-  // control — covers both same-tab discovery and the "another tab already
-  // installed a new SW" case (`event.isExternal === true`). Either way the
-  // user should be prompted.
   wb.addEventListener('waiting', handleWaiting);
 
-  // Activated for the first time (no previous SW). Useful for analytics /
-  // confirming the PWA went live; no UI needed.
   wb.addEventListener('activated', (event) => {
     if (!event.isUpdate) console.info('[PWA] Service Worker activated (first install).');
   });
 
-  // ── Scene-change reactor ────────────────────────────────────────────────
-  // If the player leaves gameplay while an update is queued, upgrade the
-  // banner from "queued" -> "prompt" so they can accept it immediately.
-  onSceneChange((safe) => {
-    if (!pendingBuildId) return;
-    if (safe) banner.showPrompt();
-    else banner.showQueued();
-  });
-
-  // ── Periodic update probe ───────────────────────────────────────────────
-  // For long-running sessions (PWA window left open). Throttled by the
-  // browser already — extra calls are cheap.
+  // Periodic probe for long-running sessions (PWA window left open).
   window.setInterval(() => {
     void wb.update().catch(() => { /* offline / transient — try again later */ });
   }, UPDATE_CHECK_INTERVAL_MS);
 
-  // Also check when the tab regains focus — common after the user backgrounds
-  // a PWA for a while on mobile. Catches updates between sessions.
+  // Check whenever the tab regains focus — common after backgrounding a PWA.
   window.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') {
       void wb.update().catch(() => { /* ignore */ });
     }
   });
 
-  // ── Go ──────────────────────────────────────────────────────────────────
   wb.register({ immediate: true })
     .then((reg) => {
-      if (reg) console.info('[PWA] Service Worker registered.');
+      if (reg) {
+        console.info('[PWA] Service Worker registered.');
+        // Force an immediate freshness check so a pending update applies right
+        // away instead of waiting for the next interval/focus.
+        void wb.update().catch(() => { /* ignore */ });
+      }
     })
     .catch((err) => {
-      // Registration failure is non-fatal — game still runs without the SW.
       console.warn('[PWA] Service Worker registration failed:', err);
     });
 }
