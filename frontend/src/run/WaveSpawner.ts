@@ -14,8 +14,20 @@ export interface WaveFactories {
   sentinel: EnemyFactory;
 }
 
-/** Timer-driven wave system. Reads counts from GameConfig, applies the zone's
- *  deterioration multiplier from HubState. */
+// ── Escalation tuning ──────────────────────────────────────────────────────
+const FIRST_SPAWN_DELAY = 2.5;   // first wave lands quickly
+const BASE_INTERVAL = 5.0;        // seconds between waves, early
+const MIN_INTERVAL = 1.5;         // floor — late-game pressure
+const INTERVAL_STEP = 0.28;       // interval shrinks each wave
+const ALIVE_CAP = 72;             // never overwhelm (perf + fairness)
+
+/**
+ * Escalating survival spawner. Instead of two fixed waves, enemies keep
+ * coming on a shortening interval; counts, composition and per-enemy stats
+ * all ramp with the wave number, so the run builds from a trickle to a swarm
+ * before the boss arrives as the climax. The zone's deterioration multiplier
+ * (HubState) scales counts on top of that — long-term cross-run difficulty.
+ */
 export class WaveSpawner {
   readonly waveSpawned = new Signal<[number]>();
   readonly waveCleared = new Signal<[number]>();
@@ -24,13 +36,9 @@ export class WaveSpawner {
 
   private running = false;
   private runTimer = 0;
-  private wave1Done = false;
-  private wave2Done = false;
+  private spawnTimer = FIRST_SPAWN_DELAY;
+  private wave = 0;
   private bossDone = false;
-  private wave1Cleared = false;
-  private wave2Cleared = false;
-  private wave1Alive = 0;
-  private wave2Alive = 0;
   private zoneId = 0;
   private factories: WaveFactories;
   private world: RunWorld;
@@ -44,13 +52,9 @@ export class WaveSpawner {
   start(): void {
     this.running = true;
     this.runTimer = 0;
-    this.wave1Done = false;
-    this.wave2Done = false;
+    this.spawnTimer = FIRST_SPAWN_DELAY;
+    this.wave = 0;
     this.bossDone = false;
-    this.wave1Cleared = false;
-    this.wave2Cleared = false;
-    this.wave1Alive = 0;
-    this.wave2Alive = 0;
   }
 
   stop(): void {
@@ -67,41 +71,69 @@ export class WaveSpawner {
     if (s === RunState.PAUSED) return;
 
     this.runTimer += dt;
+    if (this.bossDone) return;
 
-    if (!this.wave1Done && this.runTimer >= GameConfig.WAVE_1_DELAY) {
-      this.wave1Done = true;
-      this.spawnWave1();
-    }
-    if (!this.wave2Done && this.runTimer >= GameConfig.WAVE_2_DELAY) {
-      this.wave2Done = true;
-      this.spawnWave2();
-    }
-    if (!this.bossDone && this.runTimer >= GameConfig.BOSS_SPAWN_TIME) {
+    // Boss arrives as the climax once the survival window elapses.
+    if (this.runTimer >= GameConfig.BOSS_SPAWN_TIME) {
       this.bossDone = true;
       this.spawnBoss();
+      return;
+    }
+
+    this.spawnTimer -= dt;
+    if (this.spawnTimer <= 0) {
+      this.wave += 1;
+      this.spawnWave(this.wave);
+      this.spawnTimer = Math.max(MIN_INTERVAL, BASE_INTERVAL - this.wave * INTERVAL_STEP);
+      this.waveSpawned.emit(this.wave);
+      this.waveCleared.emit(this.wave); // drives rescue/power offers by wave #
+      GameState.waveStarted.emit(this.wave);
     }
   }
 
-  private spawnWave1(): void {
-    const mult = HubState.getSpawnMultiplier(this.zoneId);
-    const runners = Math.round(GameConfig.WAVE_1_RUNNER_COUNT * mult);
-    const bruisers = Math.round(GameConfig.WAVE_1_BRUISER_COUNT * mult);
-    for (let i = 0; i < runners; i++) this.spawnWaveEnemy(this.factories.runner(), 1);
-    for (let i = 0; i < bruisers; i++) this.spawnWaveEnemy(this.factories.bruiser(), 1);
-    this.waveSpawned.emit(1);
-    GameState.waveStarted.emit(1);
+  private aliveCount(): number {
+    let n = 0;
+    for (const e of this.world.enemies) if (!e.is_dead) n++;
+    return n;
   }
 
-  private spawnWave2(): void {
-    const mult = HubState.getSpawnMultiplier(this.zoneId);
-    const runners = Math.round(GameConfig.WAVE_2_RUNNER_COUNT * mult);
-    const bruisers = Math.round(GameConfig.WAVE_2_BRUISER_COUNT * mult);
-    const spitters = Math.round(GameConfig.WAVE_2_SPITTER_COUNT * mult);
-    for (let i = 0; i < runners; i++) this.spawnWaveEnemy(this.factories.runner(), 2);
-    for (let i = 0; i < bruisers; i++) this.spawnWaveEnemy(this.factories.bruiser(), 2);
-    for (let i = 0; i < spitters; i++) this.spawnWaveEnemy(this.factories.spitter(), 2);
-    this.waveSpawned.emit(2);
-    GameState.waveStarted.emit(2);
+  private spawnWave(w: number): void {
+    const det = HubState.getSpawnMultiplier(this.zoneId);
+    const runners = Math.round((3 + Math.floor(w * 1.2)) * det);
+    const bruisers = w >= 3 ? Math.round((1 + Math.floor(w / 4)) * det) : 0;
+    const spitters = w >= 5 ? Math.round((1 + Math.floor((w - 4) / 3)) * det) : 0;
+
+    for (let i = 0; i < runners; i++) this.spawnOne(this.factories.runner(), w, i);
+    for (let i = 0; i < bruisers; i++) this.spawnOne(this.factories.bruiser(), w);
+    for (let i = 0; i < spitters; i++) this.spawnOne(this.factories.spitter(), w);
+  }
+
+  private spawnOne(enemy: BaseEnemy, w: number, idx = -1): void {
+    if (this.aliveCount() >= ALIVE_CAP) return;
+    this.scaleEnemy(enemy, w);
+    // From wave 6 on, every 5th runner is an elite — a tougher, juicier target.
+    if (idx >= 0 && w >= 6 && idx % 5 === 4) this.makeElite(enemy);
+    enemy.position = this.randomEdgePosition();
+    enemy.setWorld(this.world);
+    this.world.addEnemy(enemy);
+  }
+
+  /** Ramp per-enemy stats with the wave so survival gets genuinely harder. */
+  private scaleEnemy(e: BaseEnemy, w: number): void {
+    const hpMult = 1 + 0.08 * (w - 1);
+    const dmgMult = 1 + 0.05 * (w - 1);
+    const spdMult = Math.min(1.5, 1 + 0.03 * (w - 1));
+    e.max_hp = Math.round(e.max_hp * hpMult);
+    e.current_hp = e.max_hp;
+    e.attack_damage = e.attack_damage * dmgMult;
+    e.move_speed = e.move_speed * spdMult;
+  }
+
+  private makeElite(e: BaseEnemy): void {
+    e.is_elite = true;
+    e.max_hp = Math.round(e.max_hp * 2.2);
+    e.current_hp = e.max_hp;
+    e.attack_damage = e.attack_damage * 1.4;
   }
 
   private spawnBoss(): void {
@@ -113,39 +145,6 @@ export class WaveSpawner {
     GameState.bossSpawned.emit();
     GameState.current_state = RunState.BOSS_FIGHT;
     GameState.stateChanged.emit(RunState.BOSS_FIGHT);
-  }
-
-  private spawnWaveEnemy(enemy: BaseEnemy, wave: number): void {
-    enemy.position = this.randomEdgePosition();
-    enemy.setWorld(this.world);
-    this.world.addEnemy(enemy);
-    if (wave === 1) {
-      this.wave1Alive += 1;
-      enemy.died.connect(() => this.onWave1EnemyDied());
-    } else if (wave === 2) {
-      this.wave2Alive += 1;
-      enemy.died.connect(() => this.onWave2EnemyDied());
-    }
-  }
-
-  private onWave1EnemyDied(): void {
-    this.wave1Alive -= 1;
-    if (this.wave1Alive <= 0 && !this.wave1Cleared) {
-      this.wave1Cleared = true;
-      this.waveCleared.emit(1);
-    }
-  }
-
-  private onWave2EnemyDied(): void {
-    this.wave2Alive -= 1;
-    if (this.wave2Alive <= 0 && !this.wave2Cleared) {
-      this.wave2Cleared = true;
-      this.waveCleared.emit(2);
-      if (!this.bossDone) {
-        this.bossDone = true;
-        this.spawnBoss();
-      }
-    }
   }
 
   private randomEdgePosition(): { x: number; y: number } {
