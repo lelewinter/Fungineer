@@ -85,13 +85,24 @@ export const GameConfig = {
   SENTINEL_ORB_DAMAGE: 8,
 
   // ── Waves ──────────────────────────────────────────────────────
-  WAVE_1_DELAY: 3,
-  WAVE_1_RUNNER_COUNT: 10,
-  WAVE_1_BRUISER_COUNT: 2,
-  WAVE_2_DELAY: 25,
-  WAVE_2_RUNNER_COUNT: 8,
-  WAVE_2_BRUISER_COUNT: 3,
-  WAVE_2_SPITTER_COUNT: 3,
+  // Difficulty curve is tuned against party growth: Wave 1 is fought with
+  // 2 characters (~51 DPS), Wave 2 with 3 (a rescue is offered on Wave 1
+  // clear, ~60 DPS), and the Boss with 3 + a Power. Each horde steps up in
+  // total HP and introduces one new threat concept.
+  //
+  //   Wave 1 — swarm warmup + a single tank to learn focus-fire (510 HP).
+  //   Wave 2 — ranged pressure (Spitters) + elites; punishes standing still (840 HP).
+  //   Boss   — designed 2-phase encounter (see SentinelCore).
+  //
+  // Counts are scaled by the zone deterioration multiplier (1.0/1.25/1.5×),
+  // so at max deterioration Wave 1 regains a 2nd Bruiser, etc.
+  WAVE_1_DELAY: 2,
+  WAVE_1_RUNNER_COUNT: 12,
+  WAVE_1_BRUISER_COUNT: 1,
+  WAVE_2_DELAY: 28,
+  WAVE_2_RUNNER_COUNT: 10,
+  WAVE_2_BRUISER_COUNT: 2,
+  WAVE_2_SPITTER_COUNT: 4,
   BOSS_SPAWN_TIME: 90,
 
   // ── Powers ─────────────────────────────────────────────────────
