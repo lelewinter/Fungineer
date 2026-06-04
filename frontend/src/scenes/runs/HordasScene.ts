@@ -1,7 +1,10 @@
-import { Container, Graphics } from 'pixi.js';
+import { Container, Graphics, TilingSprite, type Texture } from 'pixi.js';
 import { Scene } from '../../core/Scene';
 import { sceneManager } from '../../core/SceneManager';
 import { audioManager } from '../../core/AudioManager';
+import { assets } from '../../core/AssetLoader';
+import { juice } from '../../core/Juice';
+import { FXSystem } from '../../run/fx/FXSystem';
 import { Color } from '../../core/Color';
 import { GameConfig } from '../../state/GameConfig';
 import { GameState, RunState } from '../../state/GameState';
@@ -34,6 +37,7 @@ export class HordasScene extends Scene {
   private uiLayer = new Container();
   private arenaBg = new Graphics();
   private arenaBorder = new Graphics();
+  private fx!: FXSystem;
 
   // Run systems
   private world!: RunWorld;
@@ -61,7 +65,9 @@ export class HordasScene extends Scene {
     this.world = new RunWorld();
     this.cameraLayer.addChild(this.world.root);
 
-    this.buildArena();
+    const tex = await assets.texture('res://assets/art/textures/mycelium_tile.png');
+    this.buildArena(tex);
+    this.fx = new FXSystem(this.world.fxLayer, { w: GameConfig.ARENA_WIDTH, h: GameConfig.ARENA_HEIGHT }, { ambient: 70, cap: 360 });
     this.buildSystems();
     this.buildUi();
     this.connectSignals();
@@ -88,6 +94,7 @@ export class HordasScene extends Scene {
       this.waves.update(capped);
       this.powerManager.update(capped);
       updateDamageNumbers(capped);
+      this.fx.update(capped);
     }
     this.hud.update(capped);
     this.updateCamera(capped);
@@ -99,32 +106,41 @@ export class HordasScene extends Scene {
     this.disposers = [];
     this.drag.destroy();
     this.hud.destroyHud();
+    this.fx?.destroy();
+    juice.reset();
     audioManager.stopMusic(300);
   }
 
   // ── Build ──────────────────────────────────────────────────────────────
-  private buildArena(): void {
+  private buildArena(tex: Texture | null): void {
     const W = GameConfig.ARENA_WIDTH;
     const H = GameConfig.ARENA_HEIGHT;
-    this.arenaBg.rect(0, 0, W, H).fill(Color.hex(Color.rgb(0.08, 0.06, 0.10)));
 
-    // Subtle scan grid
-    const grid = new Graphics();
-    const step = 64;
-    for (let x = 0; x <= W; x += step) grid.moveTo(x, 0).lineTo(x, H);
-    for (let y = 0; y <= H; y += step) grid.moveTo(0, y).lineTo(W, y);
-    grid.stroke({ color: 0x1a1c25, width: 1, alpha: 0.6 });
+    // Base fill — also the fallback if the texture failed to load.
+    this.arenaBg.rect(0, 0, W, H).fill(Color.hex(Color.rgb(0.06, 0.05, 0.05)));
+    this.world.bgLayer.addChild(this.arenaBg);
 
-    const borderColor = Color.hex(Color.rgb(0.35, 0.3, 0.6));
-    const t = 3;
+    if (tex) {
+      const bg = new TilingSprite({ texture: tex, width: W, height: H });
+      bg.tileScale.set(1.4);
+      bg.alpha = 0.92;
+      this.world.bgLayer.addChild(bg);
+    } else {
+      const grid = new Graphics();
+      const step = 64;
+      for (let x = 0; x <= W; x += step) grid.moveTo(x, 0).lineTo(x, H);
+      for (let y = 0; y <= H; y += step) grid.moveTo(0, y).lineTo(W, y);
+      grid.stroke({ color: 0x1a1c25, width: 1, alpha: 0.6 });
+      this.world.bgLayer.addChild(grid);
+    }
+
+    const borderColor = Color.hex(Color.rgb(0.42, 0.62, 0.40));
+    const t = 4;
     this.arenaBorder
       .rect(0, 0, W, t).fill(borderColor)
       .rect(0, H - t, W, t).fill(borderColor)
       .rect(0, 0, t, H).fill(borderColor)
       .rect(W - t, 0, t, H).fill(borderColor);
-
-    this.world.bgLayer.addChild(this.arenaBg);
-    this.world.bgLayer.addChild(grid);
     this.world.bgLayer.addChild(this.arenaBorder);
   }
 
@@ -166,7 +182,14 @@ export class HordasScene extends Scene {
       GameState.waveStarted.connect(() => CombatSfx.waveStart()),
     );
     this.disposers.push(
-      GameState.bossSpawned.connect(() => CombatSfx.bossSpawn()),
+      GameState.bossSpawned.connect(() => {
+        CombatSfx.bossSpawn();
+        juice.addTrauma(0.9);
+        this.fx.burst(this.party.anchor.x, this.party.anchor.y, { count: 30, color: 0xff5a3c, speed: 280, life: 0.8, size: 3 });
+      }),
+    );
+    this.disposers.push(
+      GameState.waveStarted.connect(() => juice.addTrauma(0.22)),
     );
   }
 
@@ -271,6 +294,8 @@ export class HordasScene extends Scene {
   }
 
   // ── Camera ─────────────────────────────────────────────────────────────
+  private camBaseX = 0;
+  private camBaseY = 0;
   private updateCamera(dt: number): void {
     // Center the party on screen, but clamp to arena bounds so we never
     // show the void outside.
@@ -283,8 +308,11 @@ export class HordasScene extends Scene {
     const clampedX = Math.max(minX, Math.min(maxX, targetX));
     const clampedY = Math.max(minY, Math.min(maxY, targetY));
     const t = Math.min(1, 8 * dt);
-    this.cameraLayer.x += (clampedX - this.cameraLayer.x) * t;
-    this.cameraLayer.y += (clampedY - this.cameraLayer.y) * t;
+    this.camBaseX += (clampedX - this.camBaseX) * t;
+    this.camBaseY += (clampedY - this.camBaseY) * t;
+    const shake = juice.update(dt);
+    this.cameraLayer.x = this.camBaseX + shake.x;
+    this.cameraLayer.y = this.camBaseY + shake.y;
   }
 
   private onKey(e: KeyboardEvent): void {

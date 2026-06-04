@@ -36,8 +36,6 @@ uniform float uTime;
 uniform vec2 uViewport;
 uniform float uIntensity;
 
-out vec4 fragColor;
-
 void main(void) {
   vec2 uv = vTextureCoord;
 
@@ -75,7 +73,7 @@ void main(void) {
   float mask = step(0.0, uv.x) * step(uv.x, 1.0) * step(0.0, uv.y) * step(uv.y, 1.0);
   col *= mask;
 
-  fragColor = vec4(col, base.a);
+  finalColor = vec4(col, base.a);
 }
 `;
 
