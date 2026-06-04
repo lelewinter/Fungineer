@@ -64,7 +64,7 @@ export class StealthScene extends Scene {
 
     this.hud = buildHud(ZONE);
     this.root.addChild(this.hud.container);
-    this.hud.setStatus('camuflagem');
+    this.hud.setStatus('infiltração micótica');
 
     this.drag = bindDrag(this.app.pixi.canvas, this.app.world, this.playerPos);
 
@@ -135,7 +135,7 @@ export class StealthScene extends Scene {
 
     this.draw();
     this.hud.setTimer(this.timeLeft);
-    this.hud.setScore(`massa ${Math.floor(this.playerR)}/${GOAL_MASS}`);
+    this.hud.setScore(`sinal ${Math.floor(this.playerR)}/${GOAL_MASS}`);
     this.hud.setHealth(this.playerR / GOAL_MASS);
   }
 
@@ -180,8 +180,8 @@ export class StealthScene extends Scene {
     this.root.addChild(buildEndOverlay({
       zone: ZONE,
       victory,
-      rewardLabel: `+${this.banked} Comp. de IA`,
-      failLabel: 'Detectado pelo enxame.',
+      rewardLabel: `+${this.banked} Fragmentos de IA — absorvidos`,
+      failLabel: 'Sinal detectado. ARGOS limpou a rota.',
     }));
   }
 }

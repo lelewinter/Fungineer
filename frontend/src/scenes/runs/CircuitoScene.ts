@@ -72,7 +72,7 @@ export class CircuitoScene extends Scene {
 
     this.hud = buildHud(ZONE);
     this.root.addChild(this.hud.container);
-    this.hud.setStatus('roteamento');
+    this.hud.setStatus('roteamento micótico');
 
     if (ZONE.music) {
       audioManager.playMusic(ZONE.music, { loop: true, volume: 0.3, fadeMs: 400 }).catch(() => undefined);
@@ -143,7 +143,7 @@ export class CircuitoScene extends Scene {
 
     this.draw();
     this.hud.setTimer(this.timeLeft);
-    this.hud.setScore(`nós ${this.collected}/${GOAL}`);
+    this.hud.setScore(`relés ${this.collected}/${GOAL}`);
     this.hud.setHealth(1 - this.collected / GOAL);
   }
 
@@ -196,8 +196,8 @@ export class CircuitoScene extends Scene {
     this.root.addChild(buildEndOverlay({
       zone: ZONE,
       victory,
-      rewardLabel: `+${this.collected} Núcleo Lógico`,
-      failLabel: 'Circuito em curto.',
+      rewardLabel: `+${this.collected} Núcleo Lógico — relés ativados`,
+      failLabel: 'Loop de ressonância. Circuito destruído.',
     }));
   }
 }

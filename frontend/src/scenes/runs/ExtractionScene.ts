@@ -67,7 +67,7 @@ export class ExtractionScene extends Scene {
 
     this.hud = buildHud(ZONE);
     this.root.addChild(this.hud.container);
-    this.hud.setStatus('escavação');
+    this.hud.setStatus('escavação profunda');
 
     this.bindPointer();
 
@@ -292,8 +292,8 @@ export class ExtractionScene extends Scene {
     this.root.addChild(buildEndOverlay({
       zone: ZONE,
       victory,
-      rewardLabel: `+${this.banked} Comb. Volátil`,
-      failLabel: 'Rocha caiu em cima.',
+      rewardLabel: `+${this.banked} Combustível Volátil — canisters recuperados`,
+      failLabel: 'Soterrado. Missão abortada.',
     }));
   }
 }

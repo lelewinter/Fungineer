@@ -471,7 +471,7 @@ export class FieldControlScene extends Scene {
     this.endOverlay.addChild(msg);
     if (this.victory) {
       const sub = new Text({
-        text: `+ ${Math.floor(this.signalsAcc)} sinais`,
+        text: `+ ${Math.floor(this.signalsAcc)} Sinais de Controle — relés interceptados`,
         style: { fontFamily: FontFamily.body, fontSize: 18, fill: 0x80bfff, fontWeight: '600' },
       });
       sub.anchor.set(0.5);

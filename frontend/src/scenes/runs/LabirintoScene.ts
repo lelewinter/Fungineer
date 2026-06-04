@@ -84,7 +84,7 @@ export class LabirintoScene extends Scene {
 
     this.hud = buildHud(ZONE);
     this.root.addChild(this.hud.container);
-    this.hud.setStatus('alinhamento');
+    this.hud.setStatus('roteamento de carga');
 
     this.statusLabel = new Text({
       text: 'arraste para empurrar',
@@ -140,7 +140,7 @@ export class LabirintoScene extends Scene {
 
     this.draw();
     this.hud.setTimer(this.timeLeft);
-    this.hud.setScore(`fragmentos ${onSlot}/${this.slots.length}`);
+    this.hud.setScore(`depósitos ${onSlot}/${this.slots.length}`);
     this.hud.setHealth(onSlot / this.slots.length);
   }
 
@@ -292,8 +292,8 @@ export class LabirintoScene extends Scene {
     this.root.addChild(buildEndOverlay({
       zone: ZONE,
       victory,
-      rewardLabel: `+${this.banked} Frag. Estruturais`,
-      failLabel: 'Quebra-cabeça travado.',
+      rewardLabel: `+${this.banked} Frag. Estruturais — entregas concluídas`,
+      failLabel: 'Rota de contenção ativada. Saída bloqueada.',
     }));
   }
 }
