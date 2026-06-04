@@ -227,6 +227,18 @@ export class StartScene extends Scene {
     this.prompt.x = W / 2;
     this.prompt.y = H - 150;
     this.root.addChild(this.prompt);
+
+    // Build stamp — tiny, low-key. Lets you confirm at a glance which build is
+    // live after a deploy (commit SHA + date, injected by Vite).
+    const build = new Text({
+      text: `build ${__BUILD_ID__}`,
+      style: { fontFamily: FontFamily.mono, fontSize: 9, fill: TextColor.faint, letterSpacing: 0.5 },
+    });
+    build.anchor.set(1, 1);
+    build.alpha = 0.5;
+    build.x = W - 8;
+    build.y = H - 6;
+    this.root.addChild(build);
   }
 
   private startGame(): void {

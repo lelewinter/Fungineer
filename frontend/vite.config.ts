@@ -1,6 +1,18 @@
+import { execSync } from 'node:child_process';
 import { defineConfig } from 'vite';
 import { fileURLToPath, URL } from 'node:url';
 import { VitePWA, type ManifestOptions } from 'vite-plugin-pwa';
+
+// Build stamp shown in-game (StartScene footer) so you can tell at a glance
+// which build is live after a deploy. Prefer Cloudflare Pages' commit SHA,
+// fall back to local git, then 'dev'. Date is the build day (UTC).
+function buildId(): string {
+  let sha = process.env.CF_PAGES_COMMIT_SHA?.slice(0, 7);
+  if (!sha) {
+    try { sha = execSync('git rev-parse --short HEAD').toString().trim(); } catch { sha = 'dev'; }
+  }
+  return `${sha} · ${new Date().toISOString().slice(0, 10)}`;
+}
 
 // PWA manifest — keep in sync with index.html theme-color + apple-touch-icon.
 // Display: 'fullscreen' on Android Chrome; iOS Safari falls back to 'standalone'.
@@ -41,6 +53,9 @@ const pwaManifest: Partial<ManifestOptions> = {
 
 export default defineConfig({
   base: './',
+  define: {
+    __BUILD_ID__: JSON.stringify(buildId()),
+  },
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
