@@ -43,7 +43,7 @@ export class HubRocketPanel extends Modal {
 
     const header = new Text({
       text: '◈ CASULO BIOLÓGICO · ESQUEMA',
-      style: { fontFamily: '"Major Mono Display", "Courier New", monospace', fontSize: 14, fill: Color.hex(Color.rgb(0.85, 0.92, 0.78)), align: 'center', letterSpacing: 2 },
+      style: { fontFamily: '"Space Grotesk", system-ui, sans-serif', fontSize: 15, fontWeight: '700', fill: Color.hex(Color.rgb(0.88, 0.94, 0.82)), align: 'center', letterSpacing: 1 },
     });
     header.anchor.set(0.5, 0);
     header.x = 0;

@@ -197,10 +197,10 @@ export class HubScene extends Scene {
       text: '',
       style: {
         fontFamily: '"IBM Plex Mono", ui-monospace, monospace',
-        fontSize: 10,
+        fontSize: 12,
         fontWeight: '600',
-        fill: Color.hex(Color.rgb(0.88, 0.93, 0.82)),
-        dropShadow: { color: 0x000000, alpha: 0.8, blur: 2, distance: 1, angle: Math.PI / 2 },
+        fill: Color.hex(Color.rgb(0.90, 0.95, 0.84)),
+        dropShadow: { color: 0x000000, alpha: 0.85, blur: 2, distance: 1, angle: Math.PI / 2 },
       },
     });
     txt.anchor.set(0, 0.5);

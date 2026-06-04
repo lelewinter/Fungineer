@@ -34,7 +34,7 @@ export class PixiButton extends Container {
       fill: 0x213a29,
       hoverFill: 0x2e5038,
       textColor: TextColor.ink,
-      fontSize: 13,
+      fontSize: 15,
       silent: false,
       ...opts,
     };
@@ -49,7 +49,7 @@ export class PixiButton extends Container {
         fontSize: this.opts.fontSize,
         fill: this.opts.textColor,
         fontWeight: '700',
-        letterSpacing: 1.2,
+        letterSpacing: 0.4,
         // Drop shadow keeps the label legible over busy/low-contrast art.
         dropShadow: {
           color: 0x000000,
@@ -124,7 +124,7 @@ export class PixiButton extends Container {
     const r = Math.min(10, h * 0.28);
     const fill = this.hovering ? this.opts.hoverFill : this.opts.fill;
     const accent = this.opts.textColor;
-    const borderColor = this.hovering ? accent : 0x5f7261;
+    const borderColor = this.hovering ? accent : 0x86998a;
 
     // Drop shadow beneath the button — gives it physical lift.
     this.shadow.clear();
@@ -144,7 +144,7 @@ export class PixiButton extends Container {
       .fill({ color: 0x000000, alpha: 0.16 })
       // Border.
       .roundRect(0, 0, w, h, r)
-      .stroke({ color: borderColor, width: this.hovering ? 2 : 1.5, alpha: this.hovering ? 1 : 0.75 });
+      .stroke({ color: borderColor, width: this.hovering ? 2 : 1.5, alpha: this.hovering ? 1 : 0.9 });
 
     this.glow.clear();
     if (this.hovering) {

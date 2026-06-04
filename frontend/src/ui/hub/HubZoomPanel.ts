@@ -13,7 +13,7 @@ export class HubZoomPanel extends Modal {
   private zoneId: string;
 
   constructor(roomId: string, zoneId: string) {
-    super(320, 360);
+    super(330, 400);
     this.roomId = roomId;
     this.zoneId = zoneId;
     this.drawPanelBg(Color.hex(Color.rgb(0.30, 0.78, 0.72)));
@@ -32,8 +32,8 @@ export class HubZoomPanel extends Modal {
 
     // Header
     const header = new Text({
-      text: `[${zoneName}]`,
-      style: { fontFamily: '"Space Grotesk", system-ui, sans-serif', fontSize: 16, fill: 0xffffff, fontWeight: '700', letterSpacing: 0.5 },
+      text: zoneName,
+      style: { fontFamily: '"Space Grotesk", system-ui, sans-serif', fontSize: 19, fill: 0xffffff, fontWeight: '700', letterSpacing: 0.5 },
     });
     header.x = -halfW + padding;
     header.y = -halfH + padding;
@@ -44,31 +44,31 @@ export class HubZoomPanel extends Modal {
       text: zone?.briefing ?? 'Zona desconhecida',
       style: {
         fontFamily: '"Space Grotesk", system-ui, sans-serif',
-        fontSize: 11,
-        fill: Color.hex(Color.rgb(0.86, 0.90, 0.82)),
-        lineHeight: 16,
+        fontSize: 14,
+        fill: Color.hex(Color.rgb(0.90, 0.94, 0.85)),
+        lineHeight: 20,
         wordWrap: true,
         wordWrapWidth: this.panelW - padding * 2,
       },
     });
     briefing.x = -halfW + padding;
-    briefing.y = -halfH + padding + 34;
+    briefing.y = -halfH + padding + 40;
     this.panel.addChild(briefing);
 
     // Start button
     const startBtn = new PixiButton({
-      label: '► Iniciar',
+      label: '► INICIAR',
       width: this.panelW - padding * 2,
-      height: 40,
+      height: 48,
       textColor: 0x9dffce,
-      fontSize: 15,
+      fontSize: 18,
       onClick: () => {
         this.startRunRequested.emit(this.zoneId);
         void this.requestClose();
       },
     });
     startBtn.x = -(this.panelW - padding * 2) / 2;
-    startBtn.y = halfH - padding - 40;
+    startBtn.y = halfH - padding - 48;
     this.panel.addChild(startBtn);
   }
 }
