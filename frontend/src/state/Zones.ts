@@ -14,7 +14,7 @@ export interface ZoneData {
 }
 
 export const ZONES: ZoneData[] = [
-  { zone_name: 'HORDAS',     accent_color: Color.rgb(0.800, 0.133, 0.000), scene: 'main',       resource: 'Sucata Estrutural',   subtitle: 'Zona CLEAN',          room_subtitle: 'Corredor de Limpeza',  art: 'res://assets/art/zones/zone_hordas.png',     music: 'res://assets/audio/music/zones/field_theme_1.wav' },
+  { zone_name: 'HORDAS',     accent_color: Color.rgb(0.380, 0.820, 0.470), scene: 'main',       resource: 'Biomassa',            subtitle: 'Jardim da IA',        room_subtitle: 'Floresta Automatizada', art: 'res://assets/art/zones/zone_hordas.png',    music: 'res://assets/audio/music/zones/field_theme_1.wav' },
   { zone_name: 'STEALTH',    accent_color: Color.rgb(0.000, 0.667, 0.267), scene: 'stealth',    resource: 'Fragmentos de IA',    subtitle: 'Rede de ARGOS',       room_subtitle: 'Grade de Vigilância',  art: 'res://assets/art/zones/zone_stealth.png',    music: 'res://assets/audio/music/zones/night_theme_1.wav' },
   { zone_name: 'CIRCUITO',   accent_color: Color.rgb(0.000, 0.808, 0.820), scene: 'circuit',    resource: 'Núcleo Lógico',       subtitle: 'Relés de NERVE',      room_subtitle: 'Conduto de Retransmissão', art: 'res://assets/art/zones/zone_circuito.png', music: 'res://assets/audio/music/zones/dungeon_theme_1.wav' },
   { zone_name: 'EXTRAÇÃO',   accent_color: Color.rgb(0.800, 0.400, 0.000), scene: 'extraction', resource: 'Combustível Volátil', subtitle: 'Arquivo Subterrâneo', room_subtitle: 'Sub-Base de Construção', art: 'res://assets/art/zones/zone_extracao.png',  music: 'res://assets/audio/music/zones/field_theme_2.wav' },

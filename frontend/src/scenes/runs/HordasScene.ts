@@ -1,431 +1,405 @@
-import { Container, Graphics, TilingSprite, type Texture } from 'pixi.js';
+import { Container, Graphics } from 'pixi.js';
 import { Scene } from '../../core/Scene';
-import { sceneManager } from '../../core/SceneManager';
 import { audioManager } from '../../core/AudioManager';
-import { assets } from '../../core/AssetLoader';
-import { juice } from '../../core/Juice';
-import { FXSystem } from '../../run/fx/FXSystem';
-import { ScreenFX } from '../../run/fx/ScreenFX';
 import { Color } from '../../core/Color';
 import { GameConfig } from '../../state/GameConfig';
-import { GameState, RunState } from '../../state/GameState';
 import { HubState } from '../../state/HubState';
+import { ZONES } from '../../state/Zones';
+import type { Vec2 } from '../../core/types';
+import { RunJuice } from '../../run/fx/RunJuice';
+import { buildHud, buildEndOverlay, bindDrag, type RunHud, type DragInput } from './RunFrame';
 
-import { RunWorld } from '../../run/RunWorld';
-import { Party } from '../../run/Party';
-import { DragController } from '../../run/DragController';
-import { WaveSpawner, type WaveFactories } from '../../run/WaveSpawner';
-import { ItemSpawner } from '../../run/ItemSpawner';
-import { ExtractionPoint } from '../../run/ExtractionPoint';
-import { PowerManager, type PowerResource } from '../../run/power/PowerManager';
-import { SiegeMode, SplitOrbit, Overclock, MagnetPulse, ReflectiveShell, GhostDrive } from '../../run/power/Powers';
-import { Guardian, Striker, Medic, Artificer, CHARACTER_FACTORIES } from '../../run/Characters';
-import { Runner, Bruiser, Spitter, SentinelCore } from '../../run/Enemies';
-import type { BaseEnemy } from '../../run/BaseEnemy';
+const VW = GameConfig.VIEWPORT_WIDTH;
+const VH = GameConfig.VIEWPORT_HEIGHT;
+const ZONE = ZONES[0]!;
 
-import { HUD } from '../../ui/run/HUD';
-import { GameOverScreen, VictoryScreen, RescueScreen, PowerOfferScreen, type RescueOption } from '../../ui/run/RunScreens';
-import { CombatSfx, updateDamageNumbers } from '../../run/fx/DamageNumbers';
+const FOREST = Color.hex(Color.rgb(0.38, 0.82, 0.47));
 
-import { HubScene } from '../hub/HubScene';
-import { shuffleInPlace } from '../../core/types';
+const TOP = 50;
+const FIELD = { x: 6, y: TOP, w: VW - 12, h: VH - TOP - 10 };
 
-/** Hordas zone run scene. Port of src/scenes/Main.gd.
- *  Wires every Phase 4-6 system together and runs the wave loop until
- *  boss death or party wipe. */
+const PLAYER_R = 12;
+const PLAYER_HP = 100;
+const PLAYER_SPEED = 235;
+
+const FIRE_INTERVAL = 0.3;
+const PROJ_SPEED = 380;
+const PROJ_LIFE = 1.2;
+
+const ROBOT_R = 9;
+const ROBOT_GRAB_DMG = 16;
+const ROBOT_CAP = 28;
+const SPAWN_START = 1.6;
+const SPAWN_MIN = 0.5;
+
+const HARVEST_TIME = 1.7;
+const FUNGI_ON_FIELD = 5;
+const GOAL = 8;
+
+interface Robot { pos: Vec2; speed: number; spark: number }
+interface Proj { pos: Vec2; vel: Vec2; life: number }
+interface Fungus { pos: Vec2; phase: number; harvest: number }
+
+/** HORDAS — the AI's automated forest. Dr. Paulo enters alone with an
+ *  improvised bio-chem weapon that short-circuits the gardener-bots sent to
+ *  grab him. He fires constantly, except while crouched harvesting a fungus —
+ *  when he's defenceless. Harvest the quota, then run for extraction. */
 export class HordasScene extends Scene {
-  // Layout
-  private cameraLayer = new Container();
-  private uiLayer = new Container();
-  private arenaBg = new Graphics();
-  private arenaBorder = new Graphics();
-  private fx!: FXSystem;
-  private screenFx!: ScreenFX;
+  private content = new Container();
+  private bg = new Graphics();
+  private floraG = new Graphics();
+  private fungusG = new Graphics();
+  private robotG = new Graphics();
+  private projG = new Graphics();
+  private playerG = new Graphics();
+  private extractG = new Graphics();
+  private hud!: RunHud;
+  private drag!: DragInput;
+  private juice!: RunJuice;
 
-  // Run systems
-  private world!: RunWorld;
-  private party!: Party;
-  private drag!: DragController;
-  private waves!: WaveSpawner;
-  private items!: ItemSpawner;
-  private extractionPoint!: ExtractionPoint;
-  private powerManager!: PowerManager;
-
-  // UI
-  private hud!: HUD;
-  private rescueOffered = false;
-  private powerOffered = false;
-  private power2Offered = false;
-  private endShown = false;
-
-  // Signal disposers
-  private disposers: Array<() => void> = [];
-  private keyHandler!: (e: KeyboardEvent) => void;
+  private player: Vec2 = { x: VW / 2, y: VH * 0.62 };
+  private hp = PLAYER_HP;
+  private fireTimer = 0;
+  private robots: Robot[] = [];
+  private projs: Proj[] = [];
+  private fungi: Fungus[] = [];
+  private harvested = 0;
+  private harvestIdx = -1;
+  private hurtFlash = 0;
+  private spawnTimer = SPAWN_START;
+  private elapsed = 0;
+  private extractOpen = false;
+  private extractPos: Vec2 = { x: VW / 2, y: TOP + 30 };
+  private ended = false;
 
   override async enter(): Promise<void> {
-    this.root.addChild(this.cameraLayer);
-    this.uiLayer.sortableChildren = true;
-    this.root.addChild(this.uiLayer);
+    this.buildForest();
+    this.content.addChild(this.bg, this.floraG, this.fungusG, this.extractG, this.projG, this.robotG, this.playerG);
+    this.root.addChild(this.content);
 
-    this.world = new RunWorld();
-    this.cameraLayer.addChild(this.world.root);
+    for (let i = 0; i < FUNGI_ON_FIELD; i++) this.spawnFungus();
 
-    const tex = await assets.texture('res://assets/art/textures/mycelium_tile.png');
-    this.buildArena(tex);
-    this.fx = new FXSystem(this.world.fxLayer, { w: GameConfig.ARENA_WIDTH, h: GameConfig.ARENA_HEIGHT }, { ambient: 70, cap: 360 });
-    this.buildSystems();
-    this.buildUi();
-    this.connectSignals();
-    this.startRun();
-    this.setupMusic();
+    this.juice = new RunJuice(this.root, { accent: FOREST, shakeTarget: this.content, ambient: 40 });
 
-    this.keyHandler = (e: KeyboardEvent): void => this.onKey(e);
-    window.addEventListener('keydown', this.keyHandler);
+    this.hud = buildHud(ZONE);
+    this.root.addChild(this.hud.container);
+    this.hud.setStatus('colhendo');
+
+    this.drag = bindDrag(this.app.pixi.canvas, this.app.world, this.player);
+
+    audioManager.playMusic('res://assets/audio/music/battle.wav', { loop: true, volume: 0.32, fadeMs: 500 }).catch(() => undefined);
+  }
+
+  override exit(): void {
+    audioManager.stopMusic(300);
+    this.drag.cleanup();
+    this.juice.destroy();
   }
 
   override update(dt: number): void {
-    // Cap dt so tab-switch doesn't teleport everyone.
-    const capped = Math.min(dt, 1 / 30);
+    const d = Math.min(dt, 1 / 30);
+    this.juice.update(d);
+    if (this.ended) return;
+    this.elapsed += d;
+    this.hurtFlash = Math.max(0, this.hurtFlash - d * 3);
 
-    if (GameState.current_state === RunState.PLAYING || GameState.current_state === RunState.BOSS_FIGHT) {
-      GameState.tick(capped);
-      this.drag.update(capped);
-      this.party.update();
-      for (const c of this.world.characters) c.update(capped, this.world);
-      for (const e of this.world.enemies) e.update(capped, this.world);
-      this.world.updateProjectiles(capped);
-      this.items.update(capped);
-      this.extractionPoint.update(capped);
-      this.waves.update(capped);
-      this.powerManager.update(capped);
-      updateDamageNumbers(capped);
-      this.fx.update(capped);
-    }
-    this.screenFx.update(capped);
-    this.hud.update(capped);
-    this.updateCamera(capped);
-  }
+    this.movePlayer(d);
+    this.updateHarvest(d);
+    this.updateFire(d);
+    this.updateProjectiles(d);
+    this.updateRobots(d);
 
-  override async exit(): Promise<void> {
-    window.removeEventListener('keydown', this.keyHandler);
-    for (const d of this.disposers) d();
-    this.disposers = [];
-    this.drag.destroy();
-    this.hud.destroyHud();
-    this.fx?.destroy();
-    juice.reset();
-    audioManager.stopMusic(300);
-  }
-
-  // ── Build ──────────────────────────────────────────────────────────────
-  private buildArena(tex: Texture | null): void {
-    const W = GameConfig.ARENA_WIDTH;
-    const H = GameConfig.ARENA_HEIGHT;
-
-    // Base fill — also the fallback if the texture failed to load.
-    this.arenaBg.rect(0, 0, W, H).fill(Color.hex(Color.rgb(0.06, 0.05, 0.05)));
-    this.world.bgLayer.addChild(this.arenaBg);
-
-    if (tex) {
-      const bg = new TilingSprite({ texture: tex, width: W, height: H });
-      bg.tileScale.set(1.4);
-      bg.alpha = 0.92;
-      this.world.bgLayer.addChild(bg);
-    } else {
-      const grid = new Graphics();
-      const step = 64;
-      for (let x = 0; x <= W; x += step) grid.moveTo(x, 0).lineTo(x, H);
-      for (let y = 0; y <= H; y += step) grid.moveTo(0, y).lineTo(W, y);
-      grid.stroke({ color: 0x1a1c25, width: 1, alpha: 0.6 });
-      this.world.bgLayer.addChild(grid);
-    }
-
-    // This was a CLEAN logistics corridor: faded lane markings + the husks
-    // of cleaning drones half-embedded where they finally stopped.
-    const deco = new Graphics();
-    for (let y = 240; y < H; y += 360) {
-      deco.rect(40, y, W - 80, 5).fill({ color: 0xc8821e, alpha: 0.05 });
-    }
-    const husks: Array<[number, number]> = [[140, 360], [W - 200, 900], [360, H - 320], [W - 320, 420]];
-    for (const [cx, cy] of husks) {
-      deco.rect(cx, cy, 46, 26).fill({ color: 0x16161a, alpha: 0.6 })
-        .rect(cx + 4, cy + 4, 38, 18).stroke({ color: 0x44484e, width: 1, alpha: 0.45 })
-        .circle(cx + 10, cy + 13, 4).stroke({ color: 0x3a3e44, width: 1, alpha: 0.4 });
-    }
-    this.world.bgLayer.addChild(deco);
-
-    const borderColor = Color.hex(Color.rgb(0.42, 0.62, 0.40));
-    const t = 4;
-    this.arenaBorder
-      .rect(0, 0, W, t).fill(borderColor)
-      .rect(0, H - t, W, t).fill(borderColor)
-      .rect(0, 0, t, H).fill(borderColor)
-      .rect(W - t, 0, t, H).fill(borderColor);
-    this.world.bgLayer.addChild(this.arenaBorder);
-  }
-
-  private buildSystems(): void {
-    this.party = new Party();
-    this.party.anchor = { x: GameConfig.ARENA_WIDTH * 0.5, y: GameConfig.ARENA_HEIGHT * 0.7 };
-
-    this.extractionPoint = new ExtractionPoint(this.party);
-    this.extractionPoint.position = { x: GameConfig.ARENA_WIDTH * 0.5, y: GameConfig.ARENA_HEIGHT * 0.15 };
-    this.world.extractionLayer.addChild(this.extractionPoint.node);
-
-    this.drag = new DragController(this.app, this.party);
-
-    const factories: WaveFactories = {
-      runner: () => new Runner(),
-      bruiser: () => new Bruiser(),
-      spitter: () => new Spitter(),
-      sentinel: () => new SentinelCore(),
-    };
-    this.waves = new WaveSpawner(this.world, factories, 0);
-    this.items = new ItemSpawner(this.world, this.party);
-    this.powerManager = new PowerManager(this.world);
-  }
-
-  private buildUi(): void {
-    this.screenFx = new ScreenFX();
-    this.uiLayer.addChild(this.screenFx);
-    this.hud = new HUD();
-    this.uiLayer.addChild(this.hud);
-    this.disposers.push(this.hud.powerTapped.connect(() => this.powerManager.toggle()));
-  }
-
-  private connectSignals(): void {
-    this.disposers.push(
-      GameState.runEnded.connect((victory, fragments) => this.onRunEnded(victory, fragments)),
-    );
-    this.disposers.push(
-      GameState.damageDealt.connect((target, amount, position) => this.onDamageEvent(target, amount, position)),
-    );
-    this.disposers.push(
-      GameState.leveledUp.connect(() => this.onLevelUp()),
-    );
-    this.disposers.push(
-      this.world.enemyAdded.connect((enemy) => this.onEnemyAdded(enemy)),
-    );
-    this.disposers.push(
-      this.waves.waveCleared.connect((w) => this.onWaveCleared(w)),
-    );
-    this.disposers.push(
-      GameState.waveStarted.connect(() => CombatSfx.waveStart()),
-    );
-    this.disposers.push(
-      GameState.bossSpawned.connect(() => {
-        CombatSfx.bossSpawn();
-        juice.addTrauma(0.9, 80);
-        this.screenFx.flash(0xff5a3c, 0.35, 0.28);
-        this.screenFx.shockwave(0xff5a3c, 0.65);
-        this.fx.burst(this.party.anchor.x, this.party.anchor.y, { count: 42, color: 0xff5a3c, speed: 320, life: 0.9, size: 3.2 });
-      }),
-    );
-    this.disposers.push(
-      GameState.waveStarted.connect(() => {
-        juice.addTrauma(0.22, 25);
-        this.screenFx.flash(0xffd070, 0.16, 0.16);
-      }),
-    );
-  }
-
-  private onEnemyAdded(enemy: BaseEnemy): void {
-    this.disposers.push(enemy.died.connect((dead) => {
-      const color = dead.is_elite ? 0xff5a3c : 0xffd070;
-      this.fx.burst(dead.position.x, dead.position.y, {
-        count: dead.is_elite ? 52 : 16,
-        color,
-        speed: dead.is_elite ? 360 : 180,
-        life: dead.is_elite ? 0.95 : 0.45,
-        size: dead.is_elite ? 3.4 : 2.4,
-      });
-      juice.addTrauma(dead.is_elite ? 0.65 : 0.12, dead.is_elite ? 70 : 12);
-      if (dead.is_elite) {
-        this.screenFx.flash(0xfff0a6, 0.28, 0.24);
-        this.screenFx.shockwave(0xfff0a6, 0.55);
-      }
-    }));
-  }
-
-  private onDamageEvent(target: unknown, amount: number, position: { x: number; y: number }): void {
-    const hitEnemy = typeof target === 'object' && target !== null && 'enemy_name' in target;
-    if (hitEnemy) {
-      const elite = Boolean((target as { is_elite?: boolean }).is_elite);
-      this.fx.burst(position.x, position.y, {
-        count: elite ? 10 : 4,
-        color: elite ? 0xffd966 : 0x9fffe0,
-        speed: elite ? 180 : 95,
-        life: 0.24,
-        size: elite ? 2.2 : 1.5,
-      });
-      if (amount >= 30 || elite) juice.addTrauma(elite ? 0.12 : 0.06, elite ? 10 : 0);
+    if (this.extractOpen && Math.hypot(this.player.x - this.extractPos.x, this.player.y - this.extractPos.y) < 26) {
+      this.end(true);
       return;
     }
 
-    this.screenFx.edges(0xff2f3d, 0.38);
-    this.screenFx.flash(0xff2f3d, 0.18, 0.16);
-    this.fx.burst(position.x, position.y, { count: 12, color: 0xff5a60, speed: 160, life: 0.38, size: 2.2 });
-    juice.addTrauma(amount >= 25 ? 0.34 : 0.2, amount >= 25 ? 45 : 25);
+    this.draw();
+    this.hud.setTimer(this.elapsed);
+    this.hud.setScore(this.extractOpen ? '→ EXTRAÇÃO' : `fungos ${this.harvested}/${GOAL}`);
+    this.hud.setHealth(this.hp / PLAYER_HP);
   }
 
-  private onLevelUp(): void {
-    audioManager.playSfx('res://assets/audio/sfx/ui/Complete_01.wav', 0.7);
-    juice.addTrauma(0.18, 25);
-    this.screenFx.flash(0x6dffba, 0.22, 0.22);
-    this.screenFx.shockwave(0x6dffba, 0.42);
-    this.fx.burst(this.party.anchor.x, this.party.anchor.y, { count: 30, color: 0x6dffba, speed: 220, life: 0.6, size: 2.5 });
+  // ── Player ────────────────────────────────────────────────────────────────
+  private movePlayer(dt: number): void {
+    if (!this.drag.dragging) return;
+    const dx = this.drag.pos.x - this.player.x;
+    const dy = this.drag.pos.y - this.player.y;
+    const dist = Math.hypot(dx, dy);
+    if (dist < 2) return;
+    const step = Math.min(dist, PLAYER_SPEED * dt);
+    this.player.x += (dx / dist) * step;
+    this.player.y += (dy / dist) * step;
+    this.player.x = Math.max(FIELD.x + PLAYER_R, Math.min(FIELD.x + FIELD.w - PLAYER_R, this.player.x));
+    this.player.y = Math.max(FIELD.y + PLAYER_R, Math.min(FIELD.y + FIELD.h - PLAYER_R, this.player.y));
   }
 
-  private startRun(): void {
-    // Initial party (Guardian + Striker — Sprint 1 default).
-    const guardian = new Guardian();
-    this.party.add(guardian, this.world);
-    this.hud.registerCharacter(guardian);
+  private get harvesting(): boolean { return this.harvestIdx >= 0; }
 
-    const striker = new Striker();
-    this.party.add(striker, this.world);
-    this.hud.registerCharacter(striker);
-
-    GameState.startRun();
-    this.items.spawnResources('scrap');
-    this.waves.start();
-  }
-
-  // ── Wave callbacks ─────────────────────────────────────────────────────
-  private onWaveCleared(wave: number): void {
-    // Waves now arrive continuously and escalate; offers are paced by wave #.
-    if (wave === 2 && !this.rescueOffered) {
-      this.rescueOffered = true;
-      if (this.party.size() >= GameConfig.MAX_PARTY_SIZE) return;
-      this.offerRescue();
-    } else if (wave === 4 && !this.powerOffered) {
-      this.powerOffered = true;
-      this.offerPower();
-    } else if (wave === 9 && !this.power2Offered) {
-      this.power2Offered = true;
-      this.offerPower();
+  private updateHarvest(dt: number): void {
+    // Standing on a fungus harvests it; moving off cancels.
+    let onIdx = -1;
+    for (let i = 0; i < this.fungi.length; i++) {
+      const f = this.fungi[i]!;
+      if (Math.hypot(f.pos.x - this.player.x, f.pos.y - this.player.y) < PLAYER_R + 14) { onIdx = i; break; }
+    }
+    if (onIdx < 0) { this.harvestIdx = -1; return; }
+    if (this.harvestIdx !== onIdx) { this.harvestIdx = onIdx; this.fungi[onIdx]!.harvest = 0; }
+    const f = this.fungi[onIdx]!;
+    f.harvest += dt;
+    if (f.harvest >= HARVEST_TIME) {
+      this.harvested += 1;
+      this.juice.pop(f.pos.x, f.pos.y, FOREST);
+      this.juice.flash(FOREST, 0.10, 0.2);
+      this.fungi.splice(onIdx, 1);
+      this.harvestIdx = -1;
+      if (this.harvested >= GOAL && !this.extractOpen) this.openExtraction();
+      else this.spawnFungus();
     }
   }
 
-  private offerRescue(): void {
-    const pool: RescueOption[] = [];
-    if (!HubState.rescued_characters.includes('Artificer')) {
-      pool.push({ name: 'Artificera', desc: 'Explosões em área. Bônus em grupos.', factoryId: 'artificer' });
+  private openExtraction(): void {
+    this.extractOpen = true;
+    // Place the extraction beacon at the top edge, away from the player.
+    this.extractPos = { x: this.player.x < VW / 2 ? FIELD.x + FIELD.w - 40 : FIELD.x + 40, y: FIELD.y + 36 };
+    this.hud.setStatus('extração aberta');
+    this.juice.alarm(FOREST);
+  }
+
+  // ── Bio-chem weapon (auto-fire, except while harvesting) ───────────────────
+  private updateFire(dt: number): void {
+    this.fireTimer -= dt;
+    if (this.harvesting) return; // crouched, defenceless
+    if (this.fireTimer > 0) return;
+    const target = this.nearestRobot();
+    if (!target) return;
+    this.fireTimer = FIRE_INTERVAL;
+    const dx = target.pos.x - this.player.x;
+    const dy = target.pos.y - this.player.y;
+    const dist = Math.hypot(dx, dy) || 1;
+    this.projs.push({
+      pos: { x: this.player.x, y: this.player.y },
+      vel: { x: (dx / dist) * PROJ_SPEED, y: (dy / dist) * PROJ_SPEED },
+      life: PROJ_LIFE,
+    });
+    audioManager.playSfx('res://assets/audio/sfx/ui/Click_03.wav', 0.18);
+  }
+
+  private nearestRobot(): Robot | null {
+    let best: Robot | null = null;
+    let bd = Infinity;
+    for (const r of this.robots) {
+      if (r.spark > 0) continue;
+      const dd = (r.pos.x - this.player.x) ** 2 + (r.pos.y - this.player.y) ** 2;
+      if (dd < bd) { bd = dd; best = r; }
     }
-    if (!HubState.rescued_characters.includes('Medic')) {
-      pool.push({ name: 'Médica', desc: 'Cura passiva e suporte à party.', factoryId: 'medic' });
-    }
-    if (pool.length === 0) return;
-    shuffleInPlace(pool);
-    const offered = pool.slice(0, 2);
-    const screen = new RescueScreen(offered);
-    screen.characterChosen.connect((id) => this.onCharacterChosen(id));
-    this.uiLayer.addChild(screen);
+    return best;
   }
 
-  private offerPower(): void {
-    const pool: PowerResource[] = [
-      new SiegeMode(),
-      new SplitOrbit(),
-      new Overclock(),
-      new MagnetPulse(),
-      new ReflectiveShell(),
-      new GhostDrive(),
-    ];
-    shuffleInPlace(pool);
-    const offered = pool.slice(0, 3);
-    const screen = new PowerOfferScreen(offered);
-    screen.powerChosen.connect((p) => this.onPowerChosen(p));
-    this.uiLayer.addChild(screen);
-  }
-
-  private onCharacterChosen(factoryId: string): void {
-    const make = CHARACTER_FACTORIES[factoryId];
-    if (!make) return;
-    const character = make();
-    this.party.add(character, this.world);
-    this.hud.registerCharacter(character);
-    const className = character.character_name;
-    if (!HubState.rescued_characters.includes(className)) {
-      HubState.rescued_characters.push(className);
-    }
-  }
-
-  private onPowerChosen(power: PowerResource): void {
-    this.powerManager.setPower(power);
-    this.hud.setPowerDisplay(power);
-  }
-
-  private onRunEnded(victory: boolean, fragments: number): void {
-    if (this.endShown) return;
-    this.endShown = true;
-    if (victory) {
-      audioManager.playSfx('res://assets/audio/sfx/ui/Complete_01.wav', 0.8);
-      juice.addTrauma(0.35, [35, 35, 55]);
-      this.screenFx.flash(0x6dffba, 0.28, 0.34);
-      this.screenFx.shockwave(0x6dffba, 0.6);
-      HubState.depositBackpack(GameState.backpack);
-      const screen = new VictoryScreen(GameState.run_time, fragments);
-      screen.hubRequested.connect(() => this.returnToHub());
-      this.uiLayer.addChild(screen);
-    } else {
-      audioManager.playSfx('res://assets/audio/sfx/ui/Click_04.wav', 0.75);
-      juice.addTrauma(0.55, [80, 40, 80]);
-      this.screenFx.edges(0xff2f3d, 1);
-      this.screenFx.flash(0xff2f3d, 0.32, 0.34);
-      const screen = new GameOverScreen(GameState.run_time);
-      screen.hubRequested.connect(() => this.returnToHub());
-      screen.retryRequested.connect(() => this.retry());
-      this.uiLayer.addChild(screen);
-    }
-  }
-
-  private retry(): void {
-    void sceneManager.replace(new HordasScene());
-  }
-
-  private returnToHub(): void {
-    void sceneManager.replace(new HubScene());
-  }
-
-  // ── Camera ─────────────────────────────────────────────────────────────
-  private camBaseX = 0;
-  private camBaseY = 0;
-  private updateCamera(dt: number): void {
-    // Center the party on screen, but clamp to arena bounds so we never
-    // show the void outside.
-    const targetX = GameConfig.VIEWPORT_WIDTH / 2 - this.party.anchor.x;
-    const targetY = GameConfig.VIEWPORT_HEIGHT / 2 - this.party.anchor.y;
-    const minX = GameConfig.VIEWPORT_WIDTH - GameConfig.ARENA_WIDTH;
-    const maxX = 0;
-    const minY = GameConfig.VIEWPORT_HEIGHT - GameConfig.ARENA_HEIGHT;
-    const maxY = 0;
-    const clampedX = Math.max(minX, Math.min(maxX, targetX));
-    const clampedY = Math.max(minY, Math.min(maxY, targetY));
-    const t = Math.min(1, 8 * dt);
-    this.camBaseX += (clampedX - this.camBaseX) * t;
-    this.camBaseY += (clampedY - this.camBaseY) * t;
-    const shake = juice.update(dt);
-    this.cameraLayer.x = this.camBaseX + shake.x;
-    this.cameraLayer.y = this.camBaseY + shake.y;
-    this.cameraLayer.rotation = shake.rot;
-  }
-
-  private onKey(e: KeyboardEvent): void {
-    if (e.key === ' ' || e.code === 'Space') {
-      this.powerManager.toggle();
-      e.preventDefault();
-    } else if (e.key === 'Escape') {
-      if (GameState.current_state === RunState.GAME_OVER || GameState.current_state === RunState.VICTORY) {
-        this.returnToHub();
+  private updateProjectiles(dt: number): void {
+    for (let i = this.projs.length - 1; i >= 0; i--) {
+      const p = this.projs[i]!;
+      p.life -= dt;
+      p.pos.x += p.vel.x * dt;
+      p.pos.y += p.vel.y * dt;
+      if (p.life <= 0 || p.pos.x < 0 || p.pos.x > VW || p.pos.y < TOP || p.pos.y > VH) {
+        this.projs.splice(i, 1);
+        continue;
+      }
+      for (const r of this.robots) {
+        if (r.spark > 0) continue;
+        if (Math.hypot(r.pos.x - p.pos.x, r.pos.y - p.pos.y) < ROBOT_R + 4) {
+          r.spark = 0.32; // short-circuited
+          this.projs.splice(i, 1);
+          this.juice.burst(r.pos.x, r.pos.y, { count: 9, color: 0x9fffe0, speed: 150, life: 0.3, size: 1.8 });
+          break;
+        }
       }
     }
   }
 
-  private setupMusic(): void {
-    audioManager.playMusic('res://assets/audio/music/battle.wav', { loop: true, volume: 0.35, fadeMs: 500 }).catch(() => undefined);
+  // ── Gardener-bots ──────────────────────────────────────────────────────────
+  private updateRobots(dt: number): void {
+    // Escalating spawns.
+    this.spawnTimer -= dt;
+    if (this.spawnTimer <= 0 && this.robots.length < ROBOT_CAP) {
+      this.spawnRobot();
+      const ramp = Math.max(SPAWN_MIN, SPAWN_START - this.elapsed * 0.012 - (this.extractOpen ? 0.6 : 0));
+      this.spawnTimer = ramp;
+    }
+
+    for (let i = this.robots.length - 1; i >= 0; i--) {
+      const r = this.robots[i]!;
+      if (r.spark > 0) {
+        r.spark -= dt;
+        if (r.spark <= 0) this.robots.splice(i, 1);
+        continue;
+      }
+      const dx = this.player.x - r.pos.x;
+      const dy = this.player.y - r.pos.y;
+      const dist = Math.hypot(dx, dy) || 1;
+      r.pos.x += (dx / dist) * r.speed * dt;
+      r.pos.y += (dy / dist) * r.speed * dt;
+      if (dist < PLAYER_R + ROBOT_R) {
+        // Grabbed him.
+        this.hp -= ROBOT_GRAB_DMG;
+        this.hurtFlash = 1;
+        this.juice.hurt(this.player.x, this.player.y);
+        this.robots.splice(i, 1);
+        if (this.hp <= 0) { this.hp = 0; this.end(false); return; }
+      }
+    }
   }
 
-  /** Helper to mark unused imports as referenced for tree-shaking awareness. */
-  static _refs: unknown = [Medic, Artificer];
+  private spawnRobot(): void {
+    const edge = Math.floor(Math.random() * 4);
+    const rand = (a: number, b: number): number => a + Math.random() * (b - a);
+    let pos: Vec2;
+    if (edge === 0) pos = { x: rand(FIELD.x, FIELD.x + FIELD.w), y: FIELD.y + 4 };
+    else if (edge === 1) pos = { x: rand(FIELD.x, FIELD.x + FIELD.w), y: FIELD.y + FIELD.h - 4 };
+    else if (edge === 2) pos = { x: FIELD.x + 4, y: rand(FIELD.y, FIELD.y + FIELD.h) };
+    else pos = { x: FIELD.x + FIELD.w - 4, y: rand(FIELD.y, FIELD.y + FIELD.h) };
+    this.robots.push({ pos, speed: 64 + Math.random() * 28 + this.elapsed * 0.25, spark: 0 });
+  }
+
+  private spawnFungus(): void {
+    let tries = 24;
+    while (tries-- > 0) {
+      const x = FIELD.x + 26 + Math.random() * (FIELD.w - 52);
+      const y = FIELD.y + 26 + Math.random() * (FIELD.h - 52);
+      if (Math.hypot(x - this.player.x, y - this.player.y) > 70) {
+        this.fungi.push({ pos: { x, y }, phase: Math.random() * Math.PI * 2, harvest: 0 });
+        return;
+      }
+    }
+  }
+
+  // ── Forest art ──────────────────────────────────────────────────────────────
+  private buildForest(): void {
+    // Canopy-light gradient: lighter at the top, deep forest floor below.
+    const steps = 30;
+    for (let i = 0; i < steps; i++) {
+      const t = i / steps;
+      const c = Color.rgb(0.04 + t * 0.02, 0.10 + t * 0.10, 0.06 + t * 0.05);
+      this.bg.rect(0, TOP + (FIELD.h * i) / steps, VW, FIELD.h / steps + 1).fill(Color.hex(c));
+    }
+    // Soft god-rays slanting from the canopy.
+    for (const sx of [VW * 0.2, VW * 0.55, VW * 0.82]) {
+      this.bg.poly([sx, TOP, sx + 26, TOP, sx - 50, VH, sx - 90, VH]).fill({ color: 0xbfffd0, alpha: 0.03 });
+    }
+    // The AI tends it in neat rows — manicured clusters of cultivated flora.
+    const rng = (n: number): number => ((Math.sin(n * 127.1) * 43758.5) % 1 + 1) % 1;
+    let seed = 0;
+    for (let ry = TOP + 40; ry < VH - 30; ry += 64) {
+      for (let rx = 24; rx < VW - 16; rx += 52) {
+        seed++;
+        const jx = rx + (rng(seed) - 0.5) * 14;
+        const jy = ry + (rng(seed * 2) - 0.5) * 14;
+        const tone = [0x1c3a22, 0x24472a, 0x2a3a4a][seed % 3]!;
+        // little bush
+        this.floraG.circle(jx, jy, 6 + rng(seed * 3) * 4).fill({ color: tone, alpha: 0.85 });
+        // a bloom on some
+        if (rng(seed * 5) > 0.55) {
+          const bloom = [0xff8fc4, 0xffd36b, 0xb78fff, 0x7fe0ff][seed % 4]!;
+          this.floraG.circle(jx, jy - 3, 2.4).fill({ color: bloom, alpha: 0.8 });
+        }
+      }
+    }
+    // Field border — a living hedge.
+    this.bg.rect(FIELD.x, FIELD.y, FIELD.w, FIELD.h).stroke({ color: 0x2c5a36, width: 2, alpha: 0.6 });
+  }
+
+  private draw(): void {
+    const t = this.elapsed;
+
+    // Fungi — glowing harvestable mushrooms; the one being harvested fills a ring.
+    this.fungusG.clear();
+    for (let i = 0; i < this.fungi.length; i++) {
+      const f = this.fungi[i]!;
+      const pulse = 0.6 + 0.4 * Math.sin(t * 3 + f.phase);
+      this.fungusG.circle(f.pos.x, f.pos.y, 16).fill({ color: FOREST, alpha: 0.10 * pulse });
+      // stem + cap
+      this.fungusG.rect(f.pos.x - 2, f.pos.y, 4, 9).fill({ color: 0xe6e0c8, alpha: 0.9 });
+      this.fungusG.ellipse(f.pos.x, f.pos.y, 9, 6).fill({ color: FOREST, alpha: 0.95 });
+      this.fungusG.ellipse(f.pos.x, f.pos.y - 1, 4, 2.6).fill({ color: 0xffffff, alpha: 0.6 * pulse });
+      if (this.harvestIdx === i) {
+        const prog = Math.min(1, f.harvest / HARVEST_TIME);
+        this.fungusG.arc(f.pos.x, f.pos.y, 20, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * prog, false)
+          .stroke({ color: 0xfff0a0, width: 3, alpha: 0.95 });
+      }
+    }
+
+    // Extraction beacon.
+    this.extractG.clear();
+    if (this.extractOpen) {
+      const p = 0.5 + 0.5 * Math.sin(t * 5);
+      this.extractG.circle(this.extractPos.x, this.extractPos.y, 22 + p * 5).stroke({ color: FOREST, width: 2, alpha: 0.5 });
+      this.extractG.circle(this.extractPos.x, this.extractPos.y, 13).fill({ color: FOREST, alpha: 0.3 + 0.3 * p });
+      this.extractG.circle(this.extractPos.x, this.extractPos.y, 6).fill({ color: 0xffffff, alpha: 0.8 });
+    }
+
+    // Projectiles — bio-chem darts.
+    this.projG.clear();
+    for (const p of this.projs) {
+      this.projG.circle(p.pos.x, p.pos.y, 3).fill({ color: 0x9fffe0, alpha: 0.95 });
+      this.projG.circle(p.pos.x, p.pos.y, 5).fill({ color: 0x9fffe0, alpha: 0.25 });
+    }
+
+    // Gardener-bots.
+    this.robotG.clear();
+    for (const r of this.robots) {
+      if (r.spark > 0) {
+        // short-circuiting: erratic spark
+        const j = (Math.random() - 0.5) * 6;
+        this.robotG.rect(r.pos.x - 6 + j, r.pos.y - 6, 12, 12).fill({ color: 0x9fffe0, alpha: 0.7 });
+        continue;
+      }
+      this.robotG.rect(r.pos.x - ROBOT_R, r.pos.y - ROBOT_R + 2, ROBOT_R * 2, ROBOT_R * 2 - 2).fill({ color: 0x4a5560 });
+      this.robotG.rect(r.pos.x - ROBOT_R, r.pos.y - ROBOT_R + 2, ROBOT_R * 2, ROBOT_R * 2 - 2).stroke({ color: 0x7a8694, width: 1, alpha: 0.6 });
+      // little claws
+      this.robotG.moveTo(r.pos.x - ROBOT_R, r.pos.y - 4).lineTo(r.pos.x - ROBOT_R - 4, r.pos.y - 7)
+        .moveTo(r.pos.x + ROBOT_R, r.pos.y - 4).lineTo(r.pos.x + ROBOT_R + 4, r.pos.y - 7)
+        .stroke({ color: 0x8a96a4, width: 1.5, alpha: 0.7 });
+      // red sensor eye
+      const blink = 0.6 + 0.4 * Math.sin(t * 6 + r.pos.x);
+      this.robotG.circle(r.pos.x, r.pos.y, 2.6).fill({ color: 0xff3a3a, alpha: 0.6 + 0.4 * blink });
+    }
+
+    // Paulo — fires upright; crouches (no weapon) while harvesting.
+    this.playerG.clear();
+    const pc = this.hurtFlash > 0.4 ? 0xff5a5a : FOREST;
+    if (this.harvesting) {
+      // crouched, exposed — a warning ring pulses.
+      const wp = 0.5 + 0.5 * Math.sin(t * 9);
+      this.playerG.circle(this.player.x, this.player.y, PLAYER_R + 6).stroke({ color: 0xffcf4d, width: 2, alpha: 0.4 + 0.4 * wp });
+      this.playerG.ellipse(this.player.x, this.player.y + 2, PLAYER_R, PLAYER_R * 0.7).fill({ color: pc, alpha: 0.95 });
+    } else {
+      this.playerG.circle(this.player.x, this.player.y, PLAYER_R + 4).fill({ color: pc, alpha: 0.2 });
+      this.playerG.circle(this.player.x, this.player.y, PLAYER_R).fill({ color: pc, alpha: 0.95 });
+      this.playerG.circle(this.player.x, this.player.y, PLAYER_R - 4).fill({ color: 0xffffff, alpha: 0.65 });
+      // muzzle: a small barrel pointing at the nearest robot
+      const tgt = this.nearestRobot();
+      if (tgt) {
+        const a = Math.atan2(tgt.pos.y - this.player.y, tgt.pos.x - this.player.x);
+        this.playerG.moveTo(this.player.x, this.player.y).lineTo(this.player.x + Math.cos(a) * (PLAYER_R + 8), this.player.y + Math.sin(a) * (PLAYER_R + 8))
+          .stroke({ color: 0x9fffe0, width: 3, alpha: 0.8 });
+      }
+    }
+  }
+
+  private end(victory: boolean): void {
+    if (this.ended) return;
+    this.ended = true;
+    if (victory) this.juice.victoryFx(); else this.juice.defeatFx();
+    if (victory && this.harvested > 0) {
+      HubState.depositFlow('biomassa_adaptativa', this.harvested);
+    }
+    HubState.onRunEnded(victory);
+    this.root.addChild(buildEndOverlay({
+      zone: ZONE,
+      victory,
+      rewardLabel: `+${this.harvested} Biomassa — fungos extraídos`,
+      failLabel: 'Capturado pelos jardineiros.',
+    }));
+  }
 }
