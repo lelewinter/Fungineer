@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Fungineer PWA icon — vector source, used at all sizes via SVG scaling.
+  Theme matches index.html (#0a0a14 background, #5b8def accent).
+  Edit colours to retheme; rasterise to PNG via `npx @svgr/cli` or `sharp` if
+  you need iOS 15 / legacy support.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Fungineer">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0f1024"/>
+      <stop offset="100%" stop-color="#05060e"/>
+    </linearGradient>
+    <linearGradient id="flame" x1="0.5" y1="0" x2="0.5" y2="1">
+      <stop offset="0%" stop-color="#ffd166"/>
+      <stop offset="100%" stop-color="#ef476f"/>
+    </linearGradient>
+    <linearGradient id="hull" x1="0.5" y1="0" x2="0.5" y2="1">
+      <stop offset="0%" stop-color="#e6e6e6"/>
+      <stop offset="100%" stop-color="#9aa4b8"/>
+    </linearGradient>
+  </defs>
+
+  <!-- background -->
+  <rect width="512" height="512" rx="96" ry="96" fill="url(#bg)"/>
+
+  <!-- starfield -->
+  <g fill="#e6e6e6" opacity="0.7">
+    <circle cx="80"  cy="120" r="2.2"/>
+    <circle cx="420" cy="90"  r="1.6"/>
+    <circle cx="380" cy="210" r="2.4"/>
+    <circle cx="110" cy="320" r="1.8"/>
+    <circle cx="60"  cy="240" r="1.4"/>
+    <circle cx="450" cy="340" r="2.0"/>
+    <circle cx="150" cy="430" r="1.6"/>
+    <circle cx="350" cy="450" r="2.2"/>
+  </g>
+
+  <!-- rocket -->
+  <g transform="translate(256 256)">
+    <!-- flame -->
+    <path d="M -36 110 Q 0 200 36 110 Q 28 130 0 140 Q -28 130 -36 110 Z" fill="url(#flame)"/>
+    <!-- body -->
+    <path d="M -52 -120 Q -52 -160 0 -200 Q 52 -160 52 -120 L 52 90 Q 30 110 -30 110 L -52 90 Z" fill="url(#hull)" stroke="#0a0a14" stroke-width="4"/>
+    <!-- fins -->
+    <path d="M -52 30 L -100 100 L -52 90 Z" fill="#5b8def" stroke="#0a0a14" stroke-width="4"/>
+    <path d="M  52 30 L  100 100 L  52 90 Z" fill="#5b8def" stroke="#0a0a14" stroke-width="4"/>
+    <!-- window -->
+    <circle cx="0" cy="-80" r="22" fill="#5b8def" stroke="#0a0a14" stroke-width="4"/>
+    <circle cx="-6" cy="-86" r="6" fill="#e6e6e6" opacity="0.85"/>
+  </g>
+
+  <!-- ground arc -->
+  <path d="M 0 460 Q 256 510 512 460 L 512 512 L 0 512 Z" fill="#1a1a2e" opacity="0.55"/>
+</svg>

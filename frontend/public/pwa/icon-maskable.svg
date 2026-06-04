@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Maskable variant — the spec requires the "safe zone" (where the logo is
+  guaranteed visible) to occupy only the central 80% (40% radius around centre).
+  This SVG keeps the rocket scaled down and adds a full-bleed background so
+  Android adaptive icons don't crop important pixels.
+  Test masks: https://maskable.app/editor
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Fungineer">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0f1024"/>
+      <stop offset="100%" stop-color="#05060e"/>
+    </linearGradient>
+    <linearGradient id="flame" x1="0.5" y1="0" x2="0.5" y2="1">
+      <stop offset="0%" stop-color="#ffd166"/>
+      <stop offset="100%" stop-color="#ef476f"/>
+    </linearGradient>
+    <linearGradient id="hull" x1="0.5" y1="0" x2="0.5" y2="1">
+      <stop offset="0%" stop-color="#e6e6e6"/>
+      <stop offset="100%" stop-color="#9aa4b8"/>
+    </linearGradient>
+  </defs>
+
+  <!-- full-bleed background -->
+  <rect width="512" height="512" fill="url(#bg)"/>
+
+  <!-- starfield -->
+  <g fill="#e6e6e6" opacity="0.55">
+    <circle cx="100" cy="140" r="2.2"/>
+    <circle cx="400" cy="110" r="1.6"/>
+    <circle cx="370" cy="220" r="2.0"/>
+    <circle cx="130" cy="330" r="1.6"/>
+    <circle cx="430" cy="350" r="1.8"/>
+    <circle cx="180" cy="420" r="1.4"/>
+    <circle cx="340" cy="440" r="1.8"/>
+  </g>
+
+  <!-- rocket scaled to 72% of canvas so it stays inside the maskable safe zone -->
+  <g transform="translate(256 256) scale(0.72)">
+    <path d="M -36 110 Q 0 200 36 110 Q 28 130 0 140 Q -28 130 -36 110 Z" fill="url(#flame)"/>
+    <path d="M -52 -120 Q -52 -160 0 -200 Q 52 -160 52 -120 L 52 90 Q 30 110 -30 110 L -52 90 Z" fill="url(#hull)" stroke="#0a0a14" stroke-width="6"/>
+    <path d="M -52 30 L -100 100 L -52 90 Z" fill="#5b8def" stroke="#0a0a14" stroke-width="6"/>
+    <path d="M  52 30 L  100 100 L  52 90 Z" fill="#5b8def" stroke="#0a0a14" stroke-width="6"/>
+    <circle cx="0" cy="-80" r="22" fill="#5b8def" stroke="#0a0a14" stroke-width="6"/>
+    <circle cx="-6" cy="-86" r="6" fill="#e6e6e6" opacity="0.85"/>
+  </g>
+</svg>
