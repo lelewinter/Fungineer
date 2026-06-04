@@ -1,4 +1,4 @@
-import { Graphics } from 'pixi.js';
+import { Container, Graphics } from 'pixi.js';
 import { Scene } from '../../core/Scene';
 import { audioManager } from '../../core/AudioManager';
 import { Color } from '../../core/Color';
@@ -6,6 +6,7 @@ import { GameConfig } from '../../state/GameConfig';
 import { HubState } from '../../state/HubState';
 import { ZONES } from '../../state/Zones';
 import type { Vec2 } from '../../core/types';
+import { RunJuice } from '../../run/fx/RunJuice';
 import { buildHud, buildEndOverlay, bindDrag, type RunHud, type DragInput } from './RunFrame';
 
 const VW = GameConfig.VIEWPORT_WIDTH;
@@ -26,12 +27,14 @@ const GOAL = 14;
  *  extends every node collected, higher speed each time. Touching your own
  *  trail = circuit short, run lost. */
 export class CircuitoScene extends Scene {
+  private content = new Container();
   private bg = new Graphics();
   private trailG = new Graphics();
   private nodeG = new Graphics();
   private headG = new Graphics();
   private hud!: RunHud;
   private drag!: DragInput;
+  private juice!: RunJuice;
 
   private head: Vec2 = { x: VW / 2, y: VH / 2 };
   private trail: Vec2[] = [];
@@ -58,15 +61,14 @@ export class CircuitoScene extends Scene {
     // Boundary frame
     this.bg.rect(this.boundaryRect.x, this.boundaryRect.y, this.boundaryRect.w, this.boundaryRect.h)
       .stroke({ color: accent, width: 2, alpha: 0.6 });
-    this.root.addChild(this.bg);
-
-    this.root.addChild(this.trailG);
-    this.root.addChild(this.nodeG);
-    this.root.addChild(this.headG);
+    this.content.addChild(this.bg, this.trailG, this.nodeG, this.headG);
+    this.root.addChild(this.content);
 
     this.spawnNodes(4);
 
     this.drag = bindDrag(this.app.pixi.canvas, this.app.world, this.head);
+
+    this.juice = new RunJuice(this.root, { accent: Color.hex(ZONE.accent_color), shakeTarget: this.content, ambient: 30 });
 
     this.hud = buildHud(ZONE);
     this.root.addChild(this.hud.container);
@@ -80,11 +82,13 @@ export class CircuitoScene extends Scene {
   override exit(): void {
     audioManager.stopMusic(300);
     this.drag.cleanup();
+    this.juice.destroy();
   }
 
   override update(dt: number): void {
-    if (this.ended) return;
     const d = Math.min(dt, 1 / 30);
+    this.juice.update(d);
+    if (this.ended) return;
     this.elapsed += d;
     this.timeLeft -= d;
     if (this.timeLeft <= 0) { this.end(this.collected >= GOAL / 2); return; }
@@ -127,6 +131,7 @@ export class CircuitoScene extends Scene {
     for (let i = this.nodes.length - 1; i >= 0; i--) {
       const n = this.nodes[i]!;
       if (Math.hypot(n.x - this.head.x, n.y - this.head.y) < COLLECT_DIST) {
+        this.juice.pop(n.x, n.y);
         this.nodes.splice(i, 1);
         this.collected += 1;
         this.trailTarget += 4;
@@ -183,6 +188,7 @@ export class CircuitoScene extends Scene {
   private end(victory: boolean): void {
     if (this.ended) return;
     this.ended = true;
+    if (victory) this.juice.victoryFx(); else this.juice.defeatFx();
     if (victory && this.collected > 0) {
       HubState.depositFlow('nucleo_logico', this.collected);
     }

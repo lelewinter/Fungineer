@@ -60,12 +60,12 @@ export abstract class Modal extends Container {
       tween({
         durationMs: 320,
         ease: Easing.easeOutCubic,
-        onUpdate: (t) => { this.backdrop.alpha = t * this.backdropAlpha; },
+        onUpdate: (t) => { if (this.destroyed) return; this.backdrop.alpha = t * this.backdropAlpha; },
       }),
       tween({
         durationMs: 320,
         ease: Easing.easeOutCubic,
-        onUpdate: (t) => { this.panel.alpha = t; this.panel.scale.set(0.85 + 0.15 * t); },
+        onUpdate: (t) => { if (this.destroyed) return; this.panel.alpha = t; this.panel.scale.set(0.85 + 0.15 * t); },
       }),
     ]);
   }
@@ -76,20 +76,27 @@ export abstract class Modal extends Container {
       tween({
         durationMs: 200,
         ease: Easing.easeInCubic,
-        onUpdate: (t) => { this.backdrop.alpha = (1 - t) * this.backdropAlpha; },
+        onUpdate: (t) => { if (this.destroyed) return; this.backdrop.alpha = (1 - t) * this.backdropAlpha; },
       }),
       tween({
         durationMs: 200,
         ease: Easing.easeInCubic,
-        onUpdate: (t) => { this.panel.alpha = 1 - t; this.panel.scale.set(1 - 0.15 * t); },
+        onUpdate: (t) => { if (this.destroyed) return; this.panel.alpha = 1 - t; this.panel.scale.set(1 - 0.15 * t); },
       }),
     ]);
   }
 
   async requestClose(): Promise<void> {
+    if (this.destroyed) return;
     await this.animateClose();
+    if (this.destroyed) return;
     this.closed.emit();
     this.destroy({ children: true });
+  }
+
+  override destroy(options?: Parameters<Container['destroy']>[0]): void {
+    this.stopBorderAnimation();
+    super.destroy(options);
   }
 
   /** Subclasses call to set their accent border color and draw the gradient bg. */
@@ -119,6 +126,7 @@ export abstract class Modal extends Container {
 
   private startBorderAnimation(): void {
     const tick = (): void => {
+      if (this.destroyed || this.animatedBorder.destroyed) { this.borderTicker = null; return; }
       this.borderTime += 0.012;
       this.drawTravelingBorder();
       this.borderTicker = requestAnimationFrame(tick);

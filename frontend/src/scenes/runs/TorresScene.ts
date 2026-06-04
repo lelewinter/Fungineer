@@ -5,6 +5,7 @@ import { Color } from '../../core/Color';
 import { GameConfig } from '../../state/GameConfig';
 import { HubState } from '../../state/HubState';
 import { ZONES } from '../../state/Zones';
+import { RunJuice } from '../../run/fx/RunJuice';
 import { buildHud, buildEndOverlay, type RunHud } from './RunFrame';
 
 const VW = GameConfig.VIEWPORT_WIDTH;
@@ -36,6 +37,7 @@ export class TorresScene extends Scene {
   private barrelsG = new Graphics();
   private playerG = new Graphics();
   private hud!: RunHud;
+  private juice!: RunJuice;
 
   private floors: Floor[] = [];
   private ladders: Ladder[] = [];
@@ -72,6 +74,8 @@ export class TorresScene extends Scene {
     this.root.addChild(this.barrelsG);
     this.root.addChild(this.playerG);
 
+    this.juice = new RunJuice(this.root, { accent: Color.hex(ZONE.accent_color), ambient: 22, shakeTarget: null });
+
     this.hud = buildHud(ZONE);
     this.root.addChild(this.hud.container);
     this.hud.setStatus('escalada');
@@ -87,11 +91,18 @@ export class TorresScene extends Scene {
   override exit(): void {
     audioManager.stopMusic(300);
     this.cleanup?.();
+    this.juice.destroy();
+  }
+
+  /** Player position in screen space (the game layers scroll by -cameraY). */
+  private screenPlayer(): { x: number; y: number } {
+    return { x: this.px, y: this.worldPlayerY() - this.cameraY - PLAYER_H / 2 };
   }
 
   override update(dt: number): void {
-    if (this.ended) return;
     const d = Math.min(dt, 1 / 30);
+    this.juice.update(d);
+    if (this.ended) return;
     this.elapsed += d;
     this.timeLeft -= d;
     if (this.timeLeft <= 0) { this.end(this.storyIdx >= STORY_COUNT - 2); return; }
@@ -153,6 +164,8 @@ export class TorresScene extends Scene {
         this.py = 0;
         this.storyIdx += 1;
         this.climbing = false;
+        const sp = this.screenPlayer();
+        this.juice.pop(sp.x, sp.y);
       } else if (this.py <= 0) {
         this.py = 0;
         this.climbing = false;
@@ -220,6 +233,8 @@ export class TorresScene extends Scene {
       // Player hit?
       const pY = this.worldPlayerY();
       if (!this.climbing && Math.abs(b.x - this.px) < 12 && Math.abs(b.y - (pY - PLAYER_H / 2)) < 14) {
+        const sp = this.screenPlayer();
+        this.juice.hurt(sp.x, sp.y);
         this.end(false);
         return;
       }
@@ -300,6 +315,7 @@ export class TorresScene extends Scene {
   private end(victory: boolean): void {
     if (this.ended) return;
     this.ended = true;
+    if (victory) this.juice.victoryFx(); else this.juice.defeatFx();
     const reward = this.storyIdx;
     if (victory && reward > 0) {
       HubState.depositFlow('ai_components', reward);

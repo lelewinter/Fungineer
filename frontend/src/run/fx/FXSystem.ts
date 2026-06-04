@@ -32,10 +32,13 @@ export class FXSystem {
   private pool: Particle[] = [];
   private bounds: { w: number; h: number };
   private ambientCount: number;
+  private ambientColor: number;
 
-  constructor(parent: Container, bounds: { w: number; h: number }, opts: { ambient?: number; cap?: number } = {}) {
+  constructor(parent: Container, bounds: { w: number; h: number }, opts: { ambient?: number; cap?: number; ambientColor?: number; zIndex?: number } = {}) {
     this.bounds = bounds;
     this.ambientCount = opts.ambient ?? 0;
+    this.ambientColor = opts.ambientColor ?? 0x6bffb0;
+    if (opts.zIndex !== undefined) this.layer.zIndex = opts.zIndex;
     parent.addChild(this.layer);
     const cap = opts.cap ?? 320;
     for (let i = 0; i < cap; i++) {
@@ -73,7 +76,7 @@ export class FXSystem {
     p.size = 1 + Math.random() * 2.2;
     p.maxLife = 6 + Math.random() * 6;
     p.life = initial ? Math.random() * p.maxLife : 0;
-    this.paint(p, 0x6bffb0, 0.5);
+    this.paint(p, this.ambientColor, 0.5);
   }
 
   /** One-shot particle pop at a world position. */
