@@ -13,6 +13,14 @@ import { StubRunScene } from './runs/StubRunScene';
 import { HordasScene } from './runs/HordasScene';
 import { FieldControlScene } from './runs/FieldControlScene';
 import { SacrificeScene } from './runs/SacrificeScene';
+import { StealthScene } from './runs/StealthScene';
+import { CircuitoScene } from './runs/CircuitoScene';
+import { ExtractionScene } from './runs/ExtractionScene';
+import { InfeccaoScene } from './runs/InfeccaoScene';
+import { LabirintoScene } from './runs/LabirintoScene';
+import { CordilheiraScene } from './runs/CordilheiraScene';
+import { TorresScene } from './runs/TorresScene';
+import { CatedralScene } from './runs/CatedralScene';
 import { HubScene } from './hub/HubScene';
 
 const VW = GameConfig.VIEWPORT_WIDTH;
@@ -22,7 +30,8 @@ const STOCK_H = 104;
 
 /** zone_id grid; -1 is the rocket bay slot. */
 const FLOOR_LAYOUT: number[][] = [
-  [0, 7, 3], // top
+  [8, 9, 10], // surface (cordilheira, torres, catedral)
+  [0, 7, 3],
   [4, -1, 1],
   [5, 6, 2], // base
 ];
@@ -36,6 +45,9 @@ const ZONE_DIALOGUE: Record<number, string> = {
   5: '"Laboratório bioprogramável. A IA criou isso para controlar organismos. Nós vamos reapropriá-lo."\n— Dr. Valério',
   6: '"Complexo subterrâneo abandonado. Drones de patrulha ainda operacionais. Os corredores são um labirinto."\n— Dr. Valério',
   7: '"Centro de detenção da IA. Recursos e sobreviventes? Cada segundo lá dentro tem um preço."\n— Dr. Valério',
+  8: '"Favela silenciosa. Sem IA — só os que ficaram. Hostis, mas humanos. Atravesse com calma."\n— Dr. Valério',
+  9: '"Arranha-céus podres. Subir é metade da batalha; o que cai do alto é a outra metade."\n— Dr. Valério',
+  10: '"A Catedral. Relíquias, ritmo, ressonância. Pise certo e ela canta com você."\n— Dr. Valério',
 };
 
 /** Mirrors src/scenes/WorldMapScene.gd — bunker cross-section view. */
@@ -511,10 +523,18 @@ export class WorldMapScene extends Scene {
 
   private startRaid(zone: ZoneData): void {
     switch (zone.scene) {
-      case 'main':      void sceneManager.replace(new HordasScene()); break;
-      case 'field':     void sceneManager.replace(new FieldControlScene()); break;
-      case 'sacrifice': void sceneManager.replace(new SacrificeScene()); break;
-      default:          void sceneManager.replace(new StubRunScene(zone));
+      case 'main':        void sceneManager.replace(new HordasScene()); break;
+      case 'field':       void sceneManager.replace(new FieldControlScene()); break;
+      case 'sacrifice':   void sceneManager.replace(new SacrificeScene()); break;
+      case 'stealth':     void sceneManager.replace(new StealthScene()); break;
+      case 'circuit':     void sceneManager.replace(new CircuitoScene()); break;
+      case 'extraction':  void sceneManager.replace(new ExtractionScene()); break;
+      case 'infection':   void sceneManager.replace(new InfeccaoScene()); break;
+      case 'maze':        void sceneManager.replace(new LabirintoScene()); break;
+      case 'cordilheira': void sceneManager.replace(new CordilheiraScene()); break;
+      case 'torres':      void sceneManager.replace(new TorresScene()); break;
+      case 'catedral':    void sceneManager.replace(new CatedralScene()); break;
+      default:            void sceneManager.replace(new StubRunScene(zone));
     }
   }
 }

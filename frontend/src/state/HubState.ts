@@ -148,8 +148,8 @@ class HubStateClass {
   rescued_characters: string[] = [];
 
   // ── Zones ──
-  zones_unlocked: boolean[] = [true, true, true, true, true, true, true, true];
-  zone_deterioration: number[] = [0, 0, 0, 0, 0, 0, 0, 0];
+  zones_unlocked: boolean[] = [true, true, true, true, true, true, true, true, true, true, true];
+  zone_deterioration: number[] = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
   total_runs = 0;
 
   // ── Lore ──
@@ -249,9 +249,11 @@ class HubStateClass {
   }
 
   private checkZoneUnlocks(): void {
-    const thresholds = [0, 1, 2, 3, 4, 5, 6, 7];
+    // All 11 zones playable from start; thresholds kept for legacy snapshots
+    // and future gated re-introduction. Index 8..10 are surface-floor zones.
+    const thresholds = [0, 1, 2, 3, 4, 5, 6, 7, 0, 0, 0];
     for (let i = 0; i < this.zones_unlocked.length; i++) {
-      if (this.rocket_pieces_built >= thresholds[i]!) this.zones_unlocked[i] = true;
+      if (this.rocket_pieces_built >= (thresholds[i] ?? 0)) this.zones_unlocked[i] = true;
     }
   }
 
@@ -354,8 +356,15 @@ class HubStateClass {
     if (s.stock) Object.assign(this.stock, s.stock);
     if (typeof s.rocket_pieces_built === 'number') this.rocket_pieces_built = s.rocket_pieces_built;
     if (Array.isArray(s.rescued_characters)) this.rescued_characters = s.rescued_characters.slice();
-    if (Array.isArray(s.zones_unlocked)) this.zones_unlocked = s.zones_unlocked.slice();
-    if (Array.isArray(s.zone_deterioration)) this.zone_deterioration = s.zone_deterioration.slice();
+    if (Array.isArray(s.zones_unlocked)) {
+      this.zones_unlocked = s.zones_unlocked.map((v) => v === true);
+      // Legacy 8-element saves: pad the new surface zones (8..10) as unlocked.
+      while (this.zones_unlocked.length < 11) this.zones_unlocked.push(true);
+    }
+    if (Array.isArray(s.zone_deterioration)) {
+      this.zone_deterioration = s.zone_deterioration.slice();
+      while (this.zone_deterioration.length < 11) this.zone_deterioration.push(0);
+    }
     if (typeof s.total_runs === 'number') this.total_runs = s.total_runs;
     if (Array.isArray(s.lore_found)) this.lore_found = s.lore_found.slice();
     if (s.hub_variant && s.hub_variant in HUB_VARIANTS) this.hub_variant = s.hub_variant;
