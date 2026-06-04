@@ -25,8 +25,12 @@ export class App {
       viewportH: GameConfig.VIEWPORT_HEIGHT,
       intensity: 0.25,
     });
-    this.world.filters = [this.crt];
-    this.world.filterArea = this.pixi.screen;
+    // The CRT is a full-screen post-process, so it lives on the stage — which
+    // is always screen-aligned and unscaled. Applying it to the non-uniformly
+    // scaled `world` made Pixi mis-compute the filter region and clip the
+    // right edge of the frame, leaving a dead band the game did not fill.
+    this.stage.filters = [this.crt];
+    this.stage.filterArea = this.pixi.screen;
     this.pixi.ticker.add(() => this.crt.tick());
 
     // We manage the renderer size ourselves instead of relying on Pixi's
