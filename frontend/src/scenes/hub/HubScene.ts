@@ -3,7 +3,7 @@ import { Scene } from '../../core/Scene';
 import { sceneManager } from '../../core/SceneManager';
 import { Color } from '../../core/Color';
 import { GameConfig } from '../../state/GameConfig';
-import { HubState, HUB_VARIANTS, ROCKET_RECIPE, type HubVariantKey } from '../../state/HubState';
+import { HubState, ROCKET_RECIPE } from '../../state/HubState';
 import { HubData, ROOM_TO_ZONE } from '../../state/HubData';
 import { ZONES } from '../../state/Zones';
 import { StubRunScene } from '../runs/StubRunScene';
@@ -25,7 +25,6 @@ import { HubCharacterCard } from '../../ui/hub/HubCharacterCard';
 import { HubRocketPanel } from '../../ui/hub/HubRocketPanel';
 import { HubZoomPanel } from '../../ui/hub/HubZoomPanel';
 import { Modal } from '../../ui/Modal';
-import { PixiButton } from '../../ui/PixiButton';
 
 /** Mirrors src/scenes/hub/HubScene.gd. Root scene of the bunker view. */
 export class HubScene extends Scene {
@@ -181,7 +180,6 @@ export class HubScene extends Scene {
 
   // ── Resource strip (folds the old World Map stock readout into the hub) ────
   private resourceText: Text | null = null;
-  private themeBtn: PixiButton | null = null;
 
   private buildResourceStrip(): void {
     const VW = GameConfig.VIEWPORT_WIDTH;
@@ -211,42 +209,11 @@ export class HubScene extends Scene {
     bar.addChild(txt);
     this.resourceText = txt;
 
-    // Compact theme cycler (replaces the old top variant bar).
-    const tbW = 78;
-    const tbH = 20;
-    const themeBtn = new PixiButton({
-      label: '',
-      width: tbW,
-      height: tbH,
-      fontSize: 9,
-      fill: 0x18221b,
-      hoverFill: 0x243328,
-      textColor: 0x9fe9cf,
-      onClick: () => this.cycleVariant(),
-    });
-    themeBtn.x = VW - tbW - 8;
-    themeBtn.y = y + (stripH - tbH) / 2;
-    bar.addChild(themeBtn);
-    this.themeBtn = themeBtn;
-
     this.uiLayer.addChild(bar);
 
     this.refreshResourceStrip();
-    this.refreshThemeBtn();
     this.disposers.push(HubState.stockChanged.connect(() => this.refreshResourceStrip()));
     this.disposers.push(HubState.rocketPieceBuilt.connect(() => this.refreshResourceStrip()));
-    this.disposers.push(HubState.hubVariantChanged.connect(() => this.refreshThemeBtn()));
-  }
-
-  private cycleVariant(): void {
-    const keys = Object.keys(HUB_VARIANTS) as HubVariantKey[];
-    const i = keys.indexOf(HubState.hub_variant);
-    const next = keys[(i + 1) % keys.length]!;
-    HubState.setHubVariant(next);
-  }
-
-  private refreshThemeBtn(): void {
-    this.themeBtn?.setLabel(`◑ ${HubState.hub_variant.toUpperCase()}`);
   }
 
   private refreshResourceStrip(): void {
