@@ -52,7 +52,7 @@ export class StartScene extends Scene {
 
   override update(dt: number): void {
     this.elapsed += dt;
-    this.title.y = 154 + Math.sin(this.elapsed * 1.5) * 3;
+    this.title.y = 156 + Math.sin(this.elapsed * 1.5) * 3;
     this.prompt.alpha = 0.55 + Math.sin(this.elapsed * 4) * 0.25;
 
     for (const spore of this.spores) {
@@ -82,8 +82,8 @@ export class StartScene extends Scene {
 
     const haze = new Graphics();
     haze
-      .rect(0, 0, W, H).fill({ color: 0x06120d, alpha: 0.6 })
-      .rect(0, H * 0.58, W, H * 0.42).fill({ color: 0x180b0c, alpha: 0.45 });
+      .rect(0, 0, W, H).fill({ color: 0x06120d, alpha: 0.45 })
+      .rect(0, H * 0.58, W, H * 0.42).fill({ color: 0x180b0c, alpha: 0.38 });
     this.root.addChild(haze);
   }
 
@@ -131,35 +131,52 @@ export class StartScene extends Scene {
   }
 
   private addTitleBlock(): void {
+    // Dark backing panel so the title group reads clearly over the busy art.
+    const panel = new Graphics();
+    const px = 28;
+    const py = 88;
+    const pw = W - px * 2;
+    const ph = 142;
+    panel
+      .roundRect(px, py, pw, ph, 12)
+      .fill({ color: 0x04100b, alpha: 0.62 })
+      .roundRect(px, py, pw, ph, 12)
+      .stroke({ color: 0x4dc7b9, width: 1, alpha: 0.28 })
+      // thin accent line at the top edge
+      .rect(px + 16, py + 0.5, pw - 32, 1).fill({ color: 0x6fe3d4, alpha: 0.35 });
+    this.root.addChild(panel);
+
     const eyebrow = new Text({
       text: 'PROTOCOLO DE SOBREVIVENCIA',
       style: {
         fontFamily: FontFamily.mono,
-        fontSize: 10,
+        fontSize: 11,
         fill: TextColor.bio,
         fontWeight: '700',
         letterSpacing: 2,
+        dropShadow: { color: 0x000000, alpha: 0.7, blur: 2, distance: 1, angle: Math.PI / 2 },
       },
     });
     eyebrow.anchor.set(0.5);
     eyebrow.x = W / 2;
-    eyebrow.y = 112;
+    eyebrow.y = 114;
     this.root.addChild(eyebrow);
 
     this.title = new Text({
       text: 'FUNGINEER',
       style: {
         fontFamily: FontFamily.display,
-        fontSize: 44,
-        fill: 0xe6f0d9,
+        fontSize: 46,
+        fill: 0xf2f8ea,
         fontWeight: '900',
         align: 'center',
-        stroke: { color: 0x102819, width: 4 },
+        stroke: { color: 0x0a1f14, width: 5 },
+        dropShadow: { color: 0x000000, alpha: 0.55, blur: 5, distance: 2, angle: Math.PI / 2 },
       },
     });
     this.title.anchor.set(0.5);
     this.title.x = W / 2;
-    this.title.y = 154;
+    this.title.y = 156;
     this.root.addChild(this.title);
 
     const subtitle = new Text({
@@ -167,43 +184,48 @@ export class StartScene extends Scene {
       style: {
         fontFamily: FontFamily.body,
         fontSize: 14,
-        fill: TextColor.muted,
+        fill: TextColor.ink,
         fontWeight: '600',
+        dropShadow: { color: 0x000000, alpha: 0.7, blur: 2, distance: 1, angle: Math.PI / 2 },
       },
     });
     subtitle.anchor.set(0.5);
     subtitle.x = W / 2;
-    subtitle.y = 202;
+    subtitle.y = 204;
     this.root.addChild(subtitle);
   }
 
   private addStartButton(): void {
+    const bw = 272;
+    const bh = 58;
     const btn = new PixiButton({
       label: 'COMEÇAR JOGO',
-      width: 250,
-      height: 48,
-      fill: 0x173322,
-      hoverFill: 0x214a31,
-      textColor: 0x6dffba,
-      fontSize: 15,
+      width: bw,
+      height: bh,
+      fill: 0x1f4a30,
+      hoverFill: 0x2c6a43,
+      textColor: 0x9dffce,
+      fontSize: 17,
       onClick: () => this.startGame(),
     });
-    btn.x = W / 2 - 125;
-    btn.y = H - 214;
+    btn.x = W / 2 - bw / 2;
+    btn.y = H - 220;
     this.root.addChild(btn);
 
     this.prompt = new Text({
       text: 'ENTER / TOQUE PARA INICIAR',
       style: {
         fontFamily: FontFamily.mono,
-        fontSize: 10,
-        fill: Color.hex(Color.rgb(0.74, 0.82, 0.68)),
+        fontSize: 11,
+        fill: Color.hex(Color.rgb(0.82, 0.9, 0.76)),
         fontWeight: '600',
+        letterSpacing: 1,
+        dropShadow: { color: 0x000000, alpha: 0.7, blur: 2, distance: 1, angle: Math.PI / 2 },
       },
     });
     this.prompt.anchor.set(0.5);
     this.prompt.x = W / 2;
-    this.prompt.y = H - 148;
+    this.prompt.y = H - 150;
     this.root.addChild(this.prompt);
   }
 
