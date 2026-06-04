@@ -1,6 +1,7 @@
 import { App } from './core/App';
 import { sceneManager } from './core/SceneManager';
 import { audioManager } from './core/AudioManager';
+import { audioSettings } from './state/AudioSettings';
 import { saveService } from './state/SaveService';
 import { StartScene } from './scenes/StartScene';
 import { registerSW } from './pwa/registerSW';
@@ -11,6 +12,7 @@ async function bootstrap(): Promise<void> {
 
   const app = await App.create(host);
   sceneManager.attach(app);
+  audioSettings.init();
   audioManager.unlockOnFirstGesture();
 
   // Restore HubState before mounting the first scene, then start watching
