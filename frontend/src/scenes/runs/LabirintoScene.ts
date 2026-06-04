@@ -1,4 +1,4 @@
-import { Graphics, Text } from 'pixi.js';
+import { Container, Graphics, Text } from 'pixi.js';
 import { Scene } from '../../core/Scene';
 import { audioManager } from '../../core/AudioManager';
 import { Color } from '../../core/Color';
@@ -6,6 +6,7 @@ import { FontFamily, TextColor } from '../../core/typography';
 import { GameConfig } from '../../state/GameConfig';
 import { HubState } from '../../state/HubState';
 import { ZONES } from '../../state/Zones';
+import { RunJuice } from '../../run/fx/RunJuice';
 import { buildHud, buildEndOverlay, type RunHud } from './RunFrame';
 
 const VW = GameConfig.VIEWPORT_WIDTH;
@@ -38,12 +39,14 @@ interface Box { x: number; y: number }
 /** LABIRINTO — Sokoban. Push fragmentos estruturais into the receptors.
  *  One push at a time, can't pull. Solve the room to bank fragments. */
 export class LabirintoScene extends Scene {
+  private content = new Container();
   private bg = new Graphics();
   private mapG = new Graphics();
   private boxG = new Graphics();
   private playerG = new Graphics();
   private statusLabel!: Text;
   private hud!: RunHud;
+  private juice!: RunJuice;
 
   private tiles: Tile[][] = [];
   private boxes: Box[] = [];
@@ -67,16 +70,17 @@ export class LabirintoScene extends Scene {
 
   override async enter(): Promise<void> {
     this.bg.rect(0, 0, VW, VH).fill({ color: 0x06080a });
-    this.root.addChild(this.bg);
+    this.content.addChild(this.bg);
+    this.root.addChild(this.content);
 
     this.parseLevel(LEVELS[0]!);
     this.tile = Math.floor(Math.min((VH - 200) / this.rows, (VW - 32) / this.cols));
     this.offsetX = Math.floor((VW - this.cols * this.tile) / 2);
     this.offsetY = 80;
 
-    this.root.addChild(this.mapG);
-    this.root.addChild(this.boxG);
-    this.root.addChild(this.playerG);
+    this.content.addChild(this.mapG, this.boxG, this.playerG);
+
+    this.juice = new RunJuice(this.root, { accent: Color.hex(ZONE.accent_color), shakeTarget: this.content, ambient: 22 });
 
     this.hud = buildHud(ZONE);
     this.root.addChild(this.hud.container);
@@ -102,11 +106,13 @@ export class LabirintoScene extends Scene {
   override exit(): void {
     audioManager.stopMusic(300);
     this.cleanup?.();
+    this.juice.destroy();
   }
 
   override update(dt: number): void {
-    if (this.ended) return;
     const d = Math.min(dt, 1 / 30);
+    this.juice.update(d);
+    if (this.ended) return;
     this.elapsed += d;
     this.timeLeft -= d;
     if (this.timeLeft <= 0) { this.end(false); return; }
@@ -179,7 +185,12 @@ export class LabirintoScene extends Scene {
       const by = b.y + my;
       if (this.tile_(bx, by) === '#') return;
       if (this.boxAt(bx, by)) return;
+      const wasOnSlot = this.slots.some((s) => s.x === b.x && s.y === b.y);
       b.x = bx; b.y = by;
+      const nowOnSlot = this.slots.some((s) => s.x === bx && s.y === by);
+      if (nowOnSlot && !wasOnSlot) {
+        this.juice.pop(this.offsetX + bx * this.tile + this.tile / 2, this.offsetY + by * this.tile + this.tile / 2);
+      }
     }
     this.px = nx; this.py = ny;
   }
@@ -273,6 +284,7 @@ export class LabirintoScene extends Scene {
   private end(victory: boolean): void {
     if (this.ended) return;
     this.ended = true;
+    if (victory) this.juice.victoryFx(); else this.juice.defeatFx();
     if (victory && this.banked > 0) {
       HubState.depositFlow('fragmentos_estruturais', this.banked);
     }

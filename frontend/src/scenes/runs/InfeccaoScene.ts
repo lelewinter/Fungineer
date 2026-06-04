@@ -1,10 +1,11 @@
-import { Graphics } from 'pixi.js';
+import { Container, Graphics } from 'pixi.js';
 import { Scene } from '../../core/Scene';
 import { audioManager } from '../../core/AudioManager';
 import { Color } from '../../core/Color';
 import { GameConfig } from '../../state/GameConfig';
 import { HubState } from '../../state/HubState';
 import { ZONES } from '../../state/Zones';
+import { RunJuice } from '../../run/fx/RunJuice';
 import { buildHud, buildEndOverlay, type RunHud } from './RunFrame';
 
 const VW = GameConfig.VIEWPORT_WIDTH;
@@ -61,12 +62,14 @@ interface Ghost { x: number; y: number; dir: { x: number; y: number }; scared: n
  *  Sterilization drones (ghosts) patrol; touch one and you're cleaned. Power
  *  pellets briefly let you eat them for bonus biomass. */
 export class InfeccaoScene extends Scene {
+  private content = new Container();
   private bg = new Graphics();
   private mazeG = new Graphics();
   private pelletG = new Graphics();
   private playerG = new Graphics();
   private ghostsG = new Graphics();
   private hud!: RunHud;
+  private juice!: RunJuice;
 
   private cells: Cell[][] = MAZE.map((row) => row.slice());
   private px = 1;
@@ -91,7 +94,8 @@ export class InfeccaoScene extends Scene {
 
   override async enter(): Promise<void> {
     this.bg.rect(0, 0, VW, VH).fill({ color: 0x040806 });
-    this.root.addChild(this.bg);
+    this.content.addChild(this.bg);
+    this.root.addChild(this.content);
 
     this.offsetX = Math.floor((VW - COLS * TILE) / 2);
     // Find player start (first open cell from top-left).
@@ -117,10 +121,9 @@ export class InfeccaoScene extends Scene {
       this.ghosts.push({ x: cx, y: cy, dir: { x: i === 0 ? 1 : (i === 1 ? -1 : 0), y: i === 2 ? 1 : 0 }, scared: 0 });
     }
 
-    this.root.addChild(this.mazeG);
-    this.root.addChild(this.pelletG);
-    this.root.addChild(this.playerG);
-    this.root.addChild(this.ghostsG);
+    this.content.addChild(this.mazeG, this.pelletG, this.playerG, this.ghostsG);
+
+    this.juice = new RunJuice(this.root, { accent: Color.hex(ZONE.accent_color), shakeTarget: this.content, ambient: 24 });
 
     this.drawMaze();
     this.hud = buildHud(ZONE);
@@ -137,11 +140,20 @@ export class InfeccaoScene extends Scene {
   override exit(): void {
     audioManager.stopMusic(300);
     this.cleanup?.();
+    this.juice.destroy();
+  }
+
+  private playerScreen(): { x: number; y: number } {
+    return {
+      x: this.offsetX + this.px * TILE + TILE / 2 + this.pxOff,
+      y: this.offsetY + this.py * TILE + TILE / 2 + this.pyOff,
+    };
   }
 
   override update(dt: number): void {
-    if (this.ended) return;
     const d = Math.min(dt, 1 / 30);
+    this.juice.update(d);
+    if (this.ended) return;
     this.elapsed += d;
     this.timeLeft -= d;
     this.power = Math.max(0, this.power - d);
@@ -156,12 +168,15 @@ export class InfeccaoScene extends Scene {
       if (Math.hypot(g.x - (this.px + this.pxOff / TILE), g.y - (this.py + this.pyOff / TILE)) < 0.55) {
         if (g.scared > 0) {
           this.banked += 5;
+          this.juice.pop(this.offsetX + g.x * TILE + TILE / 2, this.offsetY + g.y * TILE + TILE / 2);
           g.scared = 0;
           // respawn at center
           g.x = Math.floor(COLS / 2);
           g.y = Math.floor(ROWS / 2);
           g.dir = { x: 0, y: -1 };
         } else {
+          const p = this.playerScreen();
+          this.juice.hurt(p.x, p.y);
           this.end(false);
           return;
         }
@@ -215,6 +230,9 @@ export class InfeccaoScene extends Scene {
       this.banked += 2;
       this.power = POWER_TIME;
       for (const g of this.ghosts) g.scared = POWER_TIME;
+      const p = this.playerScreen();
+      this.juice.pop(p.x, p.y);
+      this.juice.flash(0x4d7adb, 0.16, 0.3);
     }
   }
 
@@ -350,6 +368,7 @@ export class InfeccaoScene extends Scene {
   private end(victory: boolean): void {
     if (this.ended) return;
     this.ended = true;
+    if (victory) this.juice.victoryFx(); else this.juice.defeatFx();
     if (victory && this.banked > 0) {
       HubState.depositFlow('biomassa_adaptativa', Math.ceil(this.banked / 4));
     }

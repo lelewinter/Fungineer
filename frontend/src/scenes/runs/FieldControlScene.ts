@@ -7,11 +7,14 @@ import { FontFamily, TextColor } from '../../core/typography';
 import { GameConfig } from '../../state/GameConfig';
 import { GameState, RunState } from '../../state/GameState';
 import { HubState } from '../../state/HubState';
+import { ZONES } from '../../state/Zones';
+import { RunJuice } from '../../run/fx/RunJuice';
 import { HubScene } from '../hub/HubScene';
 import type { Vec2 } from '../../core/types';
 
 const VW = GameConfig.VIEWPORT_WIDTH;
 const VH = GameConfig.VIEWPORT_HEIGHT;
+const ZONE = ZONES[4]!;
 
 const PLAYER_SPEED = 200;
 const PLAYER_R = 14;
@@ -53,11 +56,13 @@ const SPAWN_POINTS: Vec2[] = [
 /** Controle de Campo — capture 6 zones, generate sinais_controle.
  *  Port of src/scenes/runs/FieldControlMain.gd. */
 export class FieldControlScene extends Scene {
+  private content = new Container();
   private bg = new Graphics();
   private zoneG = new Graphics();
   private recapG = new Graphics();
   private playerG = new Graphics();
   private endOverlay = new Container();
+  private juice!: RunJuice;
   private hudLayer = new Container();
   private hudBg = new Graphics();
   private timerLabel!: Text;
@@ -93,6 +98,7 @@ export class FieldControlScene extends Scene {
     this.squadHp = this.squadMaxHp;
     this.buildZones();
     this.buildVisuals();
+    this.juice = new RunJuice(this.root, { accent: Color.hex(ZONE.accent_color), shakeTarget: this.content, ambient: 26 });
     this.buildHud();
     this.bindPointer();
     audioManager.playMusic('res://assets/audio/music/zones/field_theme_1.wav', { loop: true, volume: 0.32, fadeMs: 400 }).catch(() => undefined);
@@ -101,12 +107,14 @@ export class FieldControlScene extends Scene {
   override async exit(): Promise<void> {
     this.unbindPointer();
     audioManager.stopMusic(250);
+    this.juice.destroy();
   }
 
   override update(dt: number): void {
+    const capped = Math.min(dt, 1 / 30);
+    this.juice.update(capped);
     if (this.runEnded) return;
     if (GameState.current_state !== RunState.PLAYING) return;
-    const capped = Math.min(dt, 1 / 30);
     this.pulse += capped;
     this.damageFlash = Math.max(0, this.damageFlash - capped * 3);
     this.runTimer -= capped;
@@ -133,11 +141,8 @@ export class FieldControlScene extends Scene {
   // ── Build ──────────────────────────────────────────────────────────────
   private buildVisuals(): void {
     this.bg.rect(0, 0, VW, VH).fill(Color.hex(Color.rgb(0.03, 0.03, 0.06)));
-    this.root.addChild(this.bg);
-    this.root.addChild(this.zoneG);
-    this.root.addChild(this.warningLabels);
-    this.root.addChild(this.recapG);
-    this.root.addChild(this.playerG);
+    this.content.addChild(this.bg, this.zoneG, this.warningLabels, this.recapG, this.playerG);
+    this.root.addChild(this.content);
   }
 
   private buildZones(): void {
@@ -274,6 +279,8 @@ export class FieldControlScene extends Scene {
       }
     }
     for (let i = toRemove.length - 1; i >= 0; i--) {
+      const rec = this.recapturers[toRemove[i]!];
+      if (rec) this.juice.pop(rec.pos.x, rec.pos.y, 0xffa040);
       this.recapturers.splice(toRemove[i]!, 1);
       this.signalsAcc += KILL_REWARD;
     }
@@ -287,6 +294,7 @@ export class FieldControlScene extends Scene {
     let totalRecapturerDps = 0;
     let zonesCaptured = 0;
     for (const z of this.zones) {
+      const wasCaptured = z.bar >= 1;
       const dx = this.playerPos.x - z.center.x;
       const dy = this.playerPos.y - z.center.y;
       const playerIn = Math.hypot(dx, dy) < z.radius + this.squadCoverage();
@@ -321,6 +329,11 @@ export class FieldControlScene extends Scene {
       } else {
         z.state = z.bar >= 1 ? 'captured' : 'neutral';
       }
+      if (z.bar >= 1 && !wasCaptured) {
+        this.juice.pop(z.center.x, z.center.y);
+        this.juice.flash(undefined, 0.10, 0.2);
+        this.juice.shockwave(undefined, 0.45);
+      }
       if (z.bar >= 1) zonesCaptured++;
     }
 
@@ -334,6 +347,8 @@ export class FieldControlScene extends Scene {
     if (totalRecapturerDps > 0) {
       this.squadHp -= totalRecapturerDps * dt;
       this.damageFlash = Math.max(this.damageFlash, 0.4);
+      this.juice.edges(0xff2f3d, 0.05);
+      this.juice.shake(0.02);
       if (this.squadHp <= 0) {
         this.squadHp = 0;
         this.endRun(false);
@@ -434,6 +449,7 @@ export class FieldControlScene extends Scene {
     if (this.runEnded) return;
     this.runEnded = true;
     this.victory = victory;
+    if (victory) this.juice.victoryFx(); else this.juice.defeatFx();
     if (victory) HubState.depositFlow('sinais_controle', Math.floor(this.signalsAcc));
     HubState.onRunEnded(victory);
     GameState.endRun(victory);
