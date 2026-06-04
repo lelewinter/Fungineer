@@ -78,7 +78,7 @@ export class TorresScene extends Scene {
 
     this.hud = buildHud(ZONE);
     this.root.addChild(this.hud.container);
-    this.hud.setStatus('escalada');
+    this.hud.setStatus('escalada vertical');
 
     this.bindPointer();
     this.drawStatic();
@@ -324,8 +324,8 @@ export class TorresScene extends Scene {
     this.root.addChild(buildEndOverlay({
       zone: ZONE,
       victory,
-      rewardLabel: `+${reward} Comp. de IA`,
-      failLabel: 'Barril te derrubou.',
+      rewardLabel: `+${reward} Cristais de Memória — servidores acessados`,
+      failLabel: 'Canister de patrulha. Queda confirmada.',
     }));
   }
 }

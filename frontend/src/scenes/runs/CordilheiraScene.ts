@@ -83,7 +83,7 @@ export class CordilheiraScene extends Scene {
 
     this.hud = buildHud(ZONE);
     this.root.addChild(this.hud.container);
-    this.hud.setStatus('travessia');
+    this.hud.setStatus('travessia urbana');
 
     this.statusLabel = new Text({
       text: 'arraste para pular',
@@ -253,8 +253,8 @@ export class CordilheiraScene extends Scene {
     this.root.addChild(buildEndOverlay({
       zone: ZONE,
       victory,
-      rewardLabel: `+${this.banked * 2} Sucata`,
-      failLabel: 'Pego pela ronda.',
+      rewardLabel: `+${this.banked * 2} Memórias Coletivas — travessias concluídas`,
+      failLabel: 'Bloqueado pela ronda. Recue.',
     }));
   }
 }

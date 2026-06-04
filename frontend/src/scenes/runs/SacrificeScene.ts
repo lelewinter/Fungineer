@@ -731,7 +731,7 @@ export class SacrificeScene extends Scene {
     this.endOverlay.addChild(msg);
     if (this.victory) {
       const sub = new Text({
-        text: `+ ${this.backpack.length} recursos`,
+        text: `+ ${this.backpack.length} recursos — câmaras autorizadas`,
         style: { fontFamily: FontFamily.body, fontSize: 18, fill: 0xf2c64d, fontWeight: '600' },
       });
       sub.anchor.set(0.5);

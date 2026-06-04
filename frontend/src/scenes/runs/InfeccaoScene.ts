@@ -128,7 +128,7 @@ export class InfeccaoScene extends Scene {
     this.drawMaze();
     this.hud = buildHud(ZONE);
     this.root.addChild(this.hud.container);
-    this.hud.setStatus('propagação');
+    this.hud.setStatus('propagação orgânica');
 
     this.bindPointer();
 
@@ -376,8 +376,8 @@ export class InfeccaoScene extends Scene {
     this.root.addChild(buildEndOverlay({
       zone: ZONE,
       victory,
-      rewardLabel: `+${Math.ceil(this.banked / 4)} Biomassa Adapt.`,
-      failLabel: 'Esterilizado pelo dron.',
+      rewardLabel: `+${Math.ceil(this.banked / 4)} Biomassa Adaptativa — nós consumidos`,
+      failLabel: 'Esterilizado. Protocolo NERVE ativo.',
     }));
   }
 }

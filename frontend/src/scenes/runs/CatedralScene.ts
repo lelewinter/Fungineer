@@ -266,8 +266,8 @@ export class CatedralScene extends Scene {
     this.root.addChild(buildEndOverlay({
       zone: ZONE,
       victory,
-      rewardLabel: `+${Math.ceil(reward / 4)} Frag. Estruturais`,
-      failLabel: 'Relíquia te alcançou.',
+      rewardLabel: `+${Math.ceil(reward / 4)} Relíquias — padrão ressonante completo`,
+      failLabel: 'Probe de ARGOS. Padrão interrompido.',
     }));
   }
 }
