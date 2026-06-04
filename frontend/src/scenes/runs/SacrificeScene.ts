@@ -101,6 +101,7 @@ export class SacrificeScene extends Scene {
   private hpLabel!: Text;
   private exitLabel!: Text;
   private hubTitle!: Text;
+  private coreLabel!: Text;
 
   private chambers: Chamber[] = [];
   private backpack: string[] = [];
@@ -328,6 +329,12 @@ export class SacrificeScene extends Scene {
     this.exitLabel.anchor.set(0.5);
     this.exitLabel.x = EXIT_RECT.x + EXIT_RECT.w / 2;
     this.exitLabel.y = EXIT_RECT.y + EXIT_RECT.h / 2;
+
+    // CORE is polite about the exchange.
+    this.coreLabel = new Text({ text: 'ACESSO DISPONÍVEL · CUSTO CALCULADO', style: { fontFamily: FontFamily.mono, fontSize: 7, fill: 0x8a6a78, letterSpacing: 1 } });
+    this.coreLabel.anchor.set(0.5);
+    this.coreLabel.x = HUB_CENTER.x;
+    this.coreLabel.y = HUB_CENTER.y + 40;
   }
 
   // ── Input ──────────────────────────────────────────────────────────────
@@ -526,12 +533,19 @@ export class SacrificeScene extends Scene {
     this.hubG.rect(EXIT_RECT.x, EXIT_RECT.y, EXIT_RECT.w, EXIT_RECT.h)
       .fill(Color.hex(Color.rgb(0.10, 0.35, 0.12)))
       .stroke({ color: Color.hex(Color.rgb(0.25, 0.90, 0.30)), width: 2, alpha: 0.9 });
+    // CORE's ceiling camera cluster, watching the exchange.
+    const camY = HUB_RECT.y + 10;
+    this.hubG.circle(HUB_CENTER.x, camY, 6).fill({ color: 0x14141c, alpha: 0.92 })
+      .circle(HUB_CENTER.x, camY, 6).stroke({ color: 0x4a3a44, width: 1, alpha: 0.7 });
+    const camBlink = 0.4 + 0.6 * Math.abs(Math.sin(this.pulse * 2));
+    this.hubG.circle(HUB_CENTER.x, camY, 2).fill({ color: 0xc24d4d, alpha: 0.5 + 0.4 * camBlink });
 
     // Chambers
     this.chamberG.clear();
     this.labelLayer.removeChildren();
     this.labelLayer.addChild(this.hubTitle);
     this.labelLayer.addChild(this.exitLabel);
+    this.labelLayer.addChild(this.coreLabel);
 
     for (let i = 0; i < this.chambers.length; i++) {
       const ch = this.chambers[i]!;

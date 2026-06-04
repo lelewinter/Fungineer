@@ -1,4 +1,4 @@
-import { Container, Graphics } from 'pixi.js';
+import { Container, Graphics, Text } from 'pixi.js';
 import { Scene } from '../../core/Scene';
 import { audioManager } from '../../core/AudioManager';
 import { Color } from '../../core/Color';
@@ -63,6 +63,16 @@ export class CircuitoScene extends Scene {
       .stroke({ color: accent, width: 2, alpha: 0.6 });
     this.content.addChild(this.bg, this.trailG, this.nodeG, this.headG);
     this.root.addChild(this.content);
+
+    // NERVE attribution — Marcus designed these conduits.
+    const sig = new Text({
+      text: 'M.CHEN · NERVE v2.4',
+      style: { fontFamily: '"IBM Plex Mono", ui-monospace, monospace', fontSize: 7, fill: 0x2f6a54, letterSpacing: 1 },
+    });
+    sig.anchor.set(1, 1);
+    sig.x = this.boundaryRect.x + this.boundaryRect.w - 4;
+    sig.y = this.boundaryRect.y + this.boundaryRect.h - 4;
+    this.content.addChild(sig);
 
     this.spawnNodes(4);
 
@@ -174,9 +184,10 @@ export class CircuitoScene extends Scene {
     this.nodeG.clear();
     const pulse = 0.5 + 0.5 * Math.sin(this.elapsed * 3);
     for (const n of this.nodes) {
+      // Relay junction — diamond node.
       this.nodeG.circle(n.x, n.y, NODE_R + 3).fill({ color: 0xffffff, alpha: 0.08 * pulse });
-      this.nodeG.rect(n.x - NODE_R, n.y - NODE_R, NODE_R * 2, NODE_R * 2).fill({ color: accent, alpha: 0.85 });
-      this.nodeG.rect(n.x - 3, n.y - 3, 6, 6).fill({ color: 0xffffff });
+      this.nodeG.poly([n.x, n.y - NODE_R, n.x + NODE_R, n.y, n.x, n.y + NODE_R, n.x - NODE_R, n.y]).fill({ color: accent, alpha: 0.85 });
+      this.nodeG.poly([n.x, n.y - 3.5, n.x + 3.5, n.y, n.x, n.y + 3.5, n.x - 3.5, n.y]).fill({ color: 0xffffff });
     }
 
     this.headG.clear();

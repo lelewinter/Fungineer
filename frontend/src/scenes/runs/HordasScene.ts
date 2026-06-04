@@ -140,6 +140,20 @@ export class HordasScene extends Scene {
       this.world.bgLayer.addChild(grid);
     }
 
+    // This was a CLEAN logistics corridor: faded lane markings + the husks
+    // of cleaning drones half-embedded where they finally stopped.
+    const deco = new Graphics();
+    for (let y = 240; y < H; y += 360) {
+      deco.rect(40, y, W - 80, 5).fill({ color: 0xc8821e, alpha: 0.05 });
+    }
+    const husks: Array<[number, number]> = [[140, 360], [W - 200, 900], [360, H - 320], [W - 320, 420]];
+    for (const [cx, cy] of husks) {
+      deco.rect(cx, cy, 46, 26).fill({ color: 0x16161a, alpha: 0.6 })
+        .rect(cx + 4, cy + 4, 38, 18).stroke({ color: 0x44484e, width: 1, alpha: 0.45 })
+        .circle(cx + 10, cy + 13, 4).stroke({ color: 0x3a3e44, width: 1, alpha: 0.4 });
+    }
+    this.world.bgLayer.addChild(deco);
+
     const borderColor = Color.hex(Color.rgb(0.42, 0.62, 0.40));
     const t = 4;
     this.arenaBorder

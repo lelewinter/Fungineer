@@ -95,6 +95,16 @@ export class LabirintoScene extends Scene {
     this.statusLabel.y = VH - 50;
     this.root.addChild(this.statusLabel);
 
+    // An undelivered manifest, frozen on a hub terminal.
+    const manifest = new Text({
+      text: 'MANIFESTO #7741 · DESTINATÁRIO NÃO CATEGORIZADO',
+      style: { fontFamily: FontFamily.mono, fontSize: 8, fill: 0x6b5a3a, letterSpacing: 1 },
+    });
+    manifest.anchor.set(0.5);
+    manifest.x = VW / 2;
+    manifest.y = 50;
+    this.root.addChild(manifest);
+
     this.bindPointer();
     this.drawMap();
 
@@ -249,13 +259,19 @@ export class LabirintoScene extends Scene {
         const y = this.offsetY + r * this.tile;
         const t = this.tiles[r]![c]!;
         if (t === '#') {
+          // FLOW cargo-bay door panel with a directional chevron.
           this.mapG.rect(x, y, this.tile, this.tile).fill({ color: 0x1f2127 });
           this.mapG.rect(x + 2, y + 2, this.tile - 4, this.tile - 4).fill({ color: 0x2c3038 });
+          this.mapG.poly([x + this.tile * 0.34, y + this.tile * 0.34, x + this.tile * 0.52, y + this.tile * 0.5, x + this.tile * 0.34, y + this.tile * 0.66])
+            .stroke({ color: 0x3c434c, width: 1.5, alpha: 0.55 });
         } else if (t === '.') {
           this.mapG.rect(x, y, this.tile, this.tile).fill({ color: 0x101418 });
         } else if (t === 'X') {
+          // Cargo deposit station — recessed bay with a hazard-stripe frame.
           this.mapG.rect(x, y, this.tile, this.tile).fill({ color: 0x101418 });
-          this.mapG.circle(x + this.tile / 2, y + this.tile / 2, this.tile * 0.18)
+          this.mapG.rect(x + 4, y + 4, this.tile - 8, this.tile - 8).fill({ color: 0x16191e });
+          this.mapG.rect(x + 3, y + 3, this.tile - 6, this.tile - 6).stroke({ color: 0xb8a13a, width: 2, alpha: 0.55 });
+          this.mapG.circle(x + this.tile / 2, y + this.tile / 2, this.tile * 0.16)
             .stroke({ color: accent, width: 2, alpha: 0.85 });
         }
       }
@@ -272,6 +288,8 @@ export class LabirintoScene extends Scene {
       const color = onSlot ? accent : 0x8e7d5a;
       this.boxG.rect(x + 3, y + 3, this.tile - 6, this.tile - 6).fill({ color, alpha: 0.95 });
       this.boxG.rect(x + 6, y + 6, this.tile - 12, this.tile - 12).fill({ color: 0xffffff, alpha: onSlot ? 0.4 : 0.18 });
+      // Cargo-container label stripe.
+      this.boxG.rect(x + 5, y + this.tile / 2 - 2, this.tile - 10, 4).fill({ color: 0x000000, alpha: 0.28 });
     }
     const px = this.offsetX + this.px * this.tile + this.tile / 2;
     const py = this.offsetY + this.py * this.tile + this.tile / 2;

@@ -66,6 +66,12 @@ export class TorresScene extends Scene {
       const h = 200 + ((i * 91) % 300);
       this.bg.rect(x, VH - h, w, h).fill({ color: 0x0a1018, alpha: 0.5 });
     }
+    // The still-operational city grid glittering far below.
+    for (let i = 0; i < 44; i++) {
+      const lx = (i * 53.7) % VW;
+      const ly = VH * 0.45 + ((i * 71.3) % (VH * 0.5));
+      this.bg.rect(lx, ly, 2, 2).fill({ color: 0xffd9a0, alpha: 0.05 + ((i * 13) % 9) * 0.012 });
+    }
     this.root.addChild(this.bg);
 
     this.buildTower();
@@ -277,7 +283,10 @@ export class TorresScene extends Scene {
       const xe = f.xEnd;
       const ys = f.y;
       const ye = f.y - f.slope * 8;
-      this.floorsG.moveTo(xs, ys).lineTo(xe, ye).stroke({ color: 0x8a5a2a, width: 6, alpha: 0.95 });
+      // Corporate girders lighten as the tower climbs toward open air.
+      const ft = i / (STORY_COUNT - 1);
+      const girder = Color.hex(Color.rgb(0.38 + ft * 0.22, 0.30 + ft * 0.14, 0.16 + ft * 0.10));
+      this.floorsG.moveTo(xs, ys).lineTo(xe, ye).stroke({ color: girder, width: 6, alpha: 0.95 });
       this.floorsG.moveTo(xs, ys + 2).lineTo(xe, ye + 2).stroke({ color: 0x4a2a10, width: 2, alpha: 0.7 });
       if (i === STORY_COUNT - 1) {
         // Rooftop glow.
@@ -300,9 +309,11 @@ export class TorresScene extends Scene {
     const accent = Color.hex(ZONE.accent_color);
     this.barrelsG.clear();
     for (const b of this.barrels) {
-      this.barrelsG.circle(b.x, b.y, 9).fill({ color: 0xc24d4d, alpha: 0.95 });
-      this.barrelsG.circle(b.x, b.y, 9).stroke({ color: 0x000000, width: 1, alpha: 0.4 });
-      this.barrelsG.rect(b.x - 8, b.y - 1, 16, 2).fill({ color: 0x000000, alpha: 0.4 });
+      // ARGOS sensor canister rolling the floor plates.
+      this.barrelsG.ellipse(b.x, b.y, 9, 7).fill({ color: 0x5b6a78, alpha: 0.95 });
+      this.barrelsG.ellipse(b.x, b.y, 9, 7).stroke({ color: 0xff3a3a, width: 1.2, alpha: 0.7 });
+      this.barrelsG.rect(b.x - 9, b.y - 1.5, 18, 3).fill({ color: 0x2a2a30, alpha: 0.6 });
+      this.barrelsG.circle(b.x, b.y, 2).fill({ color: 0xff2424, alpha: 0.85 });
     }
     this.playerG.clear();
     const py = this.worldPlayerY();

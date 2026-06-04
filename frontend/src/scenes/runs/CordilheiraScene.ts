@@ -94,6 +94,16 @@ export class CordilheiraScene extends Scene {
     this.statusLabel.y = VH - 50;
     this.root.addChild(this.statusLabel);
 
+    // Doors still standing — Elena's house, and Viktor's three down. Never labeled.
+    const doorStyle = { fontFamily: FontFamily.mono, fontSize: 8, fill: 0x55504a };
+    for (const [num, ry] of [['412', 0.4], ['419', 0.72]] as Array<[string, number]>) {
+      const d = new Text({ text: num, style: doorStyle });
+      d.anchor.set(1, 0.5);
+      d.x = VW - 8;
+      d.y = TOP + (VH - TOP - FOOT) * ry;
+      this.content.addChild(d);
+    }
+
     this.bindPointer();
 
     if (ZONE.music) {
@@ -210,13 +220,21 @@ export class CordilheiraScene extends Scene {
     for (const lane of this.lanes) {
       let bgColor = 0x0c1216;
       if (lane.kind === 'road') bgColor = 0x14181f;
-      if (lane.kind === 'goal') bgColor = 0x1a2410;
+      if (lane.kind === 'goal') bgColor = 0x243410; // rooftop — open sky, lighter
       this.lanesG.rect(0, lane.y, VW, ROW_H).fill({ color: bgColor });
       this.lanesG.rect(0, lane.y, VW, 1).fill({ color: 0xffffff, alpha: 0.08 });
       if (lane.kind === 'road') {
         // Dashed centerline.
         for (let x = 0; x < VW; x += 24) {
           this.lanesG.rect(x, lane.y + ROW_H / 2 - 1, 12, 2).fill({ color: 0xffffff, alpha: 0.15 });
+        }
+      } else if (lane.kind === 'safe') {
+        // A laundry line still strung across the alley — no one came back for it.
+        const ly = lane.y + 14;
+        this.lanesG.moveTo(16, ly).lineTo(VW - 16, ly).stroke({ color: 0x3a3a42, width: 1, alpha: 0.4 });
+        const cloth = [0x6a7a8a, 0x8a6a5a, 0x5a6a6a, 0x7a7050];
+        for (let cx = 36, k = 0; cx < VW - 30; cx += 48, k++) {
+          this.lanesG.rect(cx, ly, 9, 13).fill({ color: cloth[k % cloth.length]!, alpha: 0.3 });
         }
       }
     }

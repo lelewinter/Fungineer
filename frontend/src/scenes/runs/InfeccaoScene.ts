@@ -312,9 +312,27 @@ export class InfeccaoScene extends Scene {
     };
   }
 
+  private hexPts(cx: number, cy: number, rad: number): number[] {
+    const p: number[] = [];
+    for (let i = 0; i < 6; i++) {
+      const a = Math.PI / 6 + i * Math.PI / 3;
+      p.push(cx + Math.cos(a) * rad, cy + Math.sin(a) * rad);
+    }
+    return p;
+  }
+
   private drawMaze(): void {
     const accent = Color.hex(ZONE.accent_color);
     this.mazeG.clear();
+    // Datacenter raised-floor grid under the node topology.
+    for (let gx = 0; gx <= COLS; gx++) {
+      this.mazeG.moveTo(this.offsetX + gx * TILE, this.offsetY).lineTo(this.offsetX + gx * TILE, this.offsetY + ROWS * TILE)
+        .stroke({ color: 0x0c3a30, width: 1, alpha: 0.22 });
+    }
+    for (let gy = 0; gy <= ROWS; gy++) {
+      this.mazeG.moveTo(this.offsetX, this.offsetY + gy * TILE).lineTo(this.offsetX + COLS * TILE, this.offsetY + gy * TILE)
+        .stroke({ color: 0x0c3a30, width: 1, alpha: 0.22 });
+    }
     for (let r = 0; r < ROWS; r++) {
       for (let c = 0; c < COLS; c++) {
         if (this.cells[r]![c] === 1) {
@@ -335,11 +353,15 @@ export class InfeccaoScene extends Scene {
     for (let r = 0; r < ROWS; r++) {
       for (let c = 0; c < COLS; c++) {
         const v = this.cells[r]![c];
+        const cxp = this.offsetX + c * TILE + TILE / 2;
+        const cyp = this.offsetY + r * TILE + TILE / 2;
         if (v === 0) {
-          this.pelletG.circle(this.offsetX + c * TILE + TILE / 2, this.offsetY + r * TILE + TILE / 2, 2).fill({ color: accent, alpha: 0.9 });
+          // Data node — hexagonal, matching NERVE's topology.
+          this.pelletG.poly(this.hexPts(cxp, cyp, 2.8)).fill({ color: accent, alpha: 0.9 });
         } else if (v === 2) {
           const p = 0.5 + 0.5 * Math.sin(this.elapsed * 4);
-          this.pelletG.circle(this.offsetX + c * TILE + TILE / 2, this.offsetY + r * TILE + TILE / 2, 4 + p).fill({ color: 0xffffff, alpha: 0.9 });
+          this.pelletG.poly(this.hexPts(cxp, cyp, 5 + p)).fill({ color: 0xffffff, alpha: 0.5 + 0.4 * p });
+          this.pelletG.poly(this.hexPts(cxp, cyp, 5 + p)).stroke({ color: accent, width: 1.5, alpha: 0.9 });
         }
       }
     }
