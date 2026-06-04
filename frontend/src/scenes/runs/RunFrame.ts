@@ -24,22 +24,31 @@ export function buildHud(zone: ZoneData): RunHud {
   const container = new Container();
   container.zIndex = 100;
 
+  const BARH = 46;
   const bg = new Graphics();
-  bg.rect(0, 0, VW, 38).fill({ color: 0x0a0d0e, alpha: 0.85 })
-    .rect(0, 38, VW, 1).fill({ color: accent, alpha: 0.6 });
+  bg.rect(0, 0, VW, BARH).fill({ color: 0x080b0c, alpha: 0.9 })
+    .rect(0, BARH, VW, 2).fill({ color: accent, alpha: 0.7 });
   container.addChild(bg);
 
   const title = new Text({
     text: zone.zone_name,
-    style: { fontFamily: FontFamily.body, fontSize: 12, fill: accent, fontWeight: '700', letterSpacing: 2 },
+    style: { fontFamily: FontFamily.body, fontSize: 15, fill: accent, fontWeight: '700', letterSpacing: 1 },
   });
   title.x = 12;
-  title.y = 13;
+  title.y = 7;
   container.addChild(title);
+
+  const status = new Text({
+    text: '',
+    style: { fontFamily: FontFamily.mono, fontSize: 12, fill: TextColor.muted, letterSpacing: 0.5 },
+  });
+  status.x = 12;
+  status.y = 28;
+  container.addChild(status);
 
   const timer = new Text({
     text: '',
-    style: { fontFamily: FontFamily.mono, fontSize: 11, fill: TextColor.ink, fontWeight: '600' },
+    style: { fontFamily: FontFamily.mono, fontSize: 17, fill: TextColor.ink, fontWeight: '700' },
   });
   timer.anchor.set(1, 0);
   timer.x = VW - 12;
@@ -48,26 +57,18 @@ export function buildHud(zone: ZoneData): RunHud {
 
   const score = new Text({
     text: '',
-    style: { fontFamily: FontFamily.mono, fontSize: 11, fill: accent, fontWeight: '600' },
+    style: { fontFamily: FontFamily.mono, fontSize: 13, fill: accent, fontWeight: '600' },
   });
   score.anchor.set(1, 0);
   score.x = VW - 12;
-  score.y = 22;
+  score.y = 28;
   container.addChild(score);
-
-  const status = new Text({
-    text: '',
-    style: { fontFamily: FontFamily.mono, fontSize: 10, fill: TextColor.muted },
-  });
-  status.x = VW * 0.42;
-  status.y = 14;
-  container.addChild(status);
 
   const healthBg = new Graphics();
   const healthFg = new Graphics();
-  const HBW = 80;
-  const HBX = VW * 0.30;
-  healthBg.rect(HBX, 28, HBW, 4).fill({ color: 0x222, alpha: 0.8 });
+  const HBW = 110;
+  const HBX = (VW - HBW) / 2;
+  healthBg.rect(HBX, 40, HBW, 4).fill({ color: 0x2a2a2a, alpha: 0.85 });
   container.addChild(healthBg);
   container.addChild(healthFg);
 
@@ -79,7 +80,7 @@ export function buildHud(zone: ZoneData): RunHud {
     setHealth: (pct: number) => {
       const w = Math.max(0, Math.min(1, pct)) * HBW;
       healthFg.clear();
-      healthFg.rect(HBX, 28, w, 4).fill({ color: pct > 0.4 ? accent : 0xc24d4d, alpha: 0.95 });
+      healthFg.rect(HBX, 40, w, 4).fill({ color: pct > 0.4 ? accent : 0xe05050, alpha: 0.95 });
     },
   };
 }
@@ -96,8 +97,8 @@ export function buildEndOverlay(opts: RunEndOpts): Container {
   const accent = Color.hex(opts.zone.accent_color);
   const layer = new Container();
   layer.zIndex = 200;
-  const cardW = 280;
-  const cardH = 160;
+  const cardW = 290;
+  const cardH = 184;
   const cx = VW / 2;
   const cy = VH / 2;
 
@@ -115,9 +116,9 @@ export function buildEndOverlay(opts: RunEndOpts): Container {
   const title = new Text({
     text: opts.victory ? 'MISSÃO CUMPRIDA' : 'RUN PERDIDA',
     style: {
-      fontFamily: FontFamily.body, fontSize: 16,
+      fontFamily: FontFamily.body, fontSize: 20,
       fill: opts.victory ? accent : TextColor.red,
-      fontWeight: '700', letterSpacing: 2,
+      fontWeight: '700', letterSpacing: 1.5,
     },
   });
   title.anchor.set(0.5);
@@ -129,7 +130,7 @@ export function buildEndOverlay(opts: RunEndOpts): Container {
     text: opts.victory
       ? (opts.rewardLabel ?? '+0')
       : (opts.failLabel ?? 'Você não voltou com nada.'),
-    style: { fontFamily: FontFamily.mono, fontSize: 11, fill: TextColor.ink },
+    style: { fontFamily: FontFamily.mono, fontSize: 13, fill: TextColor.ink, align: 'center', wordWrap: true, wordWrapWidth: cardW - 28 },
   });
   detail.anchor.set(0.5);
   detail.x = cx;

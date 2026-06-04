@@ -155,12 +155,12 @@ export class HubRenderer extends Container {
         text: sz.label,
         style: {
           fontFamily: '"Space Grotesk", system-ui, sans-serif',
-          fontSize: 9,
+          fontSize: 11,
           fontWeight: '700',
-          fill: 0xeaf0e4,
-          letterSpacing: 0.5,
+          fill: 0xeef4e8,
+          letterSpacing: 0.4,
           align: 'center',
-          dropShadow: { color: 0x000000, alpha: 0.85, blur: 2, distance: 1, angle: Math.PI / 2 },
+          dropShadow: { color: 0x000000, alpha: 0.9, blur: 3, distance: 1, angle: Math.PI / 2 },
         },
       });
       label.anchor.set(0.5, 0);
@@ -174,12 +174,12 @@ export class HubRenderer extends Container {
       text: '▼ HORDAS · SAÍDA',
       style: {
         fontFamily: '"Space Grotesk", system-ui, sans-serif',
-        fontSize: 9,
+        fontSize: 11,
         fontWeight: '700',
-        fill: 0xff9b7a,
-        letterSpacing: 0.5,
+        fill: 0xffae90,
+        letterSpacing: 0.4,
         align: 'center',
-        dropShadow: { color: 0x000000, alpha: 0.9, blur: 2, distance: 1, angle: Math.PI / 2 },
+        dropShadow: { color: 0x000000, alpha: 0.95, blur: 3, distance: 1, angle: Math.PI / 2 },
       },
     });
     hordasLabel.anchor.set(0.5, 1);
@@ -251,12 +251,12 @@ export class HubRenderer extends Container {
         text: room.label,
         style: {
           fontFamily: '"Space Grotesk", system-ui, sans-serif',
-          fontSize: 9,
+          fontSize: 11,
           fontWeight: '700',
-          fill: isZone ? 0xf2f6ec : 0xcdd5c4,
-          letterSpacing: 0.3,
+          fill: isZone ? 0xf6faef : 0xd6decb,
+          letterSpacing: 0.2,
           align: 'center',
-          dropShadow: { color: 0x000000, alpha: 0.9, blur: 2, distance: 1, angle: Math.PI / 2 },
+          dropShadow: { color: 0x000000, alpha: 0.95, blur: 3, distance: 1, angle: Math.PI / 2 },
         },
       });
       // Top-left of the room keeps the label clear of the bottom resource
