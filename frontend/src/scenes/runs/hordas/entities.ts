@@ -48,8 +48,8 @@ export interface Node { pos: Vec2; phase: number; progress: number }
 
 // Uma das tres cartas oferecidas ao subir de nivel.
 export interface Offer {
-  kind: 'weapon' | 'passive' | 'heal';
-  id?: import('./config').WeaponId | import('./config').PassiveId;
+  kind: 'weapon' | 'passive' | 'heal' | 'boost';
+  id?: import('./config').WeaponId | import('./config').PassiveId | import('./config').BoostId;
   name: string;
   desc: string;
   tag: string;

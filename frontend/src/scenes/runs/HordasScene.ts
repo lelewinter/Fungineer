@@ -35,13 +35,14 @@ import type { Vec2 } from '../../core/types';
 import { RunJuice } from '../../run/fx/RunJuice';
 import { buildHud, buildEndOverlay, bindDrag, type RunHud, type DragInput } from './RunFrame';
 import {
-  AURA, BASE_HP, BASE_PICKUP, BASE_SPEED, BUFF_MAX, BUFF_TIME, DART, DESPAWN_R, ENEMY_CAP,
+  AURA, BASE_HP, BASE_PICKUP, BASE_SPEED, BOOST_DESC, BOOST_IDS, BOOST_NAME, BOOST_VAL,
+  BUFF_MAX, BUFF_TIME, DART, DESPAWN_R, ENEMY_CAP,
   ESTATS, FOREST, GOAL, HARVEST_DECAY, HARVEST_DIST, HARVEST_NEARBY, HARVEST_SURGE,
   HARVEST_TIME, HARVEST_VULN, HEAL_INSTANT, HEAL_REGEN, JOY_DEAD, JOY_MAX, MAXLV, MOVE_ACCEL, NOVA, ORBIT,
   PASSIVE_DESC, PASSIVE_NAME, PLANT_CULL_R, PLANT_DIST, PLANT_TYPES, PLANTS,
   PLANTS_NEARBY, PLAYER_R, PROJ_LIFE, PROJ_SPEED, SHADOW, SPAWN_MIN, SPAWN_RING,
   SPAWN_START, TAU, TOUCH_CD, VH, VW, WEAPON_DESC, WEAPON_NAME, ZONE,
-  type EKind, type PassiveId, type PlantType, type WeaponId,
+  type BoostId, type EKind, type PassiveId, type PlantType, type WeaponId,
 } from './hordas/config';
 import { rand, type Enemy, type Gem, type Node, type Nova, type Offer, type Plant, type Proj } from './hordas/entities';
 import { computeSeparation, createSepScratch, type SepScratch } from './hordas/separation';
@@ -92,6 +93,8 @@ export class HordasScene extends Scene {
   // ── Arsenal (nivel de cada arma/passiva; 0 = ainda nao possui) ──────────────
   weapons: Record<WeaponId, number> = { dart: 1, aura: 0, orbit: 0, nova: 0 };
   private passives: Record<PassiveId, number> = { maxhp: 0, speed: 0, magnet: 0, power: 0, regen: 0 };
+  // Reforcos permanentes (limit break): acumulam sem teto — progressao infinita.
+  private boosts: Record<BoostId, number> = { edge: 0, bloom: 0, haste: 0, lure: 0, vigor: 0 };
   private fireTimer = 0;
   private auraTimer = 0;
   private novaTimer = NOVA.cd[0]!;
@@ -215,7 +218,7 @@ export class HordasScene extends Scene {
   private get fireMult(): number { return this.buffs.blue > 0 ? 0.7 : 1; }
   // Bonus de raio que CRESCE conforme voce sobe de nivel (limitado para nao exagerar).
   private get levelRadius(): number { return Math.min(0.45, (this.level - 1) * 0.03); }
-  get areaMult(): number { return (1 + this.levelRadius) * (this.buffs.purple > 0 ? 1.35 : 1); }
+  get areaMult(): number { return (1 + this.levelRadius) * (1 + this.boosts.bloom * BOOST_VAL.bloom) * (this.buffs.purple > 0 ? 1.35 : 1); }
   private get effSpeed(): number { return this.moveSpeed * (this.buffs.green > 0 ? 1.35 : 1); }
   private get effPickup(): number { return this.pickupRadius + (this.level - 1) * 6 + (this.buffs.gold > 0 ? 130 : 0); }
 
@@ -312,14 +315,17 @@ export class HordasScene extends Scene {
     this.spawnBoss();
   }
 
-  // ── XP / subir de nivel (curva propositalmente lenta) ───────────────────────
+  // ── XP / subir de nivel ─────────────────────────────────────────────────────
+  // Curva achatada de proposito (×1.2 em vez de ×1.5): com a horda mais densa,
+  // os niveis continuam vindo num ritmo bom ate o fim, alimentando os reforcos
+  // permanentes. Antes a curva explodia e a progressao travava por volta do Nv 12.
   private gainXp(v: number): void {
     this.xp += v;
     // Pode subir varios niveis de uma vez se pegar muito XP junto.
     while (this.xp >= this.xpNext) {
       this.xp -= this.xpNext;
       this.level += 1;
-      this.xpNext = Math.round(this.xpNext * 1.5 + 6);
+      this.xpNext = Math.round(this.xpNext * 1.2 + 8);
       this.pendingLevels += 1;
     }
     if (this.pendingLevels > 0 && !this.paused) this.openLevelUp();
@@ -338,6 +344,12 @@ export class HordasScene extends Scene {
     (Object.keys(this.passives) as PassiveId[]).forEach((id) => {
       const lv = this.passives[id];
       if (lv < MAXLV) pool.push({ kind: 'passive', id, name: PASSIVE_NAME[id], desc: PASSIVE_DESC[id], tag: lv === 0 ? 'PASSIVA' : `Nível ${lv + 1}` });
+    });
+    // Reforcos permanentes: SEMPRE disponiveis e nunca acabam — garantem que cada
+    // nivel ainda some poder, mesmo com o build inteiro no maximo.
+    BOOST_IDS.forEach((id) => {
+      const n = this.boosts[id];
+      pool.push({ kind: 'boost', id, name: BOOST_NAME[id], desc: BOOST_DESC[id], tag: n === 0 ? 'REFORÇO' : `Reforço ×${n + 1}` });
     });
     // Embaralha (algoritmo de Fisher-Yates) e pega 3.
     for (let i = pool.length - 1; i > 0; i--) {
@@ -457,6 +469,10 @@ export class HordasScene extends Scene {
       this.weapons[id] = Math.min(MAXLV, this.weapons[id] + 1);
       // Ao destravar a nova explosao de polen, reinicia o tempo de recarga dela.
       if (id === 'nova' && this.weapons.nova === 1) this.novaTimer = NOVA.cd[0]!;
+    } else if (offer.kind === 'boost') {
+      const id = offer.id as BoostId;
+      this.boosts[id] += 1;  // sem teto
+      this.recomputeStats(id === 'vigor');  // vigor cura a vida maxima ganha
     } else {
       const id = offer.id as PassiveId;
       this.passives[id] = Math.min(MAXLV, this.passives[id] + 1);
@@ -468,10 +484,11 @@ export class HordasScene extends Scene {
   /** Recalcula os atributos do jogador a partir dos niveis das passivas. */
   private recomputeStats(healFromMaxHp: boolean): void {
     const prevMax = this.maxHp;
-    this.maxHp = BASE_HP + this.passives.maxhp * 35;
-    this.moveSpeed = BASE_SPEED + this.passives.speed * 30;
-    this.pickupRadius = BASE_PICKUP + this.passives.magnet * 32;
-    this.damageMult = 1 + this.passives.power * 0.22;
+    // Passivas (ate nivel 5) + reforcos permanentes (sem teto) somados.
+    this.maxHp = BASE_HP + this.passives.maxhp * 35 + this.boosts.vigor * BOOST_VAL.vigor;
+    this.moveSpeed = (BASE_SPEED + this.passives.speed * 30) * (1 + this.boosts.haste * BOOST_VAL.haste);
+    this.pickupRadius = BASE_PICKUP + this.passives.magnet * 32 + this.boosts.lure * BOOST_VAL.lure;
+    this.damageMult = (1 + this.passives.power * 0.22) * (1 + this.boosts.edge * BOOST_VAL.edge);
     this.regen = this.passives.regen * 1.3;
     // Ganhar +vida maxima tambem cura na hora a diferenca conquistada.
     if (healFromMaxHp) this.hp += this.maxHp - prevMax;
