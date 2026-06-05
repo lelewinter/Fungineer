@@ -100,6 +100,10 @@ export class HubScene extends Scene {
     this.hubAudio.stop();
     for (const d of this.disposers) d();
     this.disposers = [];
+    // The renderer subscribes to long-lived HubState signals in its constructor;
+    // without this, every hub re-entry leaks 2 more dead listeners (and fires
+    // work on destroyed renderers). destroyRenderer() disconnects + tears down.
+    this.renderer.destroyRenderer();
   }
 
   // ── Modal management ─────────────────────────────────────────────────────

@@ -11,6 +11,7 @@
   X-Content-Type-Options: nosniff
   X-Frame-Options: SAMEORIGIN
   Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: geolocation=(), microphone=(), camera=(), usb=()
 
 # Vite outputs hashed JS/CSS under /assets/. Safe to cache forever — the hash
 # in the filename changes on every content change, so a new deploy yields a

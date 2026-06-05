@@ -230,6 +230,7 @@ export class HordasScene extends Scene {
   private elapsed = 0;
   private extractOpen = false;
   private bossSpawned = false;
+  private boss: Enemy | null = null;
   private extractPos: Vec2 = { x: 0, y: 0 };
   private ended = false;
 
@@ -715,6 +716,7 @@ export class HordasScene extends Scene {
     const idx = this.enemies.indexOf(e);
     if (idx < 0) return;
     this.enemies.splice(idx, 1);
+    if (e === this.boss) this.boss = null;
     this.kills += 1;
     this.juice.burst(this.sx(e.pos.x), this.sy(e.pos.y), { count: e.kind === 'boss' ? 30 : 9, color: 0x9fffe0, speed: 170, life: 0.4, size: 2 });
     if (e.kind === 'boss') {
@@ -816,11 +818,12 @@ export class HordasScene extends Scene {
     if (this.bossSpawned) return;
     this.bossSpawned = true;
     const s = ESTATS.boss;
-    this.enemies.push({
+    this.boss = {
       kind: 'boss', pos: this.ringPos(SPAWN_RING),
       hp: s.hp, maxHp: s.hp, speed: s.speed, dmg: s.dmg, r: s.r, xp: s.xp, color: s.color,
       flash: 0, touchCd: 0, orbitCd: 0, pushX: 0, pushY: 0,
-    });
+    };
+    this.enemies.push(this.boss);
   }
 
   private updateEnemies(dt: number): void {
@@ -1050,8 +1053,7 @@ export class HordasScene extends Scene {
     // Off-screen pointers — guide to extraction beacon / boss.
     this.pointerG.clear();
     if (this.extractOpen) this.drawPointer(this.extractPos.x, this.extractPos.y, FOREST);
-    const boss = this.enemies.find((e) => e.kind === 'boss');
-    if (boss) this.drawPointer(boss.pos.x, boss.pos.y, 0xff5a6a);
+    if (this.boss) this.drawPointer(this.boss.pos.x, this.boss.pos.y, 0xff5a6a);
 
     // Floating joystick.
     this.joyG.clear();

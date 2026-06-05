@@ -29,6 +29,11 @@ from pydantic import BaseModel, Field
 
 DB_PATH = Path(os.environ.get("FUNGINEER_DB", "fungineer.db"))
 
+# Hard cap on a serialized save payload. A real HubState snapshot is a few KB;
+# 256KB is generous headroom while preventing an unauthenticated client from
+# bloating the DB / filling disk with an oversized blob.
+MAX_STATE_BYTES = 256 * 1024
+
 # CORS origins:
 #   - localhost dev (Vite default 5173, preview 4173)
 #   - the deployed frontend URL set via FRONTEND_URL env (e.g. on Cloudflare Pages)
@@ -145,6 +150,11 @@ def root() -> dict[str, str]:
 def save_state(payload: SaveStatePayload) -> SaveStateResponse:
     updated_at = datetime.now(tz=timezone.utc).isoformat()
     state_json = json.dumps(payload.state, ensure_ascii=False)
+    if len(state_json.encode("utf-8")) > MAX_STATE_BYTES:
+        raise HTTPException(
+            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            detail="state payload too large",
+        )
     with _db() as conn:
         conn.execute(
             """
