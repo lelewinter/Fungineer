@@ -20,14 +20,13 @@
 // ============================================================================
 
 import { Container, Graphics } from 'pixi.js';
-import { Scene } from '../../core/Scene';
 import { audioManager } from '../../core/AudioManager';
 import { Color } from '../../core/Color';
 import { GameConfig } from '../../state/GameConfig';
 import { HubState } from '../../state/HubState';
 import { ZONES } from '../../state/Zones';
 import { RunJuice } from '../../run/fx/RunJuice';
-import { buildHud, buildEndOverlay, type RunHud } from './RunFrame';
+import { RunScene } from './RunScene';
 
 const VW = GameConfig.VIEWPORT_WIDTH;
 const VH = GameConfig.VIEWPORT_HEIGHT;
@@ -86,15 +85,15 @@ interface Ghost { x: number; y: number; dir: { x: number; y: number }; scared: n
 
 /** Fase estilo Pac-Man: coma as pastilhas pelo labirinto, fuja dos drones e use
  *  as pastilhas de poder para revida-los. Veja o bloco no topo do arquivo. */
-export class InfeccaoScene extends Scene {
+export class InfeccaoScene extends RunScene {
+  protected readonly zone = ZONE;
+
   private content = new Container();
   private bg = new Graphics();
   private mazeG = new Graphics();
   private pelletG = new Graphics();
   private playerG = new Graphics();
   private ghostsG = new Graphics();
-  private hud!: RunHud;
-  private juice!: RunJuice;
 
   // Copia do labirinto que pode ser editada (pastilhas viram -1 ao serem comidas).
   private cells: Cell[][] = MAZE.map((row) => row.slice());
@@ -111,7 +110,6 @@ export class InfeccaoScene extends Scene {
   private power = 0;        // segundos restantes do "modo poder"
   private timeLeft = TIMER;
   private elapsed = 0;
-  private ended = false;
   private offsetX = 0;      // deslocamento para centralizar o labirinto na tela
   private offsetY = TOP;
 
@@ -119,8 +117,8 @@ export class InfeccaoScene extends Scene {
   private dragging = false;
   private cleanup: (() => void) | null = null;
 
-  /** Acha o inicio, conta pastilhas, cria os drones, monta HUD e toques. */
-  override async enter(): Promise<void> {
+  /** A base monta HUD/juice/musica; aqui montamos o labirinto e os drones. */
+  protected override onEnter(): void {
     this.bg.rect(0, 0, VW, VH).fill({ color: 0x040806 });
     this.content.addChild(this.bg);
     this.root.addChild(this.content);
@@ -152,25 +150,20 @@ export class InfeccaoScene extends Scene {
 
     this.content.addChild(this.mazeG, this.pelletG, this.playerG, this.ghostsG);
 
-    this.juice = new RunJuice(this.root, { accent: Color.hex(ZONE.accent_color), shakeTarget: this.content, ambient: 24 });
-
     this.drawMaze();
-    this.hud = buildHud(ZONE);
-    this.root.addChild(this.hud.container);
     this.hud.setStatus('propagação orgânica');
 
     this.bindPointer();
-
-    if (ZONE.music) {
-      audioManager.playMusic(ZONE.music, { loop: true, volume: 0.3, fadeMs: 400 }).catch(() => undefined);
-    }
   }
 
-  /** Limpa musica, listeners de toque e efeitos ao sair da fase. */
-  override exit(): void {
-    audioManager.stopMusic(300);
+  /** A base para a musica e destroi o juice; aqui so soltamos o toque. */
+  protected override onExit(): void {
     this.cleanup?.();
-    this.juice.destroy();
+  }
+
+  /** A Infeccao treme o conteudo do jogo (nao o root). */
+  protected override buildJuice(): RunJuice {
+    return new RunJuice(this.root, { accent: this.accentHex(), shakeTarget: this.content, ambient: 24 });
   }
 
   /** Posicao do jogador em pixels na tela (centro do quadrado + deslocamento fino). */
@@ -182,10 +175,7 @@ export class InfeccaoScene extends Scene {
   }
 
   /** Quadro a quadro: move jogador e drones e resolve as colisoes entre eles. */
-  override update(dt: number): void {
-    const d = Math.min(dt, 1 / 30); // limita o delta time contra travadas
-    this.juice.update(d);
-    if (this.ended) return;
+  protected override onUpdate(d: number): void {
     this.elapsed += d;
     this.timeLeft -= d;
     this.power = Math.max(0, this.power - d);
@@ -441,18 +431,13 @@ export class InfeccaoScene extends Scene {
   /** Encerra a fase (uma vez so): efeito de fim, recompensa se venceu, avisa o
    *  HubState e mostra a tela de fim. */
   private end(victory: boolean): void {
-    if (this.ended) return;
-    this.ended = true;
-    if (victory) this.juice.victoryFx(); else this.juice.defeatFx();
+    if (this.ended) return; // protege contra deposito duplo
     if (victory && this.banked > 0) {
       HubState.depositFlow('biomassa_adaptativa', Math.ceil(this.banked / 4));
     }
-    HubState.onRunEnded(victory);
-    this.root.addChild(buildEndOverlay({
-      zone: ZONE,
-      victory,
+    this.endRun(victory, {
       rewardLabel: `+${Math.ceil(this.banked / 4)} Biomassa Adaptativa — nós consumidos`,
       failLabel: 'Esterilizado. Protocolo NERVE ativo.',
-    }));
+    });
   }
 }
