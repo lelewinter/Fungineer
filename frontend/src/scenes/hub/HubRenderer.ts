@@ -32,6 +32,7 @@ export class HubRenderer extends Container {
   private silhouetteLabels = new Map<string, Text>();
   private elapsedFrames = 0;
   private elapsedMs = 0;
+  private redrawAccum = 0;
   private variantColors = HubState.getVariantData();
   private disposers: Array<() => void> = [];
 
@@ -57,7 +58,14 @@ export class HubRenderer extends Container {
   tick(dt: number): void {
     this.elapsedFrames += Math.round(dt * 60);
     this.elapsedMs += dt * 1000;
-    this.redraw();
+    // The hub is a calm screen with only slow ambient animation — redrawing the
+    // whole cross-section 60x/s is wasteful. Throttle to ~20fps (animation reads
+    // identically, hub CPU/battery drops ~⅔). redraw() still samples elapsedMs.
+    this.redrawAccum += dt;
+    if (this.redrawAccum >= 1 / 20) {
+      this.redrawAccum = 0;
+      this.redraw();
+    }
   }
 
   private calculateLayout(): void {

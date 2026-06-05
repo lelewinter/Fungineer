@@ -26,6 +26,7 @@ export class HubNPCManager extends Container {
   private g = new Graphics();
   private wanderInterval = 15;
   private elapsed = 0;
+  private redrawAccum = 0;
 
   constructor() {
     super();
@@ -75,7 +76,12 @@ export class HubNPCManager extends Container {
         this.tryWander(state);
       }
     }
-    this.redraw();
+    // Bob is slow ambient motion — redraw at ~20fps, not every frame.
+    this.redrawAccum += dt;
+    if (this.redrawAccum >= 1 / 20) {
+      this.redrawAccum = 0;
+      this.redraw();
+    }
   }
 
   private tryWander(state: NPCState): void {

@@ -38,6 +38,7 @@ const TOUCH_CD = 0.6;
 const SPAWN_RING = 520;    // just outside the viewport
 const DESPAWN_R = 900;     // cull wanderers beyond this
 const SEPARATION = 0.5;    // anti-pile push strength
+const SEP_CELL = 34;       // spatial-hash cell size for the separation pass
 
 type EKind = 'sprout' | 'crawler' | 'brute' | 'boss';
 interface EnemyStat { hp: number; speed: number; dmg: number; r: number; xp: number; color: number }
@@ -221,6 +222,13 @@ export class HordasScene extends Scene {
   private novas: Nova[] = [];
   private plants: Plant[] = [];
   private nodes: Node[] = [];
+
+  // Pools / reused scratch buffers (keep per-frame allocation + GC down)
+  private projPool: Proj[] = [];
+  private gemPool: Gem[] = [];
+  private sepGrid = new Map<number, Enemy[]>();
+  private bucketPool: Enemy[][] = [];
+  private buffParts: string[] = [];
 
   // Run flow
   private harvested = 0;       // uncapped — more = more reward
@@ -592,14 +600,28 @@ export class HordasScene extends Scene {
     const spread = 0.26;
     for (let i = 0; i < count; i++) {
       const a = base + (i - (count - 1) / 2) * spread;
-      this.projs.push({
-        pos: { x: this.player.x, y: this.player.y },
-        vel: { x: Math.cos(a) * PROJ_SPEED, y: Math.sin(a) * PROJ_SPEED },
-        life: PROJ_LIFE, dmg, pierce, hit: new Set(),
-      });
+      const p = this.acquireProj();
+      p.pos.x = this.player.x; p.pos.y = this.player.y;
+      p.vel.x = Math.cos(a) * PROJ_SPEED; p.vel.y = Math.sin(a) * PROJ_SPEED;
+      p.life = PROJ_LIFE; p.dmg = dmg; p.pierce = pierce;
+      this.projs.push(p);
     }
     audioManager.playSfx('res://assets/audio/sfx/ui/Click_03.wav', 0.16);
   }
+
+  private acquireProj(): Proj {
+    const p = this.projPool.pop();
+    if (p) { p.hit.clear(); return p; }
+    return { pos: { x: 0, y: 0 }, vel: { x: 0, y: 0 }, life: 0, dmg: 0, pierce: 0, hit: new Set() };
+  }
+
+  private releaseProj(p: Proj): void { p.hit.clear(); this.projPool.push(p); }
+
+  private acquireGem(): Gem {
+    return this.gemPool.pop() ?? { pos: { x: 0, y: 0 }, vel: { x: 0, y: 0 }, value: 0, t: 0 };
+  }
+
+  private releaseGem(g: Gem): void { this.gemPool.push(g); }
 
   private nearestEnemy(): Enemy | null {
     let best: Enemy | null = null;
@@ -619,6 +641,7 @@ export class HordasScene extends Scene {
       p.pos.y += p.vel.y * dt;
       if (p.life <= 0 || Math.hypot(p.pos.x - this.player.x, p.pos.y - this.player.y) > 600) {
         this.projs.splice(i, 1);
+        this.releaseProj(p);
         continue;
       }
       const inv = 1 / (Math.hypot(p.vel.x, p.vel.y) || 1);
@@ -628,7 +651,7 @@ export class HordasScene extends Scene {
           this.damageEnemy(e, p.dmg, p.vel.x * inv * 7, p.vel.y * inv * 7);
           p.hit.add(e);
           this.juice.burst(this.sx(p.pos.x), this.sy(p.pos.y), { count: 5, color: 0x9fffe0, speed: 130, life: 0.25, size: 1.6 });
-          if (p.pierce <= 0) { this.projs.splice(i, 1); break; }
+          if (p.pierce <= 0) { this.projs.splice(i, 1); this.releaseProj(p); break; }
           p.pierce -= 1;
         }
       }
@@ -729,7 +752,11 @@ export class HordasScene extends Scene {
   }
 
   private dropGem(x: number, y: number, value: number): void {
-    this.gems.push({ pos: { x, y }, vel: { x: rand(-40, 40), y: rand(-40, 40) }, value, t: 0 });
+    const g = this.acquireGem();
+    g.pos.x = x; g.pos.y = y;
+    g.vel.x = rand(-40, 40); g.vel.y = rand(-40, 40);
+    g.value = value; g.t = 0;
+    this.gems.push(g);
   }
 
   private updateGems(dt: number): void {
@@ -753,6 +780,7 @@ export class HordasScene extends Scene {
       if (dist < 14) {
         this.gainXp(g.value);
         this.gems.splice(i, 1);
+        this.releaseGem(g);
         audioManager.playSfx('res://assets/audio/sfx/ui/Click_03.wav', 0.12);
       }
     }
@@ -826,25 +854,48 @@ export class HordasScene extends Scene {
     this.enemies.push(this.boss);
   }
 
+  private cellKey(cx: number, cy: number): number {
+    return (cx + 32768) * 65536 + (cy + 32768);
+  }
+
   private updateEnemies(dt: number): void {
-    const n = this.enemies.length;
-    // Soft separation so the horde crowds instead of stacking on one point.
-    for (let i = 0; i < n; i++) { const e = this.enemies[i]!; e.pushX = 0; e.pushY = 0; }
+    const enemies = this.enemies;
+    const n = enemies.length;
+    // Soft separation via a spatial hash (O(n·neighbours) instead of O(n²)).
+    // Buckets are pooled and reused frame-to-frame to avoid GC churn.
+    const grid = this.sepGrid;
+    for (const arr of grid.values()) { arr.length = 0; this.bucketPool.push(arr); }
+    grid.clear();
     for (let i = 0; i < n; i++) {
-      const a = this.enemies[i]!;
-      for (let j = i + 1; j < n; j++) {
-        const b = this.enemies[j]!;
-        const dx = b.pos.x - a.pos.x;
-        const dy = b.pos.y - a.pos.y;
-        const rr = a.r + b.r + 2;
-        const d2 = dx * dx + dy * dy;
-        if (d2 > 0.0001 && d2 < rr * rr) {
-          const dist = Math.sqrt(d2);
-          const push = ((rr - dist) / dist) * SEPARATION;
-          const px = dx * push;
-          const py = dy * push;
-          a.pushX -= px; a.pushY -= py;
-          b.pushX += px; b.pushY += py;
+      const e = enemies[i]!;
+      e.pushX = 0; e.pushY = 0;
+      const k = this.cellKey(Math.floor(e.pos.x / SEP_CELL), Math.floor(e.pos.y / SEP_CELL));
+      let arr = grid.get(k);
+      if (!arr) { arr = this.bucketPool.pop() ?? []; grid.set(k, arr); }
+      arr.push(e);
+    }
+    for (let i = 0; i < n; i++) {
+      const a = enemies[i]!;
+      if (a.kind === 'boss') continue; // the boss shoves others but isn't shoved
+      const cx = Math.floor(a.pos.x / SEP_CELL);
+      const cy = Math.floor(a.pos.y / SEP_CELL);
+      for (let gx = -1; gx <= 1; gx++) {
+        for (let gy = -1; gy <= 1; gy++) {
+          const arr = grid.get(this.cellKey(cx + gx, cy + gy));
+          if (!arr) continue;
+          for (let j = 0; j < arr.length; j++) {
+            const b = arr[j]!;
+            if (b === a) continue;
+            const dx = a.pos.x - b.pos.x;
+            const dy = a.pos.y - b.pos.y;
+            const rr = a.r + b.r + 2;
+            const d2 = dx * dx + dy * dy;
+            if (d2 > 0.0001 && d2 < rr * rr) {
+              const dist = Math.sqrt(d2);
+              const push = ((rr - dist) / dist) * SEPARATION;
+              a.pushX += dx * push; a.pushY += dy * push;
+            }
+          }
         }
       }
     }
@@ -1043,8 +1094,9 @@ export class HordasScene extends Scene {
     // Reward meter — grows with survival + over-harvest, to entice staying.
     this.rewardText.text = `BIOMASSA ${this.reward}  ×${this.rewardMult.toFixed(1)}`;
 
-    // Active buffs as bright text with countdowns.
-    const parts: string[] = [];
+    // Active buffs as bright text with countdowns (reused scratch array).
+    const parts = this.buffParts;
+    parts.length = 0;
     for (const type of PLANT_TYPES) {
       if (this.buffs[type] > 0) parts.push(`${PLANTS[type].short} ${Math.ceil(this.buffs[type])}s`);
     }
