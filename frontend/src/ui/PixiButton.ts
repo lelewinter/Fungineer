@@ -1,21 +1,35 @@
+// ============================================================================
+// PixiButton — o botão padrão do jogo.
+//
+// O que faz: desenha um botão "gostoso de apertar". Ele tem sombra (para
+// parecer levantado da tela), um brilho (glow) quando o mouse passa por cima,
+// e encolhe um pouquinho ao ser pressionado, como um botão físico de verdade.
+// Ao clicar, toca um som e avisa quem criou o botão (via callback onClick).
+//
+// Onde encaixa: praticamente todas as telas e janelas (modals) do jogo usam
+// este botão — confirmar raid, fechar painel, escolher poder, etc.
+// ============================================================================
 import { Container, FederatedPointerEvent, Graphics, Rectangle, Text } from 'pixi.js';
 import { audioManager } from '../core/AudioManager';
 import { FontFamily, TextColor } from '../core/typography';
 import { tween, Easing } from '../core/tween';
 
+/** Opções de configuração que quem cria o botão pode passar. */
 interface ButtonOpts {
-  label: string;
+  label: string;            // o texto escrito dentro do botão
   width: number;
   height: number;
-  onClick: () => void;
-  fill?: number;
-  hoverFill?: number;
+  onClick: () => void;      // o que acontece quando o jogador clica
+  fill?: number;            // cor de fundo normal
+  hoverFill?: number;       // cor de fundo quando o mouse está em cima (hover)
   textColor?: number;
   fontSize?: number;
   /** false → skips the click click sound (useful for variant selectors that double-trigger). */
   silent?: boolean;
 }
 
+/** O botão padrão. É um `Container` do PixiJS, então pode ser posicionado e
+ *  adicionado a qualquer tela como qualquer outro elemento visual. */
 export class PixiButton extends Container {
   /** Everything visual lives on `face` so we can scale it around its centre
    *  for a tactile press without disturbing the button's anchor position. */
@@ -25,11 +39,15 @@ export class PixiButton extends Container {
   private bg = new Graphics();
   private textNode: Text;
   private opts: Required<Omit<ButtonOpts, 'silent'>> & { silent: boolean };
-  private hovering = false;
+  private hovering = false;       // mouse está em cima do botão?
+  // Controla a animação de "aperto". Se um novo aperto começar, cancelamos o
+  // anterior para os movimentos não brigarem entre si.
   private pressAbort: AbortController | null = null;
 
   constructor(opts: ButtonOpts) {
     super();
+    // Junta as opções recebidas com valores padrão (defaults). O que o chamador
+    // não informou usa o padrão; o que informou sobrescreve.
     this.opts = {
       fill: 0x213a29,
       hoverFill: 0x2e5038,
@@ -71,29 +89,35 @@ export class PixiButton extends Container {
     this.face.position.set(w / 2, h / 2);
     this.addChild(this.face);
 
-    this.eventMode = 'static';
+    this.eventMode = 'static'; // habilita o botão a receber eventos de mouse/toque
     this.cursor = 'pointer';
     // Stable hit area independent of the glow/shadow bounds and press scaling.
+    // A "hit area" é a região clicável. Fixamos um retângulo do tamanho do botão
+    // para que o brilho, a sombra e a animação de aperto não mexam onde o clique
+    // é detectado.
     this.hitArea = new Rectangle(0, 0, w, h);
 
-    this.on('pointerover', () => { this.hovering = true; this.draw(); this.scaleTo(1.0); });
-    this.on('pointerout', () => { this.hovering = false; this.draw(); this.scaleTo(1.0); });
-    this.on('pointerdown', () => { this.scaleTo(0.93, 60); });
-    this.on('pointerup', () => { this.scaleTo(1.0, 150, Easing.easeOutCubic); });
-    this.on('pointerupoutside', () => { this.scaleTo(1.0, 150); });
+    // Reações aos eventos do ponteiro (mouse/toque):
+    this.on('pointerover', () => { this.hovering = true; this.draw(); this.scaleTo(1.0); });   // entrou em cima
+    this.on('pointerout', () => { this.hovering = false; this.draw(); this.scaleTo(1.0); });   // saiu de cima
+    this.on('pointerdown', () => { this.scaleTo(0.93, 60); });                                 // pressionou: encolhe
+    this.on('pointerup', () => { this.scaleTo(1.0, 150, Easing.easeOutCubic); });              // soltou: volta ao tamanho
+    this.on('pointerupoutside', () => { this.scaleTo(1.0, 150); });                            // soltou fora: também volta
     this.on('pointertap', (e: FederatedPointerEvent) => {
-      e.stopPropagation();
+      e.stopPropagation(); // impede que o clique "vaze" para o que está atrás do botão
       if (!this.opts.silent) audioManager.playSfx('res://assets/audio/sfx/ui/Click_03.wav', 0.4);
       this.opts.onClick();
     });
     this.draw();
   }
 
+  /** Troca o texto do botão depois de criado (ex.: "SILENCIAR" → "ATIVAR SOM"). */
   setLabel(text: string): void {
     this.textNode.text = text;
   }
 
-  /** Animate the face scale (tactile press feedback). */
+  /** Anima a escala do "rosto" do botão para dar a sensação de aperto.
+   *  `target` é o tamanho final (1.0 = normal, 0.93 = levemente encolhido). */
   private scaleTo(target: number, durationMs = 110, ease = Easing.easeOutCubic): void {
     this.pressAbort?.abort();
     const ac = new AbortController();
@@ -113,11 +137,16 @@ export class PixiButton extends Container {
     });
   }
 
+  /** Limpeza: ao remover o botão da tela, cancela qualquer animação em
+   *  andamento para não tentar mexer num elemento já destruído. */
   override destroy(options?: Parameters<Container['destroy']>[0]): void {
     this.pressAbort?.abort();
     super.destroy(options);
   }
 
+  /** Redesenha o visual do botão. Chamado sempre que o estado muda (hover, etc).
+   *  Desenha em camadas: sombra embaixo, depois o corpo com brilhos sutis, a
+   *  borda, e por fim o glow externo quando há hover. */
   private draw(): void {
     const w = this.opts.width;
     const h = this.opts.height;

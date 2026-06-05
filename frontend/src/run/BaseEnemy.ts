@@ -1,3 +1,14 @@
+/*
+ * BaseEnemy — o "molde" de qualquer inimigo da arena.
+ *
+ * O que faz: a cada frame o inimigo escolhe um alvo (o personagem mais perto),
+ * caminha em direção a ele e, quando chega no alcance, ataca em intervalos
+ * regulares. Também sabe tomar dano, mostrar a barra de vida e morrer.
+ *
+ * Como se encaixa no jogo: o WaveSpawner cria inimigos (definidos em Enemies.ts)
+ * e os entrega ao RunWorld. Cada inimigo específico HERDA desta classe e muda
+ * números e, às vezes, o jeito de mirar/se mover/atacar.
+ */
 import { Container, Graphics } from 'pixi.js';
 import type { Vec2 } from '../core/types';
 import { Color, type RGBA } from '../core/Color';
@@ -7,6 +18,7 @@ import type { RunWorld } from './RunWorld';
 import { CombatSfx, spawnDamageNumber } from './fx/DamageNumbers';
 import { GameState } from '../state/GameState';
 
+/** Atributos que definem um inimigo (vindos do balanceamento). */
 export interface EnemyStats {
   name: string;
   max_hp: number;
@@ -15,10 +27,14 @@ export interface EnemyStats {
   attack_interval: number;
   attack_range: number;
   color: RGBA;
+  /** Elite = versão mais forte (mais vida/dano) e com cor/feedback diferentes. */
   is_elite?: boolean;
 }
 
+/** Classe-base de todo inimigo. Subclasses (Runner, Bruiser, Spitter, boss)
+ *  herdam daqui e redefinem mira, movimento ou ataque conforme o necessário. */
 export class BaseEnemy {
+  // Atributos
   enemy_name: string;
   max_hp: number;
   move_speed: number;
@@ -28,12 +44,15 @@ export class BaseEnemy {
   color: RGBA;
   is_elite: boolean;
 
+  // Estado durante a partida
   position: Vec2 = { x: 0, y: 0 };
   current_hp = 0;
   is_dead = false;
   protected attack_timer = 0;
+  /** Personagem que este inimigo está perseguindo/atacando agora. */
   protected current_target: BaseCharacter | null = null;
 
+  // Parte visual (Pixi)
   readonly node = new Container();
   protected visual = new Graphics();
   protected hpBarBg = new Graphics();
@@ -72,6 +91,8 @@ export class BaseEnemy {
     this.world = world;
   }
 
+  /** Passo de simulação de um frame: mira, anda, ataca e atualiza o visual.
+   *  dt = delta time (segundos desde o frame anterior). */
   update(dt: number, world: RunWorld): void {
     if (this.is_dead) return;
     this.findTarget(world);
@@ -82,21 +103,28 @@ export class BaseEnemy {
     this.updateHpBar();
   }
 
+  /** Escolhe o alvo. Padrão: o personagem mais próximo. Bruiser redefine. */
   protected findTarget(world: RunWorld): void {
     this.current_target = world.nearestCharacterTo(this.position);
   }
 
+  /** Caminha em linha reta na direção do alvo. Multiplicar por dt mantém a
+   *  velocidade constante independente da taxa de quadros. */
   protected move(dt: number): void {
     if (!this.current_target) return;
     const dx = this.current_target.position.x - this.position.x;
     const dy = this.current_target.position.y - this.position.y;
     const dist = Math.hypot(dx, dy);
     if (dist < 0.001) return;
+    // Normaliza a direção (divide pela distância) e já multiplica pela
+    // velocidade — assim "inv" leva o passo direto à magnitude certa.
     const inv = this.move_speed / dist;
     this.position.x += dx * inv * dt;
     this.position.y += dy * inv * dt;
   }
 
+  /** Conta o tempo e dispara um ataque quando o alvo está no alcance e o
+   *  intervalo entre golpes já passou. */
   protected tickAttack(dt: number): void {
     if (!this.current_target) return;
     const dx = this.current_target.position.x - this.position.x;
@@ -109,15 +137,19 @@ export class BaseEnemy {
     }
   }
 
+  /** Aplica o ataque. Padrão: dano corpo-a-corpo. Spitter redefine p/ projétil. */
   protected attack(target: BaseCharacter): void {
     target.takeDamage(this.attack_damage, this);
   }
 
-  /** Source-side `take_damage` for ReflectiveShell reflection. */
+  /** Versão "take_damage" (snake_case) usada como alvo de reflexão de dano
+   *  pelo poder Reflective Shell, que devolve dano à fonte que o atingiu. */
   take_damage(amount: number, _source: unknown): void {
     this.takeDamage(amount);
   }
 
+  /** Recebe dano: subtrai da vida, mostra o número flutuante, toca o som e,
+   *  se a vida zerar, morre. */
   takeDamage(amount: number, _source: BaseCharacter | null = null): void {
     if (this.is_dead) return;
     this.current_hp = Math.max(0, this.current_hp - amount);
@@ -131,6 +163,7 @@ export class BaseEnemy {
     if (this.current_hp <= 0) this.die();
   }
 
+  /** Morte: avisa o mundo, remove o node da tela e libera a memória do Pixi. */
   protected die(): void {
     this.is_dead = true;
     CombatSfx.death(this.is_elite ? 0.6 : 0.35);
@@ -140,6 +173,7 @@ export class BaseEnemy {
     this.node.destroy({ children: true });
   }
 
+  /** Redesenha a barrinha de vida vermelha acima do inimigo. */
   protected updateHpBar(): void {
     const w = 26;
     const h = 3;

@@ -1,5 +1,25 @@
+/**
+ * HubData — A "planta baixa" do bunker (a base do jogo).
+ * -----------------------------------------------------
+ * Em linguagem simples: o hub e a tela principal do jogo — um corte transversal
+ * do bunker subterraneo, com varios comodos (rooms) distribuidos em colunas e
+ * andares (floors). Cada comodo pode ter personagens (NPCs) e pode levar a uma
+ * zona/fase. Este arquivo guarda TODOS esses dados fixos:
+ *
+ *   - NPCS:    os personagens que aparecem nos comodos do hub.
+ *   - ROOMS:   os comodos, sua posicao (coluna/andar) e o que cada um e.
+ *   - ZONES:   as zonas/fases, cada uma com seu briefing (texto de missao).
+ *   - DIALOGS: a apresentacao e a fala-tema de cada NPC.
+ *   - mapas auxiliares (ZONE_SCENE, ROOM_TO_ZONE) que ligam ids entre si.
+ *
+ * No fim, exportamos um objeto `HubData` com funcoes de busca (getRoom, getNpc,
+ * getZone...) — assim o resto do jogo pergunta "qual e o comodo X?" sem
+ * precisar conhecer como a lista esta organizada por dentro.
+ */
+
 import { Color, type RGBA } from '../core/Color';
 
+// Atalho curto para criar cores RGB e manter as tabelas abaixo legiveis.
 const C = (r: number, g: number, b: number): RGBA => Color.rgb(r, g, b);
 
 export interface HubNpc {
@@ -86,6 +106,8 @@ const ROOMS: HubRoom[] = [
   { id: 'quarto_lena', label: 'QUARTO',          col: 4, w: 2, floor: 6, type: 'bedroom',         light: 'pink-dim',                       silhouette: 'quarto',                npcs: ['lena'] },
 ];
 
+// De-para: id da zona -> id da "cena" (mini-jogo) que deve ser carregada
+// quando o jogador entra naquela zona. Nem toda zona tem cena propria.
 export const ZONE_SCENE: Record<string, string> = {
   hordas:     'main',
   stealth:    'stealth',
@@ -95,6 +117,8 @@ export const ZONE_SCENE: Record<string, string> = {
   sacrificio: 'sacrifice',
 };
 
+// De-para: id do comodo -> id da zona que ele da acesso. Usado quando o
+// jogador clica num comodo do hub para descobrir qual missao ele inicia.
 export const ROOM_TO_ZONE: Record<string, string> = {
   saida_hordas: 'hordas',
   vigia:        'stealth',
@@ -137,6 +161,8 @@ const DIALOGS: Record<string, HubDialog> = {
   viktor:  { briefing: 'Cínico desencantado. Sarcasmo cortante.', mission: 'Qualquer zona (sem ilusões)', quote: 'Vamos fazer isso. Não importa o quão fútil seja.' },
 };
 
+// Objeto publico: agrupa as listas e oferece funcoes de busca por id. O resto
+// do jogo usa SOMENTE estas funcoes para ler os dados do hub.
 export const HubData = {
   ROOMS,
   NPCS,
@@ -156,11 +182,15 @@ export const HubData = {
   getDialog(id: string): HubDialog | undefined {
     return DIALOGS[id];
   },
+  // Retorna os NPCs que estao num comodo, ja resolvendo os ids em objetos
+  // completos e descartando ids que por acaso nao existam mais.
   getNpcsInRoom(roomId: string): HubNpc[] {
     const room = ROOMS.find((r) => r.id === roomId);
     if (!room) return [];
     return room.npcs.map((id) => NPCS.find((n) => n.id === id)).filter((n): n is HubNpc => !!n);
   },
+  // Os comodos das colunas centrais formam o "poco" do foguete. Esta funcao
+  // identifica esses comodos especiais (eles sao desenhados de forma diferente).
   isRocketRoom(room: HubRoom): boolean {
     return room.type === 'rocket' || room.type === 'rocket-top' || room.type === 'rocket-base';
   },

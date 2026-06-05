@@ -1,3 +1,15 @@
+/*
+ * RunWorld — o "mundo" da partida: onde todas as entidades vivem.
+ *
+ * O que faz: guarda as listas de personagens, inimigos, itens e projéteis, e
+ * organiza tudo em camadas (layers) visuais empilhadas na ordem certa (fundo →
+ * itens → inimigos → party → efeitos). Também oferece "consultas espaciais"
+ * (ex.: qual o inimigo mais próximo de um ponto?), que a IA usa para mirar.
+ *
+ * Como se encaixa: a cena da run cria um RunWorld, adiciona entidades nele e,
+ * a cada frame, atualiza os projéteis. O container `root` é o que a câmera
+ * move para seguir a party (estilo Camera2D).
+ */
 import { Container } from 'pixi.js';
 import type { BaseCharacter } from './BaseCharacter';
 import type { BaseEnemy } from './BaseEnemy';
@@ -6,10 +18,10 @@ import type { Projectile } from './Projectiles';
 import type { Vec2 } from '../core/types';
 import { Signal } from '../core/Signal';
 
-/** Container for all entities in a run. Owns the world transforms (arena coords)
- *  and provides spatial queries. The Pixi container `root` is what the run scene
- *  scrolls to implement the Godot Camera2D follow. */
+/** Contêiner de todas as entidades de uma run. Guarda as transformações do
+ *  mundo (coordenadas da arena) e oferece consultas espaciais. */
 export class RunWorld {
+  // Camadas visuais — a ordem em que são adicionadas define o que fica na frente.
   readonly root = new Container();
   readonly bgLayer = new Container();
   readonly itemsLayer = new Container();
@@ -70,6 +82,9 @@ export class RunWorld {
     this.projectiles = this.projectiles.filter((x) => x !== p);
   }
 
+  /** Atualiza todos os projéteis. Cada update() devolve true para "continuo
+   *  vivo" ou false para "acabei" — neste caso o projétil é removido da tela e
+   *  destruído. Reconstruímos a lista só com os que sobreviveram. */
   updateProjectiles(dt: number): void {
     const next: Projectile[] = [];
     for (const p of this.projectiles) {
@@ -83,7 +98,9 @@ export class RunWorld {
     this.projectiles = next;
   }
 
-  // ── Spatial queries ────────────────────────────────────────────────────
+  // ── Consultas espaciais ──────────────────────────────────────────────────
+  /** Inimigo vivo mais próximo do ponto `p` dentro de um raio. Compara
+   *  distâncias ao quadrado para evitar raízes quadradas (mais rápido). */
   nearestEnemyWithin(p: Vec2, radius: number): BaseEnemy | null {
     let best: BaseEnemy | null = null;
     let bestDist = radius * radius;
@@ -100,6 +117,8 @@ export class RunWorld {
     return best;
   }
 
+  /** Personagem vivo mais próximo do ponto `p` (sem limite de distância).
+   *  Usado pelos inimigos para escolher quem perseguir. */
   nearestCharacterTo(p: Vec2): BaseCharacter | null {
     let best: BaseCharacter | null = null;
     let bestDist = Infinity;
@@ -116,6 +135,8 @@ export class RunWorld {
     return best;
   }
 
+  /** Centro de massa (média das posições) dos personagens vivos. Usado, por
+   *  exemplo, pelo poder Magnet Pulse para puxar inimigos em direção à party. */
   partyCentroid(): Vec2 {
     let sx = 0, sy = 0, n = 0;
     for (const c of this.characters) {

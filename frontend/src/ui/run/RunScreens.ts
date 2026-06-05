@@ -1,3 +1,15 @@
+// ============================================================================
+// RunScreens — as janelas (modals) que aparecem durante/ao fim de uma partida.
+//
+// Reúne quatro telas, todas baseadas em Modal:
+//  - GameOverScreen: derrota — opções de voltar à base ou tentar de novo;
+//  - VictoryScreen: vitória — mostra recompensa e tempo;
+//  - RescueScreen: um sobrevivente foi encontrado — escolher quem resgatar;
+//  - PowerOfferScreen: escolha de um poder entre algumas opções.
+//
+// Cada tela emite sinais para a cena reagir à decisão do jogador. As telas de
+// Rescue e Power pausam o jogo enquanto estão abertas e o retomam ao fechar.
+// ============================================================================
 import { Container, Graphics, Text } from 'pixi.js';
 import { Modal } from '../Modal';
 import { PixiButton } from '../PixiButton';
@@ -5,18 +17,20 @@ import { Signal } from '../../core/Signal';
 import { Color } from '../../core/Color';
 import { FontFamily, TextColor } from '../../core/typography';
 import { GameState } from '../../state/GameState';
-import { GameConfig } from '../../state/GameConfig';
 import type { PowerResource } from '../../run/power/PowerManager';
 
+/** Formata um tempo em segundos para "MM:SS" (ex.: 95 → "01:35"). */
 const formatTime = (sec: number): string => {
   const s = Math.floor(sec);
   return `${Math.floor(s / 60).toString().padStart(2, '0')}:${(s % 60).toString().padStart(2, '0')}`;
 };
 
 // ── Game Over ────────────────────────────────────────────────────────────────
+/** Tela de derrota. Mostra quanto tempo o jogador sobreviveu e oferece voltar
+ *  à base ou tentar de novo. */
 export class GameOverScreen extends Modal {
-  readonly hubRequested = new Signal<[]>();
-  readonly retryRequested = new Signal<[]>();
+  readonly hubRequested = new Signal<[]>();    // jogador escolheu voltar à base
+  readonly retryRequested = new Signal<[]>();  // jogador escolheu tentar de novo
 
   constructor(runTime: number) {
     super(360, 280);
@@ -70,6 +84,8 @@ export class GameOverScreen extends Modal {
 }
 
 // ── Victory ──────────────────────────────────────────────────────────────────
+/** Tela de vitória. Mostra os fragmentos de tecnologia ganhos e o tempo, com um
+ *  botão para voltar à base. */
 export class VictoryScreen extends Modal {
   readonly hubRequested = new Signal<[]>();
 
@@ -122,15 +138,19 @@ export class VictoryScreen extends Modal {
 }
 
 // ── Rescue ────────────────────────────────────────────────────────────────────
+/** Uma opção de personagem para resgatar: nome, descrição curta e o id usado
+ *  para de fato criar o personagem (factoryId). */
 export interface RescueOption {
   name: string;
   desc: string;
   factoryId: string;
 }
 
+/** Tela de resgate. Lista os sobreviventes disponíveis (cada um vira um botão)
+ *  mais um botão "Pular". Pausa o jogo enquanto aberta. */
 export class RescueScreen extends Modal {
-  readonly characterChosen = new Signal<[string]>();
-  readonly skipped = new Signal<[]>();
+  readonly characterChosen = new Signal<[string]>();  // escolheu resgatar alguém (envia o factoryId)
+  readonly skipped = new Signal<[]>();                // escolheu não resgatar ninguém
 
   constructor(options: RescueOption[]) {
     super(340, 320);
@@ -157,6 +177,7 @@ export class RescueScreen extends Modal {
     sub.y = -halfH + padding + 24;
     this.panel.addChild(sub);
 
+    // Um botão por sobrevivente, empilhados verticalmente (y avança a cada um).
     let y = -halfH + padding + 60;
     for (const opt of options) {
       const btn = new PixiButton({
@@ -184,10 +205,11 @@ export class RescueScreen extends Modal {
     skipBtn.y = halfH - padding - 26;
     this.panel.addChild(skipBtn);
 
-    GameState.pauseForEvent();
+    GameState.pauseForEvent(); // congela o jogo enquanto o jogador decide
     void this.animateOpen();
   }
 
+  /** Ao fechar, retoma o jogo que havia sido pausado. */
   override async requestClose(): Promise<void> {
     GameState.resumeFromEvent();
     await super.requestClose();
@@ -195,6 +217,8 @@ export class RescueScreen extends Modal {
 }
 
 // ── Power offer ──────────────────────────────────────────────────────────────
+/** Tela de oferta de poder. Apresenta cartões de poderes; clicar num cartão
+ *  escolhe aquele poder. Pausa o jogo enquanto aberta. */
 export class PowerOfferScreen extends Modal {
   readonly powerChosen = new Signal<[PowerResource]>();
 
@@ -223,6 +247,7 @@ export class PowerOfferScreen extends Modal {
     sub.y = -halfH + padding + 30;
     this.panel.addChild(sub);
 
+    // Um cartão por poder oferecido, empilhados verticalmente.
     let y = -halfH + padding + 60;
     for (const p of options) {
       const card = this.makePowerCard(p);
@@ -235,16 +260,18 @@ export class PowerOfferScreen extends Modal {
       y += 76;
     }
 
-    GameState.pauseForEvent();
+    GameState.pauseForEvent(); // congela o jogo enquanto o jogador escolhe
     void this.animateOpen();
-    void GameConfig;
   }
 
+  /** Ao fechar, retoma o jogo que havia sido pausado. */
   override async requestClose(): Promise<void> {
     GameState.resumeFromEvent();
     await super.requestClose();
   }
 
+  /** Monta o cartão visual de um poder: caixa com a cor do poder, nome,
+   *  descrição e uma "amostra" (swatch) colorida no canto. */
   private makePowerCard(p: PowerResource): Container {
     const c = new Container();
     const cardW = this.panelW - 36;

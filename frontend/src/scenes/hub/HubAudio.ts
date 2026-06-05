@@ -1,15 +1,25 @@
 import { audioManager } from '../../core/AudioManager';
 
-/** Hub audio orchestrator. Mirrors src/scenes/hub/HubAudio.gd.
- *  The original Godot version had placeholders for SFX paths that don't exist yet —
- *  we preserve that behaviour but route through the real audioManager. */
+/**
+ * HubAudio — o "DJ" do hub.
+ *
+ * Centraliza todo o som do hub: a musica ambiente de fundo e os efeitos (SFX)
+ * de clique, abrir/fechar painel, selecionar personagem e progredir o foguete.
+ * O HubScene chama estes metodos nos momentos certos, em vez de espalhar
+ * chamadas de audio por todo lado.
+ *
+ * Tudo passa pelo audioManager, que e quem realmente toca os arquivos.
+ */
 export class HubAudio {
+  // Evita iniciar a musica duas vezes.
   private musicStarted = false;
 
+  /** Inicia a trilha ambiente do hub. */
   start(): void {
     this.playAmbientMusic();
   }
 
+  /** Para a musica com um fade-out de 400ms. */
   stop(): void {
     audioManager.stopMusic(400);
     this.musicStarted = false;
@@ -18,8 +28,8 @@ export class HubAudio {
   private playAmbientMusic(): void {
     if (this.musicStarted) return;
     this.musicStarted = true;
-    // Original code commented out the music load. We use menu.wav as a stand-in
-    // since a dedicated hub-theme.ogg never landed.
+    // Usamos menu.wav como substituto porque uma trilha dedicada do hub
+    // (hub-theme.ogg) nunca chegou a ser feita.
     audioManager.playMusic('res://assets/audio/music/menu.wav', {
       loop: true,
       volume: 0.25,

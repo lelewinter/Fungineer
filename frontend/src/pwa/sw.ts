@@ -1,6 +1,22 @@
 /**
- * Fungineer Service Worker
- * ------------------------
+ * Service Worker (sw.ts) — O "assistente de bastidores" do jogo.
+ * -------------------------------------------------------------
+ * Em linguagem simples: um service worker e um pequeno programa que o navegador
+ * roda em segundo plano, separado da pagina. Ele fica entre o jogo e a internet
+ * e decide o que servir da memoria (cache) e o que buscar na rede. Gracas a ele,
+ * o Fungineer abre rapido em visitas seguintes e ate funciona offline (sem
+ * internet) depois de carregado uma vez.
+ *
+ * O que este arquivo faz, em resumo:
+ *   - Guarda os arquivos essenciais do jogo (o "app shell") no cache.
+ *   - Guarda imagens e audios conforme vao sendo usados (com limites de espaco).
+ *   - NUNCA guarda respostas da API (/api/) — o save precisa ser sempre o atual.
+ *   - Faz a troca segura para uma versao nova quando a pagina pedir.
+ *
+ * Termos tecnicos preservados em ingles (service worker, cache, precache,
+ * runtime cache, skipWaiting, clients.claim) por serem termos padrao da area.
+ *
+ * ------------------------------------------------------------------
  * Production-ready SW for a realtime PixiJS game. Goals:
  *
  *  1. Precache the app shell (JS/CSS/HTML/icons) with content-hashed names

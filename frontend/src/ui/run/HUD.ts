@@ -1,3 +1,18 @@
+// ============================================================================
+// HUD — o painel de informações que fica por cima do jogo durante uma run.
+//
+// HUD = "heads-up display": aqueles indicadores que ficam nas bordas da tela
+// sem atrapalhar o jogo. Aqui ele mostra:
+//  - no topo, ao centro: o cronômetro da partida;
+//  - no topo, à esquerda: a onda (wave) atual ou aviso de BOSS;
+//  - no topo, à direita: o botão do poder ativo (com cooldown/estado);
+//  - embaixo, ao centro: o aviso piscante de "SIEGE MODE";
+//  - embaixo, à esquerda: as barras de vida (HP) de cada personagem;
+//  - embaixo, à direita: os slots da mochila (backpack).
+//
+// Ele lê o estado do jogo (GameState) diretamente e reage a sinais (ondas,
+// boss, mochila), atualizando-se sozinho.
+// ============================================================================
 import { Container, FederatedPointerEvent, Graphics, Text } from 'pixi.js';
 import { Color } from '../../core/Color';
 import { FontFamily, TextColor } from '../../core/typography';
@@ -7,6 +22,7 @@ import { GameState, RunState } from '../../state/GameState';
 import type { BaseCharacter } from '../../run/BaseCharacter';
 import type { PowerResource } from '../../run/power/PowerManager';
 
+/** Uma linha de barra de vida (HP) no HUD, ligada a um personagem. */
 interface HpRow {
   container: Container;
   bg: Graphics;
@@ -18,7 +34,7 @@ interface HpRow {
 
 /** In-run overlay HUD. Lives at scene UI layer; reads GameState directly. */
 export class HUD extends Container {
-  readonly powerTapped = new Signal<[]>();
+  readonly powerTapped = new Signal<[]>();   // jogador tocou no botão de poder
 
   private timerLabel: Text;
   private waveLabel: Text;
@@ -30,6 +46,7 @@ export class HUD extends Container {
   private hpRows: HpRow[] = [];
   private hpStack: Container;
   private backpackSlots: Graphics[] = [];
+  // Funções para desconectar dos sinais do GameState ao destruir o HUD.
   private disposers: Array<() => void> = [];
 
   constructor() {
@@ -37,7 +54,7 @@ export class HUD extends Container {
     const W = GameConfig.VIEWPORT_WIDTH;
     const H = GameConfig.VIEWPORT_HEIGHT;
 
-    // Top center: timer
+    // Topo, centro: cronômetro da partida
     const timerBg = new Graphics()
       .roundRect(W / 2 - 46, 6, 92, 28, 4)
       .fill({ color: 0x0a0e09, alpha: 0.85 })
@@ -53,7 +70,7 @@ export class HUD extends Container {
     this.timerLabel.y = 20;
     this.addChild(this.timerLabel);
 
-    // Top left: wave
+    // Topo, esquerda: indicador de onda (wave) / boss
     const waveBg = new Graphics()
       .roundRect(6, 6, 148, 28, 4)
       .fill({ color: 0x0a0e09, alpha: 0.85 })
@@ -68,7 +85,7 @@ export class HUD extends Container {
     this.waveLabel.y = 13;
     this.addChild(this.waveLabel);
 
-    // Top right: power button (clickable). Width grows with text.
+    // Topo, direita: botão do poder (clicável). A largura acompanha o texto.
     this.powerButton = new Container();
     this.powerButtonBg = new Graphics();
     this.powerButton.addChild(this.powerButtonBg);
@@ -93,7 +110,7 @@ export class HUD extends Container {
     this.addChild(this.powerButton);
     this.drawPowerButton(null);
 
-    // Bottom center: siege indicator
+    // Embaixo, centro: aviso piscante de "SIEGE MODE" (modo cerco)
     this.siegeIndicator = new Text({
       text: '⚡ SIEGE MODE',
       style: { fontFamily: FontFamily.display, fontSize: 14, fill: 0xffd91a, letterSpacing: 3 },
@@ -104,7 +121,7 @@ export class HUD extends Container {
     this.siegeIndicator.alpha = 0;
     this.addChild(this.siegeIndicator);
 
-    // Bottom left: HP rows container
+    // Embaixo, esquerda: caixa que segura as barras de vida dos personagens
     const hpBg = new Graphics()
       .roundRect(6, H - 132, 174, 124, 5)
       .fill({ color: 0x0a0e09, alpha: 0.85 })
@@ -116,7 +133,8 @@ export class HUD extends Container {
     this.hpStack.y = H - 124;
     this.addChild(this.hpStack);
 
-    // Bottom right: backpack
+    // Embaixo, direita: os slots da mochila (backpack). Calculamos a largura
+    // total dos slots para alinhá-los a partir da borda direita da tela.
     const slotSize = 30;
     const slotGap = 5;
     const totalW = GameConfig.BACKPACK_CAPACITY * slotSize + (GameConfig.BACKPACK_CAPACITY - 1) * slotGap;
@@ -137,11 +155,16 @@ export class HUD extends Container {
       this.backpackSlots.push(slot);
     }
 
+    // Liga as reações aos eventos do jogo: nova onda, surgimento de boss e
+    // mudança no conteúdo da mochila.
     this.disposers.push(GameState.waveStarted.connect((w) => this.onWaveStarted(w)));
     this.disposers.push(GameState.bossSpawned.connect(() => this.onBossSpawned()));
     this.disposers.push(GameState.backpackChanged.connect((c) => this.onBackpackChanged(c)));
   }
 
+  /** Adiciona uma barra de vida (HP) para um personagem. A barra se atualiza
+   *  sozinha ao ouvir o sinal de mudança de HP do personagem e fica esmaecida
+   *  quando ele morre. */
   registerCharacter(character: BaseCharacter): void {
     const W = 158;
     const rowH = 22;
@@ -165,6 +188,8 @@ export class HUD extends Container {
 
     this.hpStack.addChild(container);
 
+    // Redesenha a barra conforme a vida atual. A cor muda do verde (saudável)
+    // para amarelo e vermelho conforme o HP cai.
     const update = (_c: BaseCharacter, newHp: number, maxHp: number): void => {
       const ratio = Math.max(0, Math.min(1, newHp / maxHp));
       const c = ratio > 0.4 ? 0x33e64d : ratio > 0.2 ? 0xe6c233 : 0xe64d33;
@@ -187,11 +212,14 @@ export class HUD extends Container {
     });
   }
 
+  /** Define qual poder o botão do canto mostra (ou "— sem poder —"). */
   setPowerDisplay(power: PowerResource | null): void {
     this.powerLabel.text = power ? power.power_name : '— sem poder —';
     this.drawPowerButton(power);
   }
 
+  /** Redesenha o fundo do botão de poder. A cor/estado muda conforme o poder
+   *  esteja ativo, em recarga (cooldown) ou pronto. */
   private drawPowerButton(power: PowerResource | null): void {
     const padding = 12;
     const w = this.powerLabel.width + padding * 2;
@@ -207,7 +235,11 @@ export class HUD extends Container {
       .stroke({ color, width: 1.5, alpha: power ? 0.9 : 0.4 });
   }
 
+  /** Chamado a cada quadro pela cena. `dt` é o tempo (em segundos) desde o
+   *  último quadro. Atualiza cronômetro, o estado do poder e o brilho do aviso
+   *  de siege mode. */
   update(dt: number): void {
+    // Cronômetro só corre enquanto a partida está em andamento ou em luta de boss.
     if (GameState.current_state === RunState.PLAYING || GameState.current_state === RunState.BOSS_FIGHT) {
       const t = Math.floor(GameState.run_time);
       const mm = Math.floor(t / 60).toString().padStart(2, '0');
@@ -215,7 +247,7 @@ export class HUD extends Container {
       this.timerLabel.text = `${mm}:${ss}`;
     }
 
-    // Power label with cooldown / status
+    // Texto do poder, mostrando recarga (cooldown), "[ON]" se ativo, ou "▸ TAP".
     const p = GameState.active_power as PowerResource | null;
     if (p) {
       if (p.cooldown_remaining > 0) {
@@ -228,7 +260,9 @@ export class HUD extends Container {
       this.drawPowerButton(p);
     }
 
-    // Siege indicator
+    // Aviso de siege mode: quando ativo, pisca suavemente (o `sin` faz pulsar);
+    // quando inativo, some aos poucos. A transição é suavizada para não piscar
+    // de forma brusca.
     if (p?.power_name === 'Siege Mode') {
       const target = GameState.siege_mode_active ? 1 : 0;
       this.siegePulse += dt;
@@ -239,29 +273,37 @@ export class HUD extends Container {
     }
   }
 
+  /** Remove o HUD com segurança: desconecta dos sinais do jogo e das barras de
+   *  vida antes de destruir os elementos visuais. */
   destroyHud(): void {
     for (const d of this.disposers) d();
     for (const r of this.hpRows) r.dispose();
     this.destroy({ children: true });
   }
 
+  /** Reage ao início de uma nova onda: atualiza o texto e a cor. */
   private onWaveStarted(index: number): void {
     this.waveLabel.text = `Onda ${index}`;
     this.waveLabel.style.fill = Color.hex(Color.rgb(0.86, 0.80, 0.96));
   }
 
+  /** Reage ao surgimento do boss: troca o rótulo para um aviso vermelho. */
   private onBossSpawned(): void {
     this.waveLabel.text = '⚠  BOSS';
     this.waveLabel.style.fill = 0xff3845;
     this.waveLabel.style.fontSize = 13;
   }
 
+  /** Reage à mudança da mochila: preenche os slots iniciais conforme a
+   *  quantidade de itens guardados. */
   private onBackpackChanged(contents: string[]): void {
     for (let i = 0; i < this.backpackSlots.length; i++) {
       this.drawSlot(this.backpackSlots[i]!, 30, i < contents.length);
     }
   }
 
+  /** Desenha um slot da mochila: âmbar e preenchido quando há item, escuro e
+   *  vazio caso contrário. */
   private drawSlot(g: Graphics, size: number, filled: boolean): void {
     g.clear();
     if (filled) {

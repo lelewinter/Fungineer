@@ -1,29 +1,73 @@
+// ============================================================================
+// HubRocketPanel — o painel "esquema do casulo biológico" (o foguete-semente).
+//
+// O que faz: desenha, de forma estilizada e animada, o foguete que o jogador
+// está construindo peça por peça. As partes já construídas aparecem coloridas;
+// a próxima fica num tom intermediário; as futuras ficam cinzas. Há detalhes
+// vivos: uma "solda" pulsante na fronteira do que foi construído, e raízes/chama
+// na base quando o foguete já está avançado. À direita/esquerda, anotações
+// (rótulos) nomeiam cada peça com ✓ (feita), ▸ (próxima) ou em branco (futura).
+//
+// Onde encaixa: aberto pelo atalho do foguete no hub, mostra o progresso rumo
+// ao objetivo final do jogo. (Equivale ao antigo HubRocketPanel.gd.)
+// ============================================================================
 import { Container, Graphics, Text } from 'pixi.js';
 import { Modal } from '../Modal';
 import { PixiButton } from '../PixiButton';
 import { Color, type RGBA } from '../../core/Color';
 import { HubState, ROCKET_RECIPE } from '../../state/HubState';
 
+// Medidas fixas da área de desenho do foguete (o "canvas"), em pixels.
+const CANVAS_H = 320;   // altura da área de desenho
+const TOP_Y = 30;       // margem superior interna
+const BODY_W = 40;      // largura do corpo do foguete
+const PADDING = 16;     // respiro interno do painel
+
+// Paleta usada no desenho do foguete (cores em formato RGBA 0..1).
+const PURPLE = Color.rgb(0.72, 0.45, 0.85);  // peças construídas (bulbo/anotações)
+const CYAN = Color.rgb(0.30, 0.78, 0.72);    // peças construídas (corpo) / próxima
+const GRAY: RGBA = { r: 0.35, g: 0.32, b: 0.28, a: 1 }; // peças ainda não construídas
+
+/** Medidas derivadas da geometria do foguete, calculadas uma vez e
+ *  compartilhadas entre o desenho (drawPod) e os rótulos (annotations). Assim a
+ *  posição das anotações sempre bate com o desenho. */
+interface PodGeometry {
+  innerW: number;   // largura interna útil
+  cx: number;       // centro horizontal do foguete
+  bottomY: number;  // base da área de desenho
+}
+
 /** Bio-pod schematic panel. Mirrors HubRocketPanel.gd. */
 export class HubRocketPanel extends Modal {
   private canvasContainer = new Container();
   private g = new Graphics();
-  private elapsedMs = 0;
-  private animationFrame = 0;
+  private elapsedMs = 0;          // tempo desde a abertura (alimenta as pulsações)
+  private animationFrame = 0;     // id do loop de animação, para poder cancelá-lo
 
   constructor() {
     super(360, 480);
-    this.drawPanelBg(Color.hex(Color.rgb(0.72, 0.45, 0.85)));
+    this.drawPanelBg(Color.hex(PURPLE));
     this.buildContent();
     void this.animateOpen();
     this.startAnimation();
   }
 
+  /** Ao fechar, primeiro paramos o loop de animação para não desenhar num
+   *  painel já removido. */
   override async requestClose(): Promise<void> {
     cancelAnimationFrame(this.animationFrame);
     await super.requestClose();
   }
 
+  /** Geometria compartilhada do foguete. Centraliza as contas que antes eram
+   *  repetidas no desenho e nos rótulos. */
+  private geometry(): PodGeometry {
+    const innerW = this.panelW - PADDING * 2;
+    return { innerW, cx: innerW * 0.5, bottomY: CANVAS_H - 30 };
+  }
+
+  /** Liga o loop de animação. A cada quadro atualiza o tempo e redesenha o
+   *  foguete, dando vida às pulsações (solda, chama). */
   private startAnimation(): void {
     const start = performance.now();
     const tick = (): void => {
@@ -34,12 +78,15 @@ export class HubRocketPanel extends Modal {
     this.animationFrame = requestAnimationFrame(tick);
   }
 
+  /** Monta a parte estática do painel: cabeçalho, subtítulo, a área do desenho
+   *  (canvas), o texto de status e o botão de fechar. O desenho em si é animado
+   *  separadamente em drawPod. */
   private buildContent(): void {
     const halfH = this.panelH / 2;
-    const padding = 16;
+    const padding = PADDING;
     const innerW = this.panelW - padding * 2;
 
-    let cy = -halfH + padding;
+    let cy = -halfH + padding; // cursor vertical: vai descendo a cada bloco
 
     const header = new Text({
       text: '◈ CASULO BIOLÓGICO · ESQUEMA',
@@ -61,13 +108,13 @@ export class HubRocketPanel extends Modal {
     this.panel.addChild(subtitle);
     cy += 16;
 
-    // Canvas area
-    const canvasH = 320;
+    // Área de desenho (canvas): um container deslocado para a esquerda do
+    // centro, dentro do qual o foguete e os rótulos são desenhados.
     this.canvasContainer.x = -innerW / 2;
     this.canvasContainer.y = cy;
     this.canvasContainer.addChild(this.g);
     this.panel.addChild(this.canvasContainer);
-    cy += canvasH + 8;
+    cy += CANVAS_H + 8;
 
     // Status
     const built = HubState.rocket_pieces_built;
@@ -94,23 +141,23 @@ export class HubRocketPanel extends Modal {
     this.panel.addChild(close);
   }
 
+  /** Desenha o foguete inteiro a cada quadro. A aparência depende de quantas
+   *  peças já foram construídas (`built`): partes construídas ganham cor viva,
+   *  a próxima fica num tom de transição, e as futuras ficam cinzas. */
   private drawPod(): void {
     this.g.clear();
-    const purple = Color.rgb(0.72, 0.45, 0.85);
-    const cyan = Color.rgb(0.30, 0.78, 0.72);
-    const earth = Color.rgb(0.55, 0.35, 0.20);
-    const amber = Color.rgb(0.91, 0.58, 0.23);
-    const gray: RGBA = { r: 0.35, g: 0.32, b: 0.28, a: 1 };
+    const purple = PURPLE;
+    const cyan = CYAN;
+    const earth = Color.rgb(0.55, 0.35, 0.20);   // marrom-terra (motores/aletas)
+    const amber = Color.rgb(0.91, 0.58, 0.23);   // âmbar (solda e chama)
+    const gray = GRAY;
 
     const built = HubState.rocket_pieces_built;
     const recipe = ROCKET_RECIPE;
-    const innerW = this.panelW - 32;
-    const cx = innerW * 0.5;
-    const canvasH = 320;
-    const topY = 30;
-    const bottomY = canvasH - 30;
-    const podH = bottomY - topY;
-    const bodyW = 40;
+    const { cx, bottomY } = this.geometry();
+    const topY = TOP_Y;
+    const podH = bottomY - topY;        // altura total do corpo do foguete
+    const bodyW = BODY_W;
 
     // Bulbo de esporo (nose cone)
     const bulbColor = this.pieceColor(0, built, purple, gray);
@@ -128,7 +175,9 @@ export class HubRocketPanel extends Modal {
       cx - bodyW * 0.5, topY + podH * 0.15,
     ]).stroke({ color: Color.hex(stroke), width: 1.5 });
 
-    // Body sections
+    // Corpo do foguete: três seções empilhadas. `buildY` é a "linha de
+    // construção" — abaixo dela está pronto, acima ainda falta — usada para a
+    // solda animada mais adiante.
     const bodyTopY = topY + podH * 0.22;
     const bodyBotY = topY + podH * 0.82;
     const sectionH = (bodyBotY - bodyTopY) / 3;
@@ -152,7 +201,9 @@ export class HubRocketPanel extends Modal {
         this.g.circle(cx, sy + sectionH * 0.5, 3).fill(Color.hex(Color.rgb(0.85, 0.92, 0.78)));
       }
     }
-    // Welding line — animated dashed seam between built and unbuilt
+    // Linha de solda: uma costura âmbar pulsante exatamente na fronteira entre
+    // o que já foi construído e o que falta. O `sin` do tempo gera o brilho que
+    // vai e volta (dashPulse).
     if (built > 0 && built < recipe.length) {
       const dashPulse = 0.4 + 0.6 * Math.abs(Math.sin(this.elapsedMs * 0.006));
       this.g.moveTo(cx - bodyW * 0.6, buildY).lineTo(cx + bodyW * 0.6, buildY)
@@ -174,7 +225,8 @@ export class HubRocketPanel extends Modal {
       cx + bodyW * 0.5, bodyBotY + podH * 0.08,
     ]).fill(Color.hex(engineColor));
 
-    // Roots/flame
+    // Raízes/chama na base: só aparecem quando o foguete já está bem avançado
+    // (5+ peças). Cada "raiz" pisca com intensidade própria graças ao `sin`.
     if (built >= 5) {
       for (let j = 0; j < 5; j++) {
         const fx = cx + (j - 2) * 6;
@@ -186,15 +238,12 @@ export class HubRocketPanel extends Modal {
       }
     }
 
-    // Annotations
+    // Anotações: para cada peça, desenha uma linha de chamada saindo do corpo
+    // do foguete até um ponto à esquerda ou à direita, com uma bolinha na ponta.
+    // Os rótulos de texto são desenhados à parte (refreshAnnotationLabels).
     for (let i = 0; i < recipe.length; i++) {
-      const isBuilt = i < built;
-      const isNext = i === built;
-      const annotationY = topY + 20 + i * ((bottomY - topY - 40) / recipe.length);
-      const isRight = i % 2 === 1;
-      const annotationX = isRight ? innerW * 0.85 : innerW * 0.15;
-      const podAttachX = isRight ? cx + bodyW * 0.5 : cx - bodyW * 0.5;
-      const lineColor = isBuilt ? purple : (isNext ? cyan : gray);
+      const { annotationY, isRight, annotationX, lineColor } = this.annotationLayout(i, built);
+      const podAttachX = isRight ? cx + bodyW * 0.5 : cx - bodyW * 0.5; // onde a linha encosta no foguete
       this.g.moveTo(podAttachX, annotationY).lineTo(annotationX, annotationY)
         .stroke({ color: Color.hex(lineColor), width: 1, alpha: 0.6 });
       this.g.circle(annotationX, annotationY, 3).fill(Color.hex(lineColor));
@@ -202,24 +251,38 @@ export class HubRocketPanel extends Modal {
 
     // Annotations text — Pixi Text doesn't support multi-position drawing in a single Graphics call,
     // so we manage labels separately.
+    // (O PixiJS não desenha texto em várias posições num só comando de Graphics,
+    //  então os rótulos são objetos Text gerenciados separadamente.)
     this.refreshAnnotationLabels();
   }
 
   private annotationLabels: Text[] = [];
 
+  /** Calcula a posição e a cor da anotação da peça `i`. Centralizado aqui para
+   *  que o desenho das linhas (drawPod) e os rótulos de texto fiquem sempre
+   *  alinhados. Peças alternam entre lado esquerdo e direito. */
+  private annotationLayout(i: number, built: number): {
+    annotationY: number; isRight: boolean; annotationX: number; lineColor: RGBA;
+  } {
+    const { innerW, bottomY } = this.geometry();
+    const isBuilt = i < built;
+    const isNext = i === built;
+    const annotationY = TOP_Y + 20 + i * ((bottomY - TOP_Y - 40) / ROCKET_RECIPE.length);
+    const isRight = i % 2 === 1; // peças ímpares vão para a direita, pares para a esquerda
+    const annotationX = isRight ? innerW * 0.85 : innerW * 0.15;
+    const lineColor = isBuilt ? PURPLE : (isNext ? CYAN : GRAY);
+    return { annotationY, isRight, annotationX, lineColor };
+  }
+
+  /** Mantém os rótulos de texto das anotações em sincronia com o estado: cria
+   *  ou remove rótulos conforme o tamanho da receita e atualiza texto, cor e
+   *  posição de cada um. O prefixo indica o estado: ✓ feito, ▸ próximo. */
   private refreshAnnotationLabels(): void {
     const built = HubState.rocket_pieces_built;
     const recipe = ROCKET_RECIPE;
-    const innerW = this.panelW - 32;
-    const cx = innerW * 0.5;
-    const canvasH = 320;
-    const topY = 30;
-    const bottomY = canvasH - 30;
-    const bodyW = 40;
-    const purple = Color.rgb(0.72, 0.45, 0.85);
-    const cyan = Color.rgb(0.30, 0.78, 0.72);
-    const gray: RGBA = { r: 0.35, g: 0.32, b: 0.28, a: 1 };
 
+    // Garante um rótulo para cada peça da receita (cria os que faltam,
+    // descarta os que sobram caso a receita encolha).
     while (this.annotationLabels.length < recipe.length) {
       const t = new Text({ text: '', style: { fontFamily: '"Space Grotesk", system-ui, sans-serif', fontSize: 9 } });
       this.annotationLabels.push(t);
@@ -236,10 +299,7 @@ export class HubRocketPanel extends Modal {
       const isNext = i === built;
       const prefix = isBuilt ? '✓ ' : (isNext ? '▸ ' : '  ');
       t.text = prefix + recipe[i]!.name;
-      const annotationY = topY + 20 + i * ((bottomY - topY - 40) / recipe.length);
-      const isRight = i % 2 === 1;
-      const annotationX = isRight ? innerW * 0.85 : innerW * 0.15;
-      const lineColor = isBuilt ? purple : (isNext ? cyan : gray);
+      const { annotationY, isRight, annotationX, lineColor } = this.annotationLayout(i, built);
       t.style = {
         fontFamily: '"Space Grotesk", system-ui, sans-serif',
         fontSize: 9,
@@ -247,14 +307,17 @@ export class HubRocketPanel extends Modal {
         wordWrap: true,
         wordWrapWidth: 70,
       };
+      // O ponto de ancoragem muda conforme o lado, para o texto "crescer" para
+      // fora do foguete (à direita encosta pela esquerda do texto, e vice-versa).
       t.anchor.set(isRight ? 0 : 1, 0.5);
       t.x = isRight ? annotationX + 6 : annotationX - 6;
       t.y = annotationY;
-      // Suppress unused var lint
-      void cx; void bodyW;
     }
   }
 
+  /** Decide a cor de uma peça conforme o progresso: cor "ativa" se já
+   *  construída; um tom de transição (40% rumo ao cinza) se for a próxima; e a
+   *  cor "inativa" (cinza) se ainda estiver no futuro. */
   private pieceColor(pieceIndex: number, built: number, active: RGBA, inactive: RGBA): RGBA {
     if (pieceIndex < built) return active;
     if (pieceIndex === built) {

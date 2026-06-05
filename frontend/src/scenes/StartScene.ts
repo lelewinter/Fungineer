@@ -9,15 +9,28 @@ import { FontFamily, TextColor } from '../core/typography';
 import { PixiButton } from '../ui/PixiButton';
 import { HubScene } from './hub/HubScene';
 
+/**
+ * StartScene — a tela inicial do jogo (menu principal).
+ *
+ * E a primeira coisa que o jogador ve: o titulo FUNGINEER sobre um cenario
+ * atmosferico (textura de micelio, esporos subindo, silhuetas de ruinas) e um
+ * botao "COMECAR JOGO" que leva ao hub (HubScene).
+ *
+ * Tudo que e fixo (fundo, titulo, botao) e montado uma vez em enter(); o que se
+ * mexe (esporos flutuando, titulo balancando, texto piscando) e animado em
+ * update(). Apertar Enter/Espaco tambem inicia o jogo.
+ */
+
 const W = GameConfig.VIEWPORT_WIDTH;
 const H = GameConfig.VIEWPORT_HEIGHT;
 
+/** Um esporo flutuante do fundo: seu ponto grafico mais o estado do movimento. */
 interface Spore {
   node: Graphics;
   x: number;
   y: number;
-  speed: number;
-  drift: number;
+  speed: number;  // velocidade de subida
+  drift: number;  // fase usada para o vai-e-vem horizontal
   size: number;
 }
 
@@ -26,21 +39,28 @@ export class StartScene extends Scene {
   private title!: Text;
   private prompt!: Text;
   private elapsed = 0;
+  // Guardamos a referencia do handler de teclado para poder remove-lo no exit()
+  // (senao ele continuaria escutando teclas depois da cena sair).
   private keyHandler!: (e: KeyboardEvent) => void;
 
+  /** Monta o cenario, o titulo, o botao e a musica; liga o atalho de teclado. */
   override async enter(): Promise<void> {
     const bg = new Graphics();
     bg.rect(0, 0, W, H).fill({ color: 0x07090a });
     this.root.addChild(bg);
 
+    // A textura de micelio pode falhar ao carregar; nesse caso seguimos sem ela.
     const tex = await assets.texture('res://assets/art/textures/mycelium_tile.png');
     if (tex) this.addTextureBackground(tex);
     this.addAtmosphere();
     this.addTitleBlock();
     this.addStartButton();
 
+    // Musica do menu em loop, com fade-in suave. O .catch evita que uma falha
+    // de audio (ex.: navegador bloqueando som) quebre a cena.
     audioManager.playMusic('res://assets/audio/music/menu.wav', { loop: true, volume: 0.28, fadeMs: 500 }).catch(() => undefined);
 
+    // Enter ou Espaco tambem comecam o jogo (alem do clique no botao).
     this.keyHandler = (e: KeyboardEvent): void => {
       if (e.key === 'Enter' || e.key === ' ') {
         e.preventDefault();
@@ -50,15 +70,18 @@ export class StartScene extends Scene {
     window.addEventListener('keydown', this.keyHandler);
   }
 
+  /** A cada quadro: balanca o titulo, pisca o texto e move os esporos. */
   override update(dt: number): void {
     this.elapsed += dt;
+    // Titulo flutua suavemente para cima e para baixo; o prompt pisca (alpha).
     this.title.y = 156 + Math.sin(this.elapsed * 1.5) * 3;
     this.prompt.alpha = 0.55 + Math.sin(this.elapsed * 4) * 0.25;
 
     for (const spore of this.spores) {
       spore.drift += dt;
-      spore.y -= spore.speed * dt;
-      spore.x += Math.sin(spore.drift) * 10 * dt;
+      spore.y -= spore.speed * dt;               // sobe
+      spore.x += Math.sin(spore.drift) * 10 * dt; // deriva (drift) para os lados
+      // Ao sair pelo topo, reaparece embaixo numa coluna aleatoria (recycle).
       if (spore.y < -20) {
         spore.y = H + 20;
         spore.x = Math.random() * W;
@@ -69,12 +92,15 @@ export class StartScene extends Scene {
     }
   }
 
+  /** Ao sair da cena: remove o atalho de teclado e corta a musica com fade. */
   override async exit(): Promise<void> {
     window.removeEventListener('keydown', this.keyHandler);
     audioManager.stopMusic(250);
   }
 
+  /** Cobre a tela com a textura de micelio (tiling) e uma neblina escura. */
   private addTextureBackground(tex: Texture): void {
+    // TilingSprite repete a mesma textura para preencher toda a area.
     const tile = new TilingSprite({ texture: tex, width: W, height: H });
     tile.tileScale.set(1.7);
     tile.alpha = 0.25;
@@ -87,6 +113,8 @@ export class StartScene extends Scene {
     this.root.addChild(haze);
   }
 
+  /** Adiciona a "atmosfera": grade em perspectiva, linha do horizonte, esporos
+   *  flutuantes e silhuetas escuras de ruinas ao fundo. */
   private addAtmosphere(): void {
     const grid = new Graphics();
     for (let y = 96; y < H; y += 34) {
@@ -104,6 +132,8 @@ export class StartScene extends Scene {
       .rect(0, H - 166, W, 1).fill({ color: 0xffffff, alpha: 0.18 });
     this.root.addChild(horizon);
 
+    // Cria 44 esporos com tamanho/velocidade/fase aleatorios. Cada um e um
+    // ponto brilhante com um halo translucido em volta.
     for (let i = 0; i < 44; i++) {
       const node = new Graphics();
       const size = 1 + Math.random() * 2.6;
@@ -130,8 +160,10 @@ export class StartScene extends Scene {
     this.root.addChild(silhouette);
   }
 
+  /** Desenha o bloco do titulo: painel escuro de fundo, "olho" (eyebrow),
+   *  o titulo FUNGINEER e o subtitulo. */
   private addTitleBlock(): void {
-    // Dark backing panel so the title group reads clearly over the busy art.
+    // Painel escuro atras do titulo para ele se destacar sobre a arte agitada.
     const panel = new Graphics();
     const px = 28;
     const py = 88;
@@ -195,6 +227,7 @@ export class StartScene extends Scene {
     this.root.addChild(subtitle);
   }
 
+  /** Cria o botao "COMECAR JOGO", o prompt piscante e o carimbo de build. */
   private addStartButton(): void {
     const bw = 272;
     const bh = 58;
@@ -228,8 +261,9 @@ export class StartScene extends Scene {
     this.prompt.y = H - 150;
     this.root.addChild(this.prompt);
 
-    // Build stamp — tiny, low-key. Lets you confirm at a glance which build is
-    // live after a deploy (commit SHA + date, injected by Vite).
+    // Carimbo do build — minusculo e discreto. Serve para conferir num relance
+    // qual versao esta no ar apos um deploy (SHA do commit + data, injetados
+    // pelo Vite na hora de compilar).
     const build = new Text({
       text: `build ${__BUILD_ID__}`,
       style: { fontFamily: FontFamily.mono, fontSize: 9, fill: TextColor.faint, letterSpacing: 0.5 },
@@ -241,6 +275,7 @@ export class StartScene extends Scene {
     this.root.addChild(build);
   }
 
+  /** Toca o som de confirmacao e troca para o hub com uma transicao de fade. */
   private startGame(): void {
     audioManager.playSfx('res://assets/audio/sfx/ui/Confirm_03.wav', 0.7);
     void sceneManager.replace(new HubScene(), { fadeMs: 320 });

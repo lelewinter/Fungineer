@@ -1,16 +1,28 @@
-/** Zone data for WorldMapScene. Port of /data/zones.gd. */
+/**
+ * Zones — O "catalogo de fases" do mapa-mundi.
+ * --------------------------------------------
+ * Em linguagem simples: cada entrada aqui descreve UMA zona/fase para onde o
+ * jogador pode mandar a tripulacao numa missao (run) — o nome que aparece na
+ * tela, a cor-tema, qual recurso ela rende, e qual "cena" (mini-jogo) carregar
+ * quando a missao comeca. E so dados de apresentacao; nenhuma regra de jogo.
+ *
+ * Usado pela tela do mapa-mundi (WorldMapScene). Portado de `/data/zones.gd`
+ * (a versao original em Godot). Os caminhos `res://...` apontam para a arte e a
+ * musica de cada zona dentro dos assets do projeto.
+ */
 
 import { Color, type RGBA } from '../core/Color';
 
+/** Tudo que descreve visualmente uma zona/fase do mapa. */
 export interface ZoneData {
   zone_name: string;
   accent_color: RGBA;
-  scene: string; // logical run scene id (was scene_path in Godot)
+  scene: string; // id logico da cena de run (era scene_path no Godot)
   resource: string;
   subtitle: string;
   room_subtitle: string;
-  art?: string;   // res:// path to zone hero image
-  music?: string; // res:// path to zone music
+  art?: string;   // caminho res:// da imagem principal da zona
+  music?: string; // caminho res:// da musica da zona
 }
 
 export const ZONES: ZoneData[] = [
@@ -27,6 +39,8 @@ export const ZONES: ZoneData[] = [
   { zone_name: 'CATEDRAL',    accent_color: Color.rgb(0.780, 0.680, 0.420), scene: 'catedral',    resource: 'Relíquias',           subtitle: 'Patrimônio Protegido', room_subtitle: 'Catedral Colonial',   art: 'res://assets/art/zones/zone_catedral.png',    music: 'res://assets/audio/music/zones/dungeon_theme_2.wav' },
 ];
 
+/** Entrada especial: a baia do foguete. Nao e uma fase jogavel (scene vazia),
+ *  mas reaproveita o mesmo formato para aparecer no mapa como destino. */
 export const ROCKET_BAY: ZoneData = {
   zone_name: 'BAIA DO FOGUETE',
   accent_color: Color.rgb(0.800, 0.200, 0.000),

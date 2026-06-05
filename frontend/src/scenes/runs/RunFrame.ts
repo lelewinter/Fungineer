@@ -1,3 +1,26 @@
+// ============================================================================
+// RUNFRAME — A "MOLDURA" COMPARTILHADA DE TODA FASE DE RAID
+// ----------------------------------------------------------------------------
+// O que e este arquivo, em palavras simples:
+//   - Toda fase de raid (Snake, Pac-Man, Frogger, etc.) tem as MESMAS pecas de
+//     interface por cima do jogo: uma barrinha no topo com o nome da zona,
+//     o tempo restante, a pontuacao e a vida; um botao de "desistir"; e a
+//     tela de fim de fase ("missao cumprida" / "run perdida").
+//   - Em vez de cada fase reescrever tudo isso, elas chamam as funcoes daqui.
+//     Assim a aparencia fica igual em todas e a manutencao acontece num lugar so.
+//
+// O que mora aqui:
+//   - buildHud(zone) ......... monta a barra de HUD do topo e devolve "controles"
+//                              (setTimer, setScore, ...) que a fase chama a cada quadro.
+//   - buildEndOverlay(opts) .. monta a tela escura de fim de raid com o botao
+//                              de voltar ao bunker.
+//   - bindDrag(...) .......... liga o arrastar do dedo/mouse no canvas e devolve
+//                              a posicao do ponteiro ja convertida para coordenadas
+//                              do jogo (usada pelas fases controladas por arraste).
+//
+// Tudo aqui e exportado e usado pelas fases; os nomes/assinaturas sao estaveis.
+// ============================================================================
+
 import { Container, Graphics, Text } from 'pixi.js';
 import { Color } from '../../core/Color';
 import { FontFamily, TextColor } from '../../core/typography';
@@ -11,18 +34,21 @@ import type { ZoneData } from '../../state/Zones';
 const VW = GameConfig.VIEWPORT_WIDTH;
 const VH = GameConfig.VIEWPORT_HEIGHT;
 
-// Drop shadow keeps HUD text legible over busy, low-contrast gameplay.
+// A sombra (drop shadow) mantem o texto do HUD legivel mesmo por cima de um
+// fundo de jogo agitado e de baixo contraste.
 const HUD_SHADOW = { color: 0x000000, alpha: 0.85, blur: 3, distance: 1, angle: Math.PI / 2 } as const;
 
+// Os "controles" do HUD que cada fase recebe e atualiza durante o jogo.
+// container = o desenho a ser adicionado a cena; os setters mudam cada campo.
 export interface RunHud {
   container: Container;
-  setTimer: (s: number) => void;
-  setScore: (label: string) => void;
-  setStatus: (label: string) => void;
-  setHealth: (pct: number) => void;
+  setTimer: (s: number) => void;       // segundos restantes (mostrados como "Ns")
+  setScore: (label: string) => void;   // texto livre de pontuacao/coleta
+  setStatus: (label: string) => void;  // subtitulo de status sob o nome da zona
+  setHealth: (pct: number) => void;    // 0..1 -> largura da barrinha de vida
 }
 
-/** Builds the standard top HUD strip used by every zone run scene. */
+/** Monta a barra de HUD padrao do topo, usada por toda fase de raid. */
 export function buildHud(zone: ZoneData): RunHud {
   const accent = Color.hex(zone.accent_color);
   const container = new Container();
@@ -76,8 +102,9 @@ export function buildHud(zone: ZoneData): RunHud {
   container.addChild(healthBg);
   container.addChild(healthFg);
 
-  // Give-up button — every run can bail back to the bunker (with a confirm so
-  // it's never a fat-finger). Lives in the shared HUD, so all zones inherit it.
+  // Botao de desistir — toda raid pode voltar para o bunker (com uma confirmacao,
+  // para nunca acontecer por toque acidental). Como mora no HUD compartilhado,
+  // todas as zonas herdam esse botao de graca.
   const quit = new PixiButton({
     label: '✕',
     width: 28, height: 28, fontSize: 15,
@@ -89,12 +116,13 @@ export function buildHud(zone: ZoneData): RunHud {
   quit.y = 9;
   container.addChild(quit);
 
+  // Mostra a janelinha de confirmacao antes de abandonar o raid de verdade.
   function showQuitConfirm(): void {
     const layer = new Container();
 
     const dim = new Graphics();
     dim.rect(0, 0, VW, VH).fill({ color: 0x000000, alpha: 0.74 });
-    dim.eventMode = 'static'; // swallow taps to the field/HUD behind
+    dim.eventMode = 'static'; // "engole" os toques para nao vazarem para o jogo/HUD atras
     layer.addChild(dim);
 
     const cardW = 280;
@@ -125,6 +153,7 @@ export function buildHud(zone: ZoneData): RunHud {
     detail.y = cy - 14;
     layer.addChild(detail);
 
+    // Confirmar: registra a run como perdida e volta ao bunker.
     const giveUp = new PixiButton({
       label: 'Desistir', width: 116, height: 38,
       fill: 0x3a1c1f, hoverFill: 0x4a2226, textColor: TextColor.red,
@@ -134,6 +163,7 @@ export function buildHud(zone: ZoneData): RunHud {
     giveUp.y = cy + 22;
     layer.addChild(giveUp);
 
+    // Cancelar: apenas fecha a janelinha e segue jogando.
     const cancel = new PixiButton({
       label: 'Continuar', width: 116, height: 38,
       textColor: accent,
@@ -143,15 +173,17 @@ export function buildHud(zone: ZoneData): RunHud {
     cancel.y = cy + 22;
     layer.addChild(cancel);
 
-    container.addChild(layer); // on top of the HUD strip
+    container.addChild(layer); // por cima da barra de HUD
   }
 
   return {
     container,
+    // Mostra o tempo arredondado pra cima e nunca negativo (ex.: "12s").
     setTimer: (s: number) => { timer.text = `${Math.ceil(Math.max(0, s))}s`; },
     setScore: (label: string) => { score.text = label; },
     setStatus: (label: string) => { status.text = label; },
     setHealth: (pct: number) => {
+      // pct e limitado a 0..1; abaixo de 40% a barra vira vermelha (aviso de perigo).
       const w = Math.max(0, Math.min(1, pct)) * HBW;
       healthFg.clear();
       healthFg.rect(HBX, 39, w, 5).fill({ color: pct > 0.4 ? accent : 0xe05050, alpha: 0.98 });
@@ -159,14 +191,15 @@ export function buildHud(zone: ZoneData): RunHud {
   };
 }
 
+// Configuracao da tela de fim de raid.
 export interface RunEndOpts {
   zone: ZoneData;
   victory: boolean;
-  rewardLabel?: string;
-  failLabel?: string;
+  rewardLabel?: string;  // texto da recompensa quando vence
+  failLabel?: string;    // texto quando falha
 }
 
-/** Renders the end-of-run overlay with a "back to bunker" button. */
+/** Desenha a tela escura de fim de raid com o botao de "voltar ao bunker". */
 export function buildEndOverlay(opts: RunEndOpts): Container {
   const accent = Color.hex(opts.zone.accent_color);
   const layer = new Container();
@@ -178,7 +211,7 @@ export function buildEndOverlay(opts: RunEndOpts): Container {
 
   const dim = new Graphics();
   dim.rect(0, 0, VW, VH).fill({ color: 0x000000, alpha: 0.7 });
-  dim.eventMode = 'static'; // block taps from reaching the HUD give-up button beneath
+  dim.eventMode = 'static'; // "engole" os toques para nao chegarem ao botao de desistir do HUD atras
   layer.addChild(dim);
 
   const card = new Graphics();
@@ -225,15 +258,21 @@ export function buildEndOverlay(opts: RunEndOpts): Container {
   return layer;
 }
 
-/** Subscribes a canvas pointer drag and returns a position resolver in scene coords. */
+// O resultado do bindDrag: a posicao do ponteiro ja em coordenadas do jogo,
+// se o dedo esta pressionado, e uma funcao para soltar os listeners.
 export interface DragInput {
   pos: { x: number; y: number };
   dragging: boolean;
   cleanup: () => void;
 }
 
+/** Liga o arraste do dedo/mouse no canvas. As fases controladas por arraste leem
+ *  "pos" (atualizada a cada movimento) como o alvo a perseguir. Lembre de chamar
+ *  cleanup() ao sair da fase para remover os listeners. */
 export function bindDrag(canvas: HTMLCanvasElement, world: { x: number; y: number; scale: { x: number } }, initial: { x: number; y: number }): DragInput {
   const state: DragInput = { pos: { ...initial }, dragging: false, cleanup: () => undefined };
+  // Converte a posicao do clique do navegador para coordenadas do jogo, desfazendo
+  // o deslocamento (world.x/y) e o zoom (world.scale) aplicados ao mundo.
   const resolve = (e: PointerEvent): void => {
     const rect = canvas.getBoundingClientRect();
     const scale = world.scale.x || 1;

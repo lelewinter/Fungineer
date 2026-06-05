@@ -1,30 +1,43 @@
-/** Thin client for the Fungineer backend.
+/**
+ * ApiClient.ts — a "ponte" entre o jogo (frontend) e o servidor (backend).
  *
- *  Reads `VITE_API_URL` at build time. When empty, all methods become no-ops
- *  / return `null`, so the game still runs as a pure-frontend app — useful
- *  for the static Cloudflare Pages deploy without a paired backend. */
+ * Este modulo conversa com o backend do Fungineer para salvar e carregar o
+ * progresso do jogador na nuvem. Pontos importantes:
+ *
+ *   - O endereco do servidor vem de VITE_API_URL (definido na hora de compilar).
+ *     Se estiver VAZIO, todos os metodos viram "no-ops" (nao fazem nada e devolvem
+ *     null), e o jogo roda 100% no navegador — util para a versao publicada como
+ *     site estatico, sem servidor associado.
+ *
+ *   - A API de save nao usa login. Em vez disso, cada aparelho guarda dois
+ *     segredos aleatorios no navegador (localStorage): um `slot` (qual "gaveta"
+ *     de save pertence a ele) e um `token` (prova de que e o dono). Juntos, eles
+ *     impedem que alguem leia, sobrescreva ou apague o save de outra pessoa.
+ *
+ * Exporta uma unica instancia pronta: `apiClient`.
+ */
 
+// Le e normaliza a URL base do servidor (removendo a barra final, se houver).
 const RAW_BASE = (import.meta.env.VITE_API_URL ?? '').trim();
 const BASE = RAW_BASE.replace(/\/$/, '');
 
-// ── Device identity ─────────────────────────────────────────────────────────
-// The save API is unauthenticated, so each device gets two random secrets kept
-// in localStorage: a `slot` (which save row it owns) and a `token` (proof of
-// ownership, sent as X-Device-Token). Together they stop anyone from reading,
-// overwriting, or deleting another player's save.
+// ── Identidade do aparelho ───────────────────────────────────────────────────
+// Chaves do localStorage onde guardamos os dois segredos por aparelho.
 const DEVICE_SLOT_KEY = 'fungineer.device.slot.v1';
 const DEVICE_TOKEN_KEY = 'fungineer.device.token.v1';
 
+/** Gera um identificador aleatorio (UUID quando possivel; senao, um fallback). */
 function randomId(): string {
   try {
     if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') return crypto.randomUUID();
-  } catch { /* fall through */ }
-  // Fallback for non-secure contexts / old webviews.
+  } catch { /* segue para o fallback abaixo */ }
+  // Fallback para contextos nao-seguros / webviews antigos sem crypto.randomUUID.
   let s = '';
   for (let i = 0; i < 32; i++) s += Math.floor(Math.random() * 16).toString(16);
   return s;
 }
 
+/** Le o segredo guardado na chave; se nao existir, cria um novo e guarda. */
 function readOrCreate(key: string): string {
   try {
     const existing = localStorage.getItem(key);
@@ -33,17 +46,20 @@ function readOrCreate(key: string): string {
     localStorage.setItem(key, fresh);
     return fresh;
   } catch {
-    // Storage disabled (private mode) — ephemeral id; remote save just won't
-    // persist across sessions, which is acceptable (localStorage is primary).
+    // Armazenamento desabilitado (aba anonima) -> id temporario. O save remoto
+    // simplesmente nao persiste entre sessoes, o que e aceitavel (o localStorage
+    // e a fonte primaria de save).
     return randomId();
   }
 }
 
+/** Resposta do servidor ao salvar. */
 export interface SaveResult {
   slot_id: string;
   updated_at: string;
 }
 
+/** Resposta do servidor ao carregar (traz o estado salvo em `state`). */
 export interface LoadResult<T = unknown> {
   slot_id: string;
   state: T;
@@ -51,10 +67,11 @@ export interface LoadResult<T = unknown> {
 }
 
 class ApiClientClass {
+  // Os dois segredos deste aparelho, lidos/criados no localStorage.
   private deviceSlot = readOrCreate(DEVICE_SLOT_KEY);
   private deviceToken = readOrCreate(DEVICE_TOKEN_KEY);
 
-  /** True when VITE_API_URL is set — i.e. remote save/load is available. */
+  /** True quando VITE_API_URL esta definido — ou seja, ha save/load remoto. */
   get enabled(): boolean {
     return BASE.length > 0;
   }
@@ -63,15 +80,17 @@ class ApiClientClass {
     return BASE;
   }
 
-  /** This device's save slot id (a random per-device secret). */
+  /** O id da "gaveta" de save deste aparelho (um segredo aleatorio por aparelho). */
   get slotId(): string {
     return this.deviceSlot;
   }
 
+  /** Monta os cabecalhos de autenticacao (envia o token de prova de dono). */
   private authHeaders(extra?: Record<string, string>): Record<string, string> {
     return { 'X-Device-Token': this.deviceToken, ...extra };
   }
 
+  /** Verifica se o servidor esta no ar. Retorna false se nao houver backend. */
   async healthz(): Promise<boolean> {
     if (!this.enabled) return false;
     try {
@@ -82,6 +101,7 @@ class ApiClientClass {
     }
   }
 
+  /** Salva o estado do jogo na nuvem. Devolve null se falhar ou nao houver backend. */
   async saveState<T>(slotId: string, state: T): Promise<SaveResult | null> {
     if (!this.enabled) return null;
     try {
@@ -101,12 +121,14 @@ class ApiClientClass {
     }
   }
 
+  /** Carrega o estado salvo na nuvem. Devolve null se nao existir ou falhar. */
   async loadState<T>(slotId: string): Promise<LoadResult<T> | null> {
     if (!this.enabled) return null;
     try {
       const res = await fetch(`${BASE}/api/state/${encodeURIComponent(slotId)}`, {
         headers: this.authHeaders(),
       });
+      // 404 = nao ha save para este aparelho ainda (situacao normal, nao erro).
       if (res.status === 404) return null;
       if (!res.ok) {
         console.warn('[api] loadState failed', res.status);
@@ -119,6 +141,7 @@ class ApiClientClass {
     }
   }
 
+  /** Apaga o save remoto deste aparelho. Devolve true em caso de sucesso. */
   async deleteState(slotId: string): Promise<boolean> {
     if (!this.enabled) return false;
     try {
@@ -133,4 +156,5 @@ class ApiClientClass {
   }
 }
 
+/** Instancia unica e compartilhada do cliente da API. */
 export const apiClient = new ApiClientClass();

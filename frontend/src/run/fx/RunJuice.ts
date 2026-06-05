@@ -1,37 +1,46 @@
+/*
+ * RunJuice — "kit completo" de game feel para as cenas de zona mais leves.
+ *
+ * Junta, atrás de uma API bem simples: o sistema de partículas (FXSystem), os
+ * efeitos de tela cheia (ScreenFX: flash, pressão nas bordas, shockwave), um
+ * tremor de tela próprio e som + vibração. Os "combos" de alto nível (pop,
+ * hurt, jump, alarm, victoryFx, defeatFx) deixam cada momento do jogo a uma
+ * linha de distância.
+ *
+ * Diferença para o Juice global (fx/Juice.ts): aquele só faz tremor/vibração e
+ * é compartilhado; este é instanciado por cena e traz tudo embutido.
+ */
 import type { Container } from 'pixi.js';
 import { GameConfig } from '../../state/GameConfig';
 import { audioManager } from '../../core/AudioManager';
 import { FXSystem, type BurstOpts } from './FXSystem';
 import { ScreenFX } from './ScreenFX';
 
+// VW/VH = largura/altura do viewport (a área visível da tela).
 const VW = GameConfig.VIEWPORT_WIDTH;
 const VH = GameConfig.VIEWPORT_HEIGHT;
 
+/** Configuração ao criar um RunJuice. */
 export interface RunJuiceOpts {
-  /** Zone accent colour — tints ambient spores, bursts and flashes. */
+  /** Cor de destaque da zona — tinge esporos de atmosfera, bursts e flashes. */
   accent: number;
-  /** Ambient drifting-spore count (atmosphere). 0 disables. */
+  /** Quantidade de esporos de atmosfera. 0 desliga. */
   ambient?: number;
-  /** Container translated by screen shake. Pass the scene's game-content
-   *  layer (NOT the root, so the FX overlay / HUD stay rock-steady). */
+  /** Container que sofre o tremor de tela. Passe a camada de conteúdo do jogo
+   *  (NÃO o root, para o overlay de efeitos / HUD ficarem firmes). */
   shakeTarget?: Container | null;
 }
 
 /**
- * RunJuice — drop-in game-feel kit for the lightweight zone scenes.
+ * Kit de game feel pronto para usar. Veja o bloco no topo do arquivo.
  *
- * Bundles the particle system, the full-screen ScreenFX (flash / edge
- * pressure / shockwave), a local trauma screen-shake and haptics + SFX behind
- * a tiny API. High-level combos (`pop`, `hurt`, `victoryFx`, `defeatFx`) make
- * wiring a zone a one-liner per beat.
- *
- * Usage:
+ * Uso típico:
  *   this.juice = new RunJuice(this.root, { accent, shakeTarget: this.content });
- *   // in update(): this.juice.update(dt)
- *   // on pickup:   this.juice.pop(x, y)
- *   // on damage:   this.juice.hurt(x, y)
- *   // on win/lose: this.juice.victoryFx() / this.juice.defeatFx()
- *   // in exit():   this.juice.destroy()
+ *   // no update():  this.juice.update(dt)
+ *   // ao coletar:   this.juice.pop(x, y)
+ *   // ao tomar dano: this.juice.hurt(x, y)
+ *   // vitória/derrota: this.juice.victoryFx() / this.juice.defeatFx()
+ *   // ao sair:       this.juice.destroy()
  */
 export class RunJuice {
   readonly screenFx = new ScreenFX();
@@ -63,13 +72,14 @@ export class RunJuice {
     }
   }
 
+  /** Roda todo frame: atualiza partículas, efeitos de tela e o tremor. */
   update(dt: number): void {
     this.fx.update(dt);
     this.screenFx.update(dt);
     this.applyShake(dt);
   }
 
-  // ── Primitives ───────────────────────────────────────────────────────────
+  // ── Primitivos (efeitos isolados) ─────────────────────────────────────────
   burst(x: number, y: number, opts: BurstOpts = {}): void {
     this.fx.burst(x, y, { color: this.accent, ...opts });
   }
@@ -97,8 +107,8 @@ export class RunJuice {
     try { navigator.vibrate(Math.min(200, Math.max(5, Math.round(ms)))); } catch { /* ignore */ }
   }
 
-  // ── High-level combos ─────────────────────────────────────────────────────
-  /** Satisfying pickup / objective tick. */
+  // ── Combos de alto nível (juntam vários primitivos por "momento") ─────────
+  /** Coleta satisfatória / objetivo cumprido. */
   pop(x: number, y: number, color: number = this.accent): void {
     this.burst(x, y, { count: 14, color, speed: 170, life: 0.5, size: 2.6 });
     this.flash(color, 0.10, 0.14);
@@ -106,7 +116,7 @@ export class RunJuice {
     audioManager.playSfx('res://assets/audio/sfx/ui/Confirm_03.wav', 0.45);
   }
 
-  /** Player took damage / near miss. */
+  /** Jogador tomou dano / quase foi atingido. */
   hurt(x: number, y: number): void {
     this.edges(0xff2f3d, 0.5);
     this.flash(0xff2f3d, 0.22, 0.18);
@@ -115,13 +125,13 @@ export class RunJuice {
     audioManager.playSfx('res://assets/audio/sfx/game/hit_01.wav', 0.6);
   }
 
-  /** Light hop / step — the signature beat of the movement-only zones. */
+  /** Pulinho / passo leve — o efeito típico das zonas só de movimento. */
   jump(x: number, y: number, color: number = this.accent): void {
     this.burst(x, y, { count: 6, color, speed: 90, life: 0.3, size: 2 });
     audioManager.playSfx('res://assets/audio/sfx/game/jump.wav', 0.4);
   }
 
-  /** A heavy/alarming beat (alarm, chase start, hazard). */
+  /** Momento pesado/alarmante (alarme, início de perseguição, perigo). */
   alarm(color = 0xff7a3c): void {
     this.edges(color, 0.6);
     this.flash(color, 0.2, 0.22);
@@ -142,15 +152,18 @@ export class RunJuice {
     this.edges(0xff2f3d, 1);
     this.flash(0xff2f3d, 0.32, 0.34);
     this.shake(0.55, 120);
-    // index 02 → heavier, lower-pitched impact than a mid-run hit.
+    // O som "hit_02" é mais grave/pesado que o acerto comum do meio da run.
     audioManager.playSfx('res://assets/audio/sfx/game/hit_02.wav', 0.8);
   }
 
+  /** Libera partículas e efeitos de tela. Chamar ao sair da cena. */
   destroy(): void {
     this.fx.destroy();
     this.screenFx.destroy();
   }
 
+  /** Aplica o tremor ao shakeTarget. Mesma ideia do Juice global: trauma²
+   *  desloca a camada e o trauma decai sozinho. */
   private applyShake(dt: number): void {
     if (!this.shakeTarget) return;
     if (this.trauma <= 0) {
@@ -159,7 +172,7 @@ export class RunJuice {
       return;
     }
     const t2 = this.trauma * this.trauma;
-    const max = 14;
+    const max = 14; // deslocamento máximo do tremor, em pixels
     this.shakeTarget.x = this.baseX + (Math.random() * 2 - 1) * max * t2;
     this.shakeTarget.y = this.baseY + (Math.random() * 2 - 1) * max * t2;
     this.trauma = Math.max(0, this.trauma - 1.6 * dt);

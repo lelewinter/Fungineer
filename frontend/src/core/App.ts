@@ -1,17 +1,43 @@
+/**
+ * App.ts — a fundacao tecnica do jogo (o "motor de tela").
+ *
+ * Esta classe embrulha o PixiJS (a biblioteca que desenha graficos 2D acelerados
+ * pela placa de video) e cuida das tarefas de baixo nivel que todas as telas
+ * dependem:
+ *   - cria o renderer (o "pintor" que desenha na tela);
+ *   - mantem dois containers: `stage` (tudo, alinhado a tela) e `world` (o mundo
+ *     do jogo, que e escalado para caber no aparelho);
+ *   - aplica o filtro CRT (efeito de TV antiga) por cima de tudo;
+ *   - ajusta o tamanho do canvas quando a janela/aparelho muda (resize/fit),
+ *     com cuidados especiais para celulares (a barra de URL que aparece e some).
+ *
+ * O jogo e desenhado num tamanho "logico" fixo (definido em GameConfig) e depois
+ * escalado para o aparelho real — assim a interface fica consistente em qualquer
+ * tela. Termos: "viewport" = area visivel; "DPR" = densidade de pixels do
+ * aparelho; "ticker" = relogio que dispara cada frame.
+ */
+
 import { Application, Container } from 'pixi.js';
 import { GameConfig } from '../state/GameConfig';
 import { CRTFilter } from './filters/CRTFilter';
 
 export class App {
+  /** A aplicacao PixiJS (renderer, ticker, canvas...). */
   readonly pixi: Application;
+  /** Container raiz que cobre a tela inteira, sem escala (onde mora o filtro CRT). */
   readonly stage: Container;
+  /** Container do mundo do jogo — este sim e escalado para caber no aparelho. */
   readonly world: Container;
+  /** O filtro de efeito CRT (TV antiga) aplicado a imagem final. */
   readonly crt: CRTFilter;
 
+  // O elemento HTML que hospeda o canvas do jogo.
   private readonly host: HTMLElement;
+  // Ultimo tamanho aplicado, para evitar refazer o resize sem necessidade.
   private lastW = -1;
   private lastH = -1;
 
+  // Construtor privado: use App.create(...) para obter uma instancia pronta.
   private constructor(pixi: Application, host: HTMLElement) {
     this.pixi = pixi;
     this.host = host;
@@ -25,19 +51,19 @@ export class App {
       viewportH: GameConfig.VIEWPORT_HEIGHT,
       intensity: 0.16,
     });
-    // The CRT is a full-screen post-process, so it lives on the stage — which
-    // is always screen-aligned and unscaled. Applying it to the non-uniformly
-    // scaled `world` made Pixi mis-compute the filter region and clip the
-    // right edge of the frame, leaving a dead band the game did not fill.
+    // O CRT e um pos-processamento de tela cheia, entao ele vive no `stage` — que
+    // esta sempre alinhado a tela e sem escala. Aplica-lo ao `world` (que e
+    // escalado de forma nao-uniforme) fazia o Pixi calcular errado a regiao do
+    // filtro e cortar a borda direita, deixando uma faixa morta sem preencher.
     this.stage.filters = [this.crt];
     this.stage.filterArea = this.pixi.screen;
     this.pixi.ticker.add(() => this.crt.tick());
 
-    // We manage the renderer size ourselves instead of relying on Pixi's
-    // `resizeTo`, because on mobile the visible area is driven by the browser
-    // chrome (URL bar) through `visualViewport`, which does not reliably fire
-    // `window.resize`. Listening to every relevant signal — and re-checking a
-    // few times after load — keeps the canvas filling the actual viewport.
+    // Gerenciamos o tamanho do renderer manualmente em vez de usar o `resizeTo`
+    // do Pixi: no celular a area visivel muda com a barra de URL do navegador
+    // (via `visualViewport`), que nem sempre dispara o `window.resize`. Ouvimos
+    // todos os sinais relevantes — e re-checamos algumas vezes apos o load —
+    // para o canvas sempre preencher a area realmente visivel.
     const onResize = (): void => this.resize();
     window.addEventListener('resize', onResize);
     window.addEventListener('orientationchange', onResize);
@@ -45,13 +71,18 @@ export class App {
     window.visualViewport?.addEventListener('scroll', onResize);
 
     this.resize();
-    // Catch the mobile browser settling its chrome / fonts loading in.
+    // Pega o momento em que o navegador movel "assenta" sua barra / as fontes
+    // terminam de carregar, re-checando o tamanho em alguns instantes.
     requestAnimationFrame(onResize);
     for (const delay of [100, 300, 600, 1000]) {
       window.setTimeout(onResize, delay);
     }
   }
 
+  /**
+   * Cria e inicializa o app (e assincrono porque o PixiJS precisa inicializar o
+   * renderer). Use sempre este metodo em vez do construtor.
+   */
   static async create(host: HTMLElement): Promise<App> {
     const pixi = new Application();
     await pixi.init({
@@ -59,16 +90,16 @@ export class App {
       antialias: false,
       width: host.clientWidth || window.innerWidth,
       height: host.clientHeight || window.innerHeight,
-      // A full-screen CRT post-process runs every frame, so rendering at a
-      // phone's full 3x DPR cooks the GPU. 1.5x stays crisp (the CRT scanlines
-      // mask the softness) while cutting fill-rate ~44% vs 2x — much cooler.
+      // O CRT roda em tela cheia a cada frame; renderizar no DPR 3x de um celular
+      // fritaria a GPU. 1.5x continua nitido (as scanlines do CRT mascaram a
+      // leve suavizacao) e corta ~44% do trabalho de pintura vs 2x — esquenta menos.
       resolution: Math.min(window.devicePixelRatio || 1, 1.5),
       autoDensity: true,
       preference: 'webgl',
     });
-    // Cap at 60fps. On 90/120Hz phones the uncapped ticker renders 1.5–2x the
-    // frames — and runs the CRT shader + scene update that many times — heating
-    // the device with no visual benefit for this art style.
+    // Limita a 60fps. Em celulares de 90/120Hz, sem limite o ticker renderizaria
+    // 1.5-2x mais frames (e rodaria o shader CRT + update da cena outras tantas
+    // vezes), esquentando o aparelho sem ganho visual para este estilo de arte.
     pixi.ticker.maxFPS = 60;
     host.appendChild(pixi.canvas);
     pixi.canvas.style.width = '100%';
@@ -76,42 +107,49 @@ export class App {
     return new App(pixi, host);
   }
 
-  /** Resize the renderer to the real visible viewport, then re-fit the world. */
+  /** Redimensiona o renderer para a area realmente visivel e re-encaixa o mundo. */
   private resize(): void {
     const vv = window.visualViewport;
-    // The canvas fills #app (sized 100dvw × 100dvh), so measuring the host's
-    // own layout box keeps the renderer buffer exactly matched to what is
-    // displayed — no stretch/letterbox from a buffer/display mismatch. We fall
-    // back to visualViewport (then window) only when the host has no layout.
+    // O canvas preenche o #app (que tem tamanho 100dvw x 100dvh), entao medir a
+    // propria caixa de layout do host mantem o buffer do renderer exatamente do
+    // tamanho do que aparece — sem esticar/letterbox por descasamento de tamanho.
+    // So caimos para visualViewport (depois window) se o host nao tiver layout.
     const w = Math.round(this.host.clientWidth || vv?.width || window.innerWidth);
     const h = Math.round(this.host.clientHeight || vv?.height || window.innerHeight);
     if (w <= 0 || h <= 0) return;
+    // Se o tamanho nao mudou, nao ha o que refazer.
     if (w === this.lastW && h === this.lastH) return;
     this.lastW = w;
     this.lastH = h;
 
     this.pixi.renderer.resize(w, h);
-    // `autoDensity` rewrites the canvas CSS size to explicit pixels on every
-    // resize; force it back to fill its host so the canvas always covers the
-    // visible viewport regardless of the renderer's internal dimensions.
+    // O `autoDensity` reescreve o tamanho CSS do canvas em pixels explicitos a
+    // cada resize; forcamos de volta para "100%" para o canvas sempre cobrir a
+    // area visivel, qualquer que seja a dimensao interna do renderer.
     this.pixi.canvas.style.width = '100%';
     this.pixi.canvas.style.height = '100%';
     this.fit();
   }
 
-  /** Fit landscape views, but stretch portrait screens to remove mobile dead area. */
+  /**
+   * Encaixa o mundo do jogo na tela. Em paisagem (largura > altura), mantem a
+   * proporcao e centraliza (pode sobrar barra nas laterais). Em retrato (telas de
+   * celular em pe), estica para preencher tudo e eliminar a area morta.
+   */
   fit(): void {
     const w = this.pixi.screen.width;
     const h = this.pixi.screen.height;
     const scaleX = w / GameConfig.VIEWPORT_WIDTH;
     const scaleY = h / GameConfig.VIEWPORT_HEIGHT;
     if (h >= w) {
+      // Retrato: estica nos dois eixos para preencher a tela inteira.
       this.world.scale.set(scaleX, scaleY);
       this.world.x = 0;
       this.world.y = 0;
       return;
     }
 
+    // Paisagem: usa a menor escala (mantem proporcao) e centraliza o resultado.
     const scale = Math.min(scaleX, scaleY);
     this.world.scale.set(scale);
     this.world.x = (w - GameConfig.VIEWPORT_WIDTH * scale) / 2;

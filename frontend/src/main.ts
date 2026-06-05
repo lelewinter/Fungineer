@@ -1,3 +1,21 @@
+/**
+ * main.ts — A "porta de entrada" do jogo no navegador.
+ * ---------------------------------------------------
+ * Em linguagem simples: este e o primeiro arquivo que roda quando a pagina
+ * abre. Ele monta tudo na ordem certa (o "bootstrap" = dar a partida):
+ *
+ *   1. acha o elemento #app na pagina onde o jogo sera desenhado;
+ *   2. cria o motor grafico (App) e o gerenciador de cenas (SceneManager);
+ *   3. liga o som (audio) e prepara para destrava-lo no primeiro toque/clique
+ *      do jogador (navegadores exigem um gesto antes de tocar som);
+ *   4. carrega o progresso salvo e passa a salvar automaticamente as mudancas;
+ *   5. mostra a primeira tela (StartScene);
+ *   6. registra o service worker (PWA) por ultimo, ja com a tela montada.
+ *
+ * Se qualquer passo falhar, mostramos o erro na propria tela em vez de deixar
+ * o jogo numa pagina em branco e silenciosa.
+ */
+
 import { App } from './core/App';
 import { sceneManager } from './core/SceneManager';
 import { audioManager } from './core/AudioManager';

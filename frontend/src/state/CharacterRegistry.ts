@@ -1,14 +1,34 @@
+/**
+ * CharacterRegistry — O "cadastro" dos personagens resgataveis.
+ * ------------------------------------------------------------
+ * Em linguagem simples: aqui ficam os dados de cada sobrevivente que pode se
+ * juntar ao bunker (nome, funcao, cor) e o sistema de CONFIANCA (trust). A
+ * confianca vai de 0 a 100 e sobe conforme o jogador joga. Quanto maior a
+ * confianca de um personagem, mais ele se abre — cada personagem tem falas
+ * (dialogue) que so aparecem ao atingir certos niveis de confianca.
+ *
+ * Tambem controla quem ja foi resgatado e alguns bonus de jogo ligados a
+ * confianca (ex.: o Richard aumenta o tamanho da mochila do grupo).
+ *
+ * E um singleton: existe UMA unica instancia (`CharacterRegistry`) compartilhada
+ * por todo o jogo, exportada no fim do arquivo.
+ */
+
 import { Color, type RGBA } from '../core/Color';
 import { Signal } from '../core/Signal';
 
+/** Os dados fixos de um personagem (nao mudam durante o jogo). */
 export interface CharacterDef {
   display_name: string;
   role: string;
   color: RGBA;
   zone_preference: string;
+  // Falas por nivel de confianca: a chave e o limiar (0, 40, 60, 80, 100) e o
+  // valor e o que o personagem diz a partir daquela confianca.
   dialogue: Record<number, string>;
 }
 
+// Atalho curto para criar uma cor RGB (deixa a tabela abaixo mais legivel).
 const C = (r: number, g: number, b: number): RGBA => Color.rgb(r, g, b);
 
 export const CHARACTERS: Record<string, CharacterDef> = {
@@ -150,27 +170,34 @@ export const CHARACTER_ORDER: string[] = [
 ];
 
 class CharacterRegistryClass {
+  // Signals = "avisos" que outras partes do jogo (ex.: a UI) podem escutar.
+  /** Avisa que a confianca de alguem mudou (para atualizar a tela). */
   readonly trustChanged = new Signal<[charId: string, newTrust: number]>();
+  /** Avisa que um personagem acabou de ser resgatado. */
   readonly characterRescued = new Signal<[charId: string]>();
 
+  // Confianca atual de cada personagem (0..100) e a lista de quem ja resgatamos.
   private readonly trust: Record<string, number> = {};
   private readonly rescued: string[] = [];
 
   constructor() {
+    // Todo mundo comeca com confianca zero.
     for (const id of CHARACTER_ORDER) this.trust[id] = 0;
   }
 
-  // ── Trust ──
+  // ── Confianca (trust) ──
   getTrust(charId: string): number {
     return this.trust[charId] ?? 0;
   }
 
+  // Soma (ou subtrai) confianca, mantendo sempre dentro de 0..100, e avisa a UI.
   addTrust(charId: string, amount: number): void {
     if (!(charId in this.trust)) return;
     this.trust[charId] = Math.max(0, Math.min(100, (this.trust[charId] ?? 0) + amount));
     this.trustChanged.emit(charId, this.trust[charId]!);
   }
 
+  // Traduz a confianca (um numero) num rotulo amigavel para mostrar na tela.
   getTrustLabel(charId: string): string {
     const t = this.getTrust(charId);
     if (t >= 100) return 'Confiança total';
@@ -180,7 +207,9 @@ class CharacterRegistryClass {
     return 'Desconfiado';
   }
 
-  // ── Dialogue ──
+  // ── Falas (dialogue) ──
+  // Escolhe a fala certa para a confianca atual: percorre os limiares e fica
+  // com a fala do MAIOR limiar que o personagem ja alcancou.
   getDialogue(charId: string): string {
     const def = CHARACTERS[charId];
     if (!def) return '';
@@ -193,7 +222,8 @@ class CharacterRegistryClass {
     return best;
   }
 
-  // ── Rescue ──
+  // ── Resgate ──
+  // Marca um personagem como resgatado (uma unica vez) e avisa o jogo.
   rescue(charId: string): void {
     if (this.rescued.includes(charId)) return;
     this.rescued.push(charId);

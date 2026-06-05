@@ -1,3 +1,14 @@
+// ============================================================================
+// HubZoomPanel — a janela de "briefing" de uma zona antes de entrar.
+//
+// O que faz: ao tocar numa sala do hub, abre esta janela com o nome da zona,
+// um texto explicando o que esperar (briefing) e um botão grande "INICIAR".
+// Ao clicar em iniciar, emite `startRunRequested` com o id da zona — a cena do
+// hub usa isso para começar a partida naquela zona.
+//
+// Onde encaixa: ponte entre o hub (base) e o início de uma run.
+// (Equivale ao antigo HubZoomPanel.gd da versão em Godot.)
+// ============================================================================
 import { Text } from 'pixi.js';
 import { Modal } from '../Modal';
 import { PixiButton } from '../PixiButton';
@@ -16,12 +27,15 @@ export class HubZoomPanel extends Modal {
     super(330, 400);
     this.roomId = roomId;
     this.zoneId = zoneId;
+    // Cor de destaque turquesa (mycelium).
     this.drawPanelBg(Color.hex(Color.rgb(0.30, 0.78, 0.72)));
     this.buildContent();
     void this.animateOpen();
     void this.roomId; // referenced for telemetry / future
   }
 
+  /** Monta o conteúdo: cabeçalho com o nome da zona, texto de briefing e o
+   *  botão de iniciar. Os dados da zona vêm do HubState pelo zoneId. */
   private buildContent(): void {
     const halfW = this.panelW / 2;
     const halfH = this.panelH / 2;

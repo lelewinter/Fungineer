@@ -1,3 +1,13 @@
+/*
+ * Powers — o "catálogo" de poderes que o jogador pode equipar.
+ *
+ * Cada poder herda de PowerResource e mexe em multiplicadores globais do
+ * GameState para mudar o jogo. Há dois estilos:
+ *   - Passivo: efeito automático (Siege Mode, Reflective Shell).
+ *   - Alternável/Ativo: ligado pelo jogador, alguns com duração e recarga
+ *     (Split Orbit, Overclock, Magnet Pulse, Ghost Drive).
+ * Todo poder tem um lado bom e um custo (trade-off), para gerar decisão.
+ */
 import { PowerResource } from './PowerManager';
 import type { BaseCharacter } from '../BaseCharacter';
 import type { RunWorld } from '../RunWorld';
@@ -5,9 +15,10 @@ import { GameState } from '../../state/GameState';
 import { GameConfig } from '../../state/GameConfig';
 
 // ── Siege Mode ───────────────────────────────────────────────────────────────
-/** Passive. Stillness ≥ 1.5s → damage ×3. Moving → ×0.5. */
+/** Passivo. Parado ≥1,5s → dano ×3. Em movimento → dano ×0,5. */
 export class SiegeMode extends PowerResource {
   private wasActive = false;
+  /** Carência inicial: ignora o efeito nos primeiros 2s da run. */
   private graceTimer = 2.0;
 
   constructor() {
@@ -18,10 +29,15 @@ export class SiegeMode extends PowerResource {
   }
 
   override process(dt: number): void {
+    // Durante a carência, não faz nada (deixa a run "engrenar").
     if (this.graceTimer > 0) {
       this.graceTimer -= dt;
       return;
     }
+    // "siege_mode_active" é ligado pelo DragController quando a party fica parada.
+    // Parada → bônus de dano; movendo → penalidade. O wasActive evita reescrever
+    // o multiplicador toda hora à toa, só nas transições (e mantém na penalidade
+    // enquanto estiver em movimento).
     const active = GameState.siege_mode_active;
     if (active && !this.wasActive) {
       GameState.power_damage_multiplier = GameConfig.SIEGE_MODE_DAMAGE_MULTIPLIER;
@@ -36,7 +52,7 @@ export class SiegeMode extends PowerResource {
 }
 
 // ── Split Orbit ──────────────────────────────────────────────────────────────
-/** Toggle. Party spread ×2. Damage taken +30%. */
+/** Alternável. Espalha a formação (×2 de largura), mas dano recebido +30%. */
 export class SplitOrbit extends PowerResource {
   constructor() {
     super();
@@ -57,9 +73,10 @@ export class SplitOrbit extends PowerResource {
 }
 
 // ── Overclock ────────────────────────────────────────────────────────────────
-/** Active 10s. Attack speed ×2.5. Party loses 5 HP/s while active. */
+/** Ativo por 10s. Velocidade de ataque ×2,5, mas a party perde 5 HP/s enquanto
+ *  ativo. Depois entra em recarga. */
 export class Overclock extends PowerResource {
-  private durationLeft = 0;
+  private durationLeft = 0; // duração restante do efeito ativo
 
   constructor() {
     super();
@@ -83,20 +100,23 @@ export class Overclock extends PowerResource {
   }
 
   override process(dt: number, party: BaseCharacter[], world: RunWorld): void {
+    // Conta a recarga mesmo quando não está ativo.
     if (this.cooldown_remaining > 0) {
       this.cooldown_remaining = Math.max(0, this.cooldown_remaining - dt);
     }
     if (!this.is_active) return;
     this.durationLeft -= dt;
+    // Dreno de vida: tira HP por segundo, mas nunca mata (mínimo 1).
     for (const m of party) {
       if (!m.is_dead) m.current_hp = Math.max(1, m.current_hp - GameConfig.OVERCLOCK_HP_DRAIN * dt);
     }
-    if (this.durationLeft <= 0) this.onDeactivate(party, world);
+    if (this.durationLeft <= 0) this.onDeactivate(party, world); // acabou a duração
   }
 }
 
 // ── Magnet Pulse ─────────────────────────────────────────────────────────────
-/** Toggle. Pulls Runners. Elites deal +20% damage. */
+/** Alternável. Puxa os Runners para perto da party; em troca, os Elites causam
+ *  +20% de dano enquanto ativo. (O "puxão" é feito pelo PowerManager.) */
 export class MagnetPulse extends PowerResource {
   constructor() {
     super();
@@ -118,7 +138,8 @@ export class MagnetPulse extends PowerResource {
 }
 
 // ── Reflective Shell ─────────────────────────────────────────────────────────
-/** Passive. Reflect 25% damage. Attack ×0.65. */
+/** Passivo. Devolve 25% do dano recebido ao atacante; em troca, o ataque da
+ *  party cai para ×0,65. */
 export class ReflectiveShell extends PowerResource {
   constructor() {
     super();
@@ -138,6 +159,7 @@ export class ReflectiveShell extends PowerResource {
   }
 
   override onDamageReceived(amount: number, source: { take_damage?: (amount: number, src: unknown) => void } | null): void {
+    // Só reflete se estiver ativo e a fonte do dano souber receber dano de volta.
     if (!this.is_active || !source?.take_damage) return;
     const reflect = amount * GameConfig.REFLECTIVE_SHELL_REFLECT_PCT;
     source.take_damage(reflect, null);
@@ -145,7 +167,7 @@ export class ReflectiveShell extends PowerResource {
 }
 
 // ── Ghost Drive ──────────────────────────────────────────────────────────────
-/** Active 3s. Party intangible. Cannot capture. */
+/** Ativo por 3s. Deixa a party intangível (atravessa/não toma dano). */
 export class GhostDrive extends PowerResource {
   private durationLeft = 0;
 
@@ -176,6 +198,6 @@ export class GhostDrive extends PowerResource {
     }
     if (!this.is_active) return;
     this.durationLeft -= dt;
-    if (this.durationLeft <= 0) this.onDeactivate(party, world);
+    if (this.durationLeft <= 0) this.onDeactivate(party, world); // fim da intangibilidade
   }
 }

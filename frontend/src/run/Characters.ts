@@ -1,3 +1,14 @@
+/*
+ * Characters — o "catálogo" dos heróis jogáveis.
+ *
+ * Cada classe herda de BaseCharacter e define o estilo de combate:
+ *   - Guardian: tanque que reduz o dano recebido pela party.
+ *   - Striker: dispara uma rajada de balas (uma por inimigo no alcance).
+ *   - Medic: cura periodicamente o aliado com menos vida proporcional.
+ *   - Artificer: lança um projétil lento teleguiado que explode em área.
+ * No fim há o CHARACTER_FACTORIES, que mapeia um id de texto ("guardian") para
+ * a função que cria o herói — usado quando o jogador resgata um personagem.
+ */
 import { BaseCharacter, type CharacterStats } from './BaseCharacter';
 import type { BaseEnemy } from './BaseEnemy';
 import type { RunWorld } from './RunWorld';
@@ -7,6 +18,7 @@ import { GameState } from '../state/GameState';
 import { StrikerBullet, ArtificerProjectile } from './Projectiles';
 
 // ── Guardian ─────────────────────────────────────────────────────────────
+/** Tanque: blinda a party reduzindo uma porcentagem fixa do dano recebido. */
 export class Guardian extends BaseCharacter {
   constructor() {
     const stats: CharacterStats = {
@@ -25,7 +37,9 @@ export class Guardian extends BaseCharacter {
   }
 }
 
-// ── Striker — radial-burst bullet attack ─────────────────────────────────
+// ── Striker — rajada de balas ─────────────────────────────────────────────
+/** Atirador: a cada ataque dispara uma bala para CADA inimigo dentro do
+ *  alcance, todas ao mesmo tempo. */
 export class Striker extends BaseCharacter {
   constructor() {
     const stats: CharacterStats = {
@@ -39,7 +53,6 @@ export class Striker extends BaseCharacter {
     super(stats);
   }
 
-  /** Override: fire one bullet per enemy in range simultaneously. */
   protected override tryAttack(world: RunWorld): void {
     const effDamage = this.attack_damage * GameState.power_damage_multiplier;
     const range = this.attack_range;
@@ -48,8 +61,10 @@ export class Striker extends BaseCharacter {
       if (e.is_dead) continue;
       const dx = e.position.x - this.position.x;
       const dy = e.position.y - this.position.y;
+      // Comparar distâncias ao quadrado evita a raiz quadrada (mais barato).
       const d2 = dx * dx + dy * dy;
       if (d2 <= range * range) {
+        // Aqui sim normalizamos a direção (precisamos do vetor unitário p/ a bala).
         const inv = 1 / Math.sqrt(d2 || 1);
         const dir = { x: dx * inv, y: dy * inv };
         world.addProjectile(new StrikerBullet({ ...this.position }, dir, effDamage));
@@ -61,7 +76,9 @@ export class Striker extends BaseCharacter {
   }
 }
 
-// ── Medic — heals lowest-HP ally every 5s ────────────────────────────────
+// ── Medic — curandeiro ────────────────────────────────────────────────────
+/** Curandeiro: a cada intervalo configurado, cura o aliado vivo com a menor
+ *  fração de vida (o que está em pior estado proporcionalmente). */
 export class Medic extends BaseCharacter {
   private healTimer = 0;
 
@@ -85,6 +102,7 @@ export class Medic extends BaseCharacter {
     }
   }
 
+  /** Encontra o aliado vivo com a menor fração vida/vida-máxima e o cura. */
   private healLowest(world: RunWorld): void {
     let lowest: BaseCharacter | null = null;
     let lowestRatio = 1.0;
@@ -100,7 +118,9 @@ export class Medic extends BaseCharacter {
   }
 }
 
-// ── Artificer — slow homing AoE projectile ───────────────────────────────
+// ── Artificer — projétil explosivo em área ────────────────────────────────
+/** Lança um projétil lento e teleguiado que explode causando dano em área
+ *  (AoE) ao redor do ponto de impacto. */
 export class Artificer extends BaseCharacter {
   constructor() {
     const stats: CharacterStats = {
@@ -122,11 +142,13 @@ export class Artificer extends BaseCharacter {
     world.addProjectile(new ArtificerProjectile({ ...this.position }, target, damage));
   }
 
-  // Suppress unused-import warning for ArtificerProjectile across full surface.
+  // O Artificer já cria o projétil em tryAttack(); por isso o onAttack padrão
+  // (dano corpo-a-corpo) fica vazio aqui, para não causar dano duplicado.
   protected override onAttack(_target: BaseEnemy, _dmg: number, _world: RunWorld): void {}
 }
 
-/** Factory registry — used by rescue offerings (string id → ctor). */
+/** Registro de fábricas: associa um id de texto à função que cria o herói.
+ *  Usado pelas ofertas de resgate (o jogo recebe "guardian" e cria um Guardian). */
 export const CHARACTER_FACTORIES: Record<string, () => BaseCharacter> = {
   guardian: () => new Guardian(),
   striker: () => new Striker(),

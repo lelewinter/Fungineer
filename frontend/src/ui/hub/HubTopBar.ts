@@ -1,3 +1,16 @@
+// ============================================================================
+// HubTopBar — a barra superior do hub (a base).
+//
+// O que mostra, da esquerda para a direita e de cima para baixo:
+//  - título "BASE DE RESISTÊNCIA" e uma linha de sessão (qual run, slots);
+//  - dois "chips" de recursos à direita (sucata e componentes de IA);
+//  - logo abaixo, uma faixa clicável (readout) mostrando o progresso do foguete
+//    e qual é a próxima peça a construir, com seu custo.
+//
+// É "reativa": quando os recursos ou o progresso do foguete mudam (via sinais
+// do HubState), ela se atualiza sozinha. Clicar na faixa de baixo emite
+// `rocketReadoutClicked` (a cena do hub abre o painel do foguete).
+// ============================================================================
 import { Container, FederatedPointerEvent, Graphics, Text } from 'pixi.js';
 import { Signal } from '../../core/Signal';
 import { FontFamily, TextColor } from '../../core/typography';
@@ -26,6 +39,8 @@ export class HubTopBar extends Container {
   private readoutCost = new Text();
   private readout = new Container();
 
+  // Lista de funções para "desconectar" dos sinais do HubState ao destruir a
+  // barra. Sem isso, ela continuaria reagindo a mudanças mesmo já removida.
   private disposers: Array<() => void> = [];
 
   constructor() {
@@ -148,17 +163,22 @@ export class HubTopBar extends Container {
 
     this.addChild(this.readout);
 
-    // ── Reactive updates
+    // ── Atualizações reativas: quando o estoque ou o progresso do foguete
+    //    mudarem, refazemos os textos e a posição dos chips.
     this.disposers.push(HubState.stockChanged.connect(() => this.refresh()));
     this.disposers.push(HubState.rocketPieceBuilt.connect(() => this.refresh()));
   }
 
+  /** Remove a barra com segurança: primeiro desconecta dos sinais, depois
+   *  destrói os elementos visuais. */
   destroyBar(): void {
     for (const d of this.disposers) d();
     this.disposers = [];
     this.destroy({ children: true });
   }
 
+  /** Reescreve todos os textos que dependem do estado atual e reposiciona os
+   *  chips de recurso (a largura pode mudar quando o número de dígitos muda). */
   private refresh(): void {
     this.subtitle.text = this.subtitleText();
     this.scrapChip.setCount(HubState.stock.scrap);
@@ -173,16 +193,20 @@ export class HubTopBar extends Container {
     this.scrapChip.x = this.aiChip.x - this.scrapChip.width - 6;
   }
 
+  /** Monta a linha de subtítulo, ex.: "SUBSOLO · SESSÃO 04 · 0/3 SLOTS". */
   private subtitleText(): string {
     const cap = HubState.getBackpackCapacity();
     return `SUBSOLO · SESSÃO ${String(HubState.total_runs + 1).padStart(2, '0')} · 0/${cap} SLOTS`;
   }
 
+  /** Nome da próxima peça do foguete a construir (ou "Foguete completo"). */
   private nextPieceName(): string {
     if (HubState.rocket_pieces_built >= ROCKET_RECIPE.length) return 'Foguete completo';
     return ROCKET_RECIPE[HubState.rocket_pieces_built]!.name;
   }
 
+  /** Monta o texto de custo da próxima peça, juntando só os recursos que ela
+   *  realmente exige (ex.: "◇ 12 · ◆ 3"). */
   private nextPieceCostText(): string {
     if (HubState.rocket_pieces_built >= ROCKET_RECIPE.length) return '';
     const r = ROCKET_RECIPE[HubState.rocket_pieces_built]!;
@@ -198,7 +222,9 @@ export class HubTopBar extends Container {
   }
 }
 
-/** Compact "◇ 12" style chip used in the right side of the topbar. */
+/** ResourceChip — o "chip" compacto de recurso, no formato "◇ 12": um símbolo
+ *  colorido (ícone do recurso) seguido da quantidade. Fica no lado direito da
+ *  barra de cima. */
 class ResourceChip extends Container {
   private icon: Text;
   private count: Text;

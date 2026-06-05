@@ -1,3 +1,22 @@
+// ============================================================================
+// STUBRUNSCENE — A TELA "EM BREVE" DAS FASES AINDA NAO PRONTAS
+// ----------------------------------------------------------------------------
+// O que e esta tela, em palavras simples:
+//   - Algumas zonas do jogo ainda nao tem a fase jogavel de verdade. Quando o
+//     jogador escolhe uma dessas zonas, em vez de erro ele cai nesta tela bonita
+//     de "teaser" (cartaz): mostra a arte da zona, o recurso-alvo, um selo de
+//     "in cult." (em cultivo) e um botao para voltar ao bunker.
+//   - Nao tem jogabilidade: e so um cartaz animado (particulas flutuando, um
+//     esquadrao de bolinhas pulando, o selo piscando) para dar vida a espera.
+//
+// Como se encaixa no jogo:
+//   - O seletor de zonas usa esta cena como reserva ("placeholder") enquanto a
+//     fase real daquela zona nao existe. A cena recebe a ZoneData no construtor.
+//
+// A classe StubRunScene continua exportada deste mesmo arquivo, entao nada
+// quebra para quem usa esta cena.
+// ============================================================================
+
 import { Container, Graphics, Sprite, Text } from 'pixi.js';
 import { Scene } from '../../core/Scene';
 import { Color, type RGBA } from '../../core/Color';
@@ -10,36 +29,38 @@ import { PixiButton } from '../../ui/PixiButton';
 import { FontFamily, TextColor } from '../../core/typography';
 import { type ZoneData } from '../../state/Zones';
 
-/** Pre-production teaser. The real run lives in Phase 7. */
+/** Tela "em breve" usada como reserva para zonas cuja fase real ainda nao existe.
+ *  E so um cartaz animado, sem jogabilidade. Veja o bloco no topo do arquivo. */
 export class StubRunScene extends Scene {
   private zone: ZoneData;
   private elapsed = 0;
   private bg = new Graphics();
-  private heroLayer = new Container();
-  private particleLayer = new Graphics();
-  private squad = new Container();
-  private badge = new Container();
-  private comingSoonLabel!: Text;
+  private heroLayer = new Container();      // camada da arte da zona + moldura + vinheta
+  private particleLayer = new Graphics();   // particulas que sobem ao fundo
+  private squad = new Container();          // tres bolinhas que representam o esquadrao
+  private badge = new Container();          // selo "in cult." que pisca
+  private comingSoonLabel!: Text;           // texto "preparando o micelio..." animado
 
   constructor(zone: ZoneData) {
     super();
     this.zone = zone;
   }
 
+  /** Monta todo o cartaz (arte, cabecalho, cartao de recurso, selo, botao). */
   override async enter(): Promise<void> {
     const W = GameConfig.VIEWPORT_WIDTH;
     const H = GameConfig.VIEWPORT_HEIGHT;
     const accent = this.zone.accent_color;
     const accentHex = Color.hex(accent);
 
-    // Deep base
+    // Fundo escuro de base.
     this.bg.rect(0, 0, W, H).fill(Color.hex(Color.rgb(0.03, 0.035, 0.04)));
     this.root.addChild(this.bg);
 
     this.root.addChild(this.heroLayer);
     this.root.addChild(this.particleLayer);
 
-    // Zone hero art with accent gradient overlay
+    // Arte principal da zona, com moldura e vinheta escura por cima.
     if (this.zone.art) {
       const tex = await assets.texture(this.zone.art);
       if (tex) {
@@ -53,7 +74,7 @@ export class StubRunScene extends Scene {
         sprite.alpha = 0.55;
         this.heroLayer.addChild(sprite);
 
-        // Frame + glow around art
+        // Moldura ao redor da arte.
         const frame = new Graphics();
         const frameW = sprite.width + 12;
         const frameH = sprite.height + 12;
@@ -62,7 +83,8 @@ export class StubRunScene extends Scene {
           .stroke({ color: accentHex, width: 1.5, alpha: 0.7 });
         this.heroLayer.addChild(frame);
 
-        // Top vignette
+        // Vinheta de cima: varias faixas pretas com transparencia decrescente,
+        // simulando um degrade que escurece o topo da arte.
         const grad = new Graphics();
         const layers = 18;
         for (let i = 0; i < layers; i++) {
@@ -76,7 +98,7 @@ export class StubRunScene extends Scene {
       }
     }
 
-    // Banner header
+    // Cabecalho (faixa com nome da zona e subtitulo).
     const headerStrip = new Graphics();
     const stripY = H * 0.07;
     headerStrip
@@ -112,7 +134,7 @@ export class StubRunScene extends Scene {
     title.y = stripY + 18;
     this.root.addChild(title);
 
-    // Resource card
+    // Cartao do recurso-alvo (mostra qual recurso a zona renderia e o status).
     const cardY = H * 0.66;
     const cardW = W * 0.78;
     const cardH = 96;
@@ -155,7 +177,7 @@ export class StubRunScene extends Scene {
     stateText.y = cardY + 72;
     this.root.addChild(stateText);
 
-    // Badge "in cultivation"
+    // Selo "in cult." (em cultivo) no canto do cartao.
     this.badge.x = W - 24;
     this.badge.y = cardY + 8;
     const badgeBg = new Graphics();
@@ -174,13 +196,13 @@ export class StubRunScene extends Scene {
     this.badge.addChild(badgeText);
     this.root.addChild(this.badge);
 
-    // Squad silhouettes (3 bouncing dots representing the would-be party)
+    // Esquadrao: 3 bolinhas que pulam, representando o grupo que iria a missao.
     this.squad.x = W / 2;
     this.squad.y = H * 0.83;
     this.root.addChild(this.squad);
     this.buildSquad(accent);
 
-    // Coming-soon mono label
+    // Texto "em breve" (recebe pontinhos animados no update).
     this.comingSoonLabel = new Text({
       text: 'preparando o micélio...',
       style: { fontFamily: FontFamily.mono, fontSize: 10, fill: TextColor.muted, letterSpacing: 2 },
@@ -190,7 +212,7 @@ export class StubRunScene extends Scene {
     this.comingSoonLabel.y = H - 110;
     this.root.addChild(this.comingSoonLabel);
 
-    // Back button
+    // Botao para voltar ao bunker (unica acao desta tela).
     const back = new PixiButton({
       label: '← Voltar ao bunker',
       width: 220,
@@ -204,22 +226,25 @@ export class StubRunScene extends Scene {
     back.y = H - 64;
     this.root.addChild(back);
 
-    // Music
+    // Musica de fundo da zona.
     if (this.zone.music) {
       audioManager.playMusic(this.zone.music, { loop: true, volume: 0.35, fadeMs: 600 }).catch(() => undefined);
     }
   }
 
+  /** Para a musica ao sair da tela. */
   override async exit(): Promise<void> {
     audioManager.stopMusic(300);
   }
 
+  /** Anima o cartaz: particulas subindo, esquadrao pulando, selo e texto piscando. */
   override update(dt: number): void {
     this.elapsed += dt;
     const accent = this.zone.accent_color;
     const accentHex = Color.hex(accent);
 
-    // Particle drift
+    // Deriva das particulas: cada uma sobe em ritmo proprio e reaparece embaixo
+    // ao sair pelo topo (efeito de "subida infinita"), oscilando de lado.
     this.particleLayer.clear();
     const W = GameConfig.VIEWPORT_WIDTH;
     const H = GameConfig.VIEWPORT_HEIGHT;
@@ -235,7 +260,8 @@ export class StubRunScene extends Scene {
         .fill({ color: accentHex, alpha: a });
     }
 
-    // Squad bobbing
+    // Esquadrao pulando: cada bolinha sobe/desce com uma defasagem (phase)
+    // diferente, dando o efeito de pular em sequencia.
     const dots = this.squad.children as Container[];
     for (let i = 0; i < dots.length; i++) {
       const dot = dots[i]!;
@@ -244,24 +270,25 @@ export class StubRunScene extends Scene {
       dot.scale.set(1 + Math.sin(phase * 0.5) * 0.06);
     }
 
-    // Pulse badge
+    // Selo piscando suavemente.
     this.badge.alpha = 0.85 + 0.15 * Math.sin(t * 3);
 
-    // Coming-soon dot animation
+    // Pontinhos animados no texto "em breve" (0 a 3 pontos, em loop).
     const dotsCount = Math.floor(t * 2) % 4;
     this.comingSoonLabel.text = 'preparando o micélio' + '.'.repeat(dotsCount);
   }
 
+  /** Cria as 3 bolinhas do esquadrao (corpo redondo com brilho e uma sombra). */
   private buildSquad(accent: RGBA): void {
     const positions = [-40, 0, 40];
     for (let i = 0; i < positions.length; i++) {
       const c = new Container();
       c.x = positions[i]!;
       const body = new Graphics();
-      // Round body
+      // Corpo redondo com um brilho branco em cima.
       body.circle(0, 0, 7).fill(Color.hex(accent));
       body.circle(0, -4, 4).fill({ color: 0xffffff, alpha: 0.85 });
-      // Shadow
+      // Sombra no chao.
       const shadow = new Graphics();
       shadow.ellipse(0, 12, 8, 2).fill({ color: 0x000000, alpha: 0.4 });
       c.addChild(shadow);

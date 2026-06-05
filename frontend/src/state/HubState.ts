@@ -1,9 +1,35 @@
+/**
+ * HubState — A "memoria permanente" da base do jogador.
+ * ----------------------------------------------------
+ * Em linguagem simples: este e o cofre do progresso de longo prazo. Tudo o que
+ * deve sobreviver entre partidas mora aqui — os recursos no estoque (stock),
+ * quantas pecas do foguete ja foram construidas, quais zonas estao liberadas,
+ * o quanto cada zona se "deteriorou", os fragmentos de lore encontrados e as
+ * preferencias visuais do hub.
+ *
+ * Como funciona o foguete: quando o jogador deposita recursos, o jogo tenta
+ * automaticamente "comprar" a proxima peca do foguete seguindo uma receita
+ * (ROCKET_RECIPE). Cada peca custa certos recursos; havendo o bastante, a peca
+ * e construida e o estoque e descontado.
+ *
+ * Sobre os signals: o HubState avisa quando algo muda (estoque, pecas, etc).
+ * O SaveService escuta esses avisos para salvar o progresso automaticamente.
+ *
+ * Por fim, ele sabe virar um "snapshot" (uma foto serializavel do estado) para
+ * salvar, e reconstruir-se a partir de um snapshot ao carregar. O campo `v: 1`
+ * e a versao do formato, para podermos migrar saves antigos no futuro.
+ *
+ * E um singleton: existe UMA instancia (`HubState`), exportada no fim.
+ */
+
 import { Color, type RGBA } from '../core/Color';
 import { Signal } from '../core/Signal';
 import { CharacterRegistry } from './CharacterRegistry';
 import { GameConfig } from './GameConfig';
 import { HubData, type HubNpc, type HubRoom, type HubZone } from './HubData';
 
+// Os tipos de recurso que o jogo coleta e gasta. Usar um tipo fechado evita
+// erros de digitacao (so estes nomes sao aceitos pelo TypeScript).
 export type ResourceKey =
   | 'scrap'
   | 'ai_components'
@@ -13,6 +39,8 @@ export type ResourceKey =
   | 'biomassa_adaptativa'
   | 'fragmentos_estruturais';
 
+// A "receita" de uma peca do foguete: o nome e quanto custa de cada recurso.
+// Todos os custos sao opcionais — uma peca so cobra os recursos que listar.
 export interface RocketRecipe {
   name: string;
   scrap?: number;
@@ -24,6 +52,8 @@ export interface RocketRecipe {
   fragmentos_estruturais?: number;
 }
 
+// As pecas do foguete, NA ORDEM em que sao construidas. O jogo sempre constroi
+// a proxima peca da lista assim que houver recursos para ela.
 export const ROCKET_RECIPE: RocketRecipe[] = [
   { name: 'Base Estrutural', scrap: 3 },
   { name: 'Motor Principal', combustivel_volatil: 3 },
@@ -109,12 +139,16 @@ export const HUB_VARIANTS: Record<HubVariantKey, HubVariant> = {
   },
 };
 
+// A ordem em que os comodos do hub seriam liberados conforme o foguete cresce.
+// (Hoje tudo ja nasce liberado; mantido para compatibilidade e modos futuros.)
 export const UNLOCK_ORDER: string[] = [
   'cozinha', 'enfermaria', 'server', 'vigia', 'arquivo', 'sala',
   'workshop', 'deposito', 'gestao', 'quarto_lena',
   'lab_rival', 'saida_hordas',
 ];
 
+// O "snapshot": uma foto completa e serializavel do progresso, pronta para
+// virar texto (JSON) e ser salva. O `v` e a versao do formato deste save.
 export interface HubStateSnapshot {
   v: 1;
   stock: Record<ResourceKey, number>;
@@ -193,16 +227,18 @@ class HubStateClass {
     this.roomUnlockedSignal.emit(roomId);
   }
 
+  // Quantos comodos liberar para cada quantidade de pecas construidas.
+  // O indice e o numero de pecas; o valor e quantos comodos da UNLOCK_ORDER
+  // ficam disponiveis. (Tabela fixa porque a progressao nao segue uma formula
+  // simples.) Mantido por compatibilidade — hoje todo comodo ja nasce liberado.
+  private static readonly ROOMS_UNLOCKED_BY_PIECES = [0, 1, 2, 4, 6, 8, 10, 12, 14];
+
+  // Libera os primeiros N comodos da ordem, conforme as pecas ja construidas.
   private unlockRoomsForPiecesBuilt(): void {
-    let count = 0;
-    if (this.rocket_pieces_built >= 1) count = 1;
-    if (this.rocket_pieces_built >= 2) count = 2;
-    if (this.rocket_pieces_built >= 3) count = 4;
-    if (this.rocket_pieces_built >= 4) count = 6;
-    if (this.rocket_pieces_built >= 5) count = 8;
-    if (this.rocket_pieces_built >= 6) count = 10;
-    if (this.rocket_pieces_built >= 7) count = 12;
-    if (this.rocket_pieces_built >= 8) count = 14;
+    const table = HubStateClass.ROOMS_UNLOCKED_BY_PIECES;
+    // Acima do ultimo degrau, usa o maior valor da tabela.
+    const idx = Math.min(this.rocket_pieces_built, table.length - 1);
+    const count = table[idx]!;
     for (let i = 0; i < Math.min(count, UNLOCK_ORDER.length); i++) {
       this.unlockRoom(UNLOCK_ORDER[i]!);
     }
@@ -220,13 +256,15 @@ class HubStateClass {
     return HUB_VARIANTS[this.hub_variant] ?? HUB_VARIANTS.balanced;
   }
 
-  // ── Stock / recipe ──
+  // ── Estoque / receita do foguete ──
+  // Deposita uma quantidade de um recurso e tenta construir a proxima peca.
   depositFlow(key: ResourceKey, amount: number): void {
     if (key in this.stock) this.stock[key] += amount;
     this.stockChanged.emit(this.stock);
     this.tryBuildNextPiece();
   }
 
+  // Despeja a mochila inteira no estoque (cada item conta como +1 do seu tipo).
   depositBackpack(backpack: string[]): void {
     for (const item of backpack) {
       if (item in this.stock) this.stock[item as ResourceKey] += 1;
@@ -235,6 +273,8 @@ class HubStateClass {
     this.tryBuildNextPiece();
   }
 
+  // Constroi quantas pecas der com o estoque atual. O "while" permite construir
+  // varias de uma vez se um deposito grande cobrir mais de uma receita.
   private tryBuildNextPiece(): void {
     while (this.rocket_pieces_built < ROCKET_RECIPE.length) {
       const recipe = ROCKET_RECIPE[this.rocket_pieces_built]!;
@@ -260,6 +300,8 @@ class HubStateClass {
     }
   }
 
+  // Confere se ha estoque suficiente para todos os recursos exigidos na receita
+  // (o campo "name" e ignorado por nao ser um custo).
   private canAfford(recipe: RocketRecipe): boolean {
     for (const key of Object.keys(recipe) as Array<keyof RocketRecipe>) {
       if (key === 'name') continue;
@@ -270,6 +312,7 @@ class HubStateClass {
     return true;
   }
 
+  // Desconta do estoque o custo de uma receita ja confirmada como pagavel.
   private spend(recipe: RocketRecipe): void {
     for (const key of Object.keys(recipe) as Array<keyof RocketRecipe>) {
       if (key === 'name') continue;
@@ -288,6 +331,8 @@ class HubStateClass {
     return this.rocket_pieces_built >= ROCKET_RECIPE.length;
   }
 
+  // Capacidade total da mochila: o valor base mais o bonus do Richard (que
+  // aumenta conforme a confianca dele sobe).
   getBackpackCapacity(): number {
     return GameConfig.BACKPACK_CAPACITY + CharacterRegistry.getBackpackBonus();
   }
@@ -301,7 +346,10 @@ class HubStateClass {
     return this.lore_found.includes(fragmentId);
   }
 
-  // ── Deterioration ──
+  // ── Deterioracao das zonas ──
+  // Quanto mais o jogador joga, mais "deterioradas" as zonas ficam, e mais
+  // inimigos surgem. Este multiplicador (1.0, 1.25 ou 1.5) escala a quantidade
+  // de inimigos por onda conforme o estagio de deterioracao da zona.
   getSpawnMultiplier(zoneId: number): number {
     const stage = this.zone_deterioration[zoneId] ?? 0;
     if (stage === 1) return 1.25;
@@ -352,6 +400,9 @@ class HubStateClass {
     };
   }
 
+  // Reconstroi o estado a partir de um snapshot salvo. Devolve false (e nao
+  // altera nada) se o dado for invalido ou de uma versao desconhecida. Cada
+  // campo e checado individualmente para tolerar saves parciais/antigos.
   loadFromSnapshot(snap: unknown): boolean {
     if (typeof snap !== 'object' || snap === null) return false;
     const s = snap as Partial<HubStateSnapshot>;

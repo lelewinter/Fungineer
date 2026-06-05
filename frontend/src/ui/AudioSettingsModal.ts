@@ -1,3 +1,13 @@
+// ============================================================================
+// AudioSettingsModal — a janela de configurações de áudio.
+//
+// O que faz: mostra dois controles deslizantes (sliders) para volume de música
+// e de efeitos sonoros, mais um botão de silenciar/ativar tudo. As mudanças
+// valem na hora e ficam salvas (via AudioSettings), então o jogador não perde
+// suas preferências.
+//
+// Onde encaixa: aberta pelo botão de áudio do hub (a base do jogo).
+// ============================================================================
 import { Container, FederatedPointerEvent, Graphics, Rectangle, Text } from 'pixi.js';
 import { Modal } from './Modal';
 import { PixiButton } from './PixiButton';
@@ -5,7 +15,7 @@ import { FontFamily, TextColor } from '../core/typography';
 import { audioManager } from '../core/AudioManager';
 import { audioSettings } from '../state/AudioSettings';
 
-const ACCENT = TextColor.accent; // spore purple
+const ACCENT = TextColor.accent; // roxo esporo — cor de destaque desta janela
 
 /** Audio settings: music + sfx volume sliders and a master mute toggle.
  *  Changes apply live and persist via AudioSettings. */
@@ -13,17 +23,23 @@ export class AudioSettingsModal extends Modal {
   private musicSlider!: Slider;
   private sfxSlider!: Slider;
   private muteBtn!: PixiButton;
+  // Função para "desconectar" do sinal de mudança quando a janela fechar,
+  // evitando vazamento de memória e reações a uma janela já destruída.
   private changedDispose: (() => void) | null = null;
 
   constructor() {
     super(320, 236);
     this.drawPanelBg(ACCENT);
     this.build();
+    // Sempre que as preferências de áudio mudarem (até por fora desta janela),
+    // atualizamos os controles para refletir o estado atual.
     this.changedDispose = audioSettings.changed.connect(() => this.sync());
     this.sync();
     void this.animateOpen();
   }
 
+  /** Monta o conteúdo da janela: título, as duas linhas de slider, e os botões
+   *  de silenciar e fechar. */
   private build(): void {
     const halfW = this.panelW / 2;
     const halfH = this.panelH / 2;
@@ -67,6 +83,8 @@ export class AudioSettingsModal extends Modal {
     this.panel.addChild(closeBtn);
   }
 
+  /** Cria uma linha "rótulo + slider" (ex.: "MÚSICA" seguido da barra de
+   *  volume). Devolve o Slider criado para a janela poder atualizá-lo depois. */
   private buildRow(label: string, y: number, initial: number, onChange: (v: number) => void): Slider {
     const halfW = this.panelW / 2;
     const txt = new Text({
@@ -85,7 +103,9 @@ export class AudioSettingsModal extends Modal {
     return slider;
   }
 
-  /** Reflect the current prefs (also called when mute toggles). */
+  /** Sincroniza os controles com as preferências atuais. Quando tudo está
+   *  silenciado, os sliders ficam desabilitados (esmaecidos) e o botão troca
+   *  para "ATIVAR SOM". */
   private sync(): void {
     const muted = audioSettings.muted;
     this.musicSlider.set(audioSettings.music);
@@ -95,6 +115,7 @@ export class AudioSettingsModal extends Modal {
     this.muteBtn.setLabel(muted ? 'ATIVAR SOM' : 'SILENCIAR');
   }
 
+  /** Ao fechar, desconecta do sinal de mudança. */
   override destroy(options?: Parameters<Container['destroy']>[0]): void {
     this.changedDispose?.();
     this.changedDispose = null;
@@ -102,15 +123,18 @@ export class AudioSettingsModal extends Modal {
   }
 }
 
-/** Minimal horizontal slider (track + fill + draggable knob + % readout). */
+/** Slider — uma barra de volume horizontal simples.
+ *  É composta por: a trilha (track) de fundo, a parte preenchida (fill) que
+ *  mostra o nível atual, uma bolinha arrastável (knob) e um texto com a
+ *  porcentagem. Arrastar a bolinha ou clicar na trilha muda o valor. */
 class Slider extends Container {
-  private trackG = new Graphics();
-  private fillG = new Graphics();
-  private knob = new Graphics();
-  private pct = new Text();
-  private value: number;
-  private dragging = false;
-  private enabled = true;
+  private trackG = new Graphics();   // trilha de fundo
+  private fillG = new Graphics();    // parte cheia (à esquerda da bolinha)
+  private knob = new Graphics();     // bolinha arrastável
+  private pct = new Text();          // texto "75%"
+  private value: number;             // valor atual, de 0 a 1
+  private dragging = false;          // o jogador está arrastando a bolinha?
+  private enabled = true;            // o slider responde a interação?
 
   constructor(
     private readonly tw: number,
@@ -132,13 +156,17 @@ class Slider extends Container {
 
     this.eventMode = 'static';
     this.cursor = 'pointer';
+    // Hit area um pouco maior que a trilha, para ser fácil de acertar no toque.
     this.hitArea = new Rectangle(-10, -14, tw + 20, 28);
 
+    // Clicar começa a arrastar e já move para o ponto clicado.
     this.on('pointerdown', (e: FederatedPointerEvent) => {
       if (!this.enabled) return;
       this.dragging = true;
       this.setFromEvent(e);
     });
+    // `globalpointermove` segue o ponteiro mesmo se ele sair de cima do slider,
+    // para o arraste não "engasgar" quando o jogador move rápido.
     this.on('globalpointermove', (e: FederatedPointerEvent) => {
       if (this.dragging) this.setFromEvent(e);
     });
@@ -148,18 +176,22 @@ class Slider extends Container {
     this.draw();
   }
 
-  /** Set value without firing onChange (external sync). */
+  /** Define o valor SEM disparar onChange. Usado quando a janela quer apenas
+   *  refletir o estado salvo, sem reagir como se o jogador tivesse mexido. */
   set(v: number): void {
     this.value = Math.max(0, Math.min(1, v));
     this.draw();
   }
 
+  /** Liga/desliga a interação. Desligado fica esmaecido (alpha 0.4). */
   setEnabled(on: boolean): void {
     this.enabled = on;
     this.alpha = on ? 1 : 0.4;
     this.draw();
   }
 
+  /** Calcula o novo valor a partir da posição do clique/arraste. Converte a
+   *  coordenada X local em uma fração de 0 a 1 e avisa via onChange. */
   private setFromEvent(e: FederatedPointerEvent): void {
     const lx = e.getLocalPosition(this).x;
     const v = Math.max(0, Math.min(1, lx / this.tw));
@@ -168,6 +200,7 @@ class Slider extends Container {
     this.onChange(v);
   }
 
+  /** Redesenha trilha, preenchimento, bolinha e o texto de porcentagem. */
   private draw(): void {
     const knobX = this.value * this.tw;
 
