@@ -47,7 +47,7 @@ export interface HordasView {
   rewardMult: number;
   orbitAngle: number;
   weapons: Record<'dart' | 'aura' | 'orbit' | 'nova', number>;
-  buffs: Record<'red' | 'blue' | 'green' | 'gold' | 'purple', number>;
+  buffs: Record<'red' | 'blue' | 'green' | 'gold' | 'purple' | 'orange', number>;
   enemies: Enemy[];
   projs: Proj[];
   gems: Gem[];
@@ -194,12 +194,19 @@ export class HordasRenderer {
     this.plantG.clear();
     for (const p of view.plants) {
       const def = PLANTS[p.type];
+      const heal = p.type === 'orange';  // o cogumelo de cura brilha mais
       const pulse = 0.6 + 0.4 * Math.sin(t * 3 + p.phase);
-      this.plantG.circle(p.pos.x, p.pos.y, 17).fill({ color: def.color, alpha: 0.12 * pulse });
-      this.plantG.circle(p.pos.x, p.pos.y, 17).stroke({ color: def.color, width: 1.5, alpha: 0.4 });
+      // Halo: maior e mais intenso no cogumelo laranja brilhante.
+      this.plantG.circle(p.pos.x, p.pos.y, heal ? 22 : 17).fill({ color: def.color, alpha: (heal ? 0.22 : 0.12) * pulse });
+      this.plantG.circle(p.pos.x, p.pos.y, heal ? 22 : 17).stroke({ color: def.color, width: heal ? 2 : 1.5, alpha: heal ? 0.6 : 0.4 });
       this.plantG.rect(p.pos.x - 2, p.pos.y, 4, 9).fill({ color: 0xe6e0c8, alpha: 0.9 });
-      this.plantG.ellipse(p.pos.x, p.pos.y, 9, 6).fill({ color: def.color, alpha: 0.95 });
+      this.plantG.ellipse(p.pos.x, p.pos.y, heal ? 10 : 9, heal ? 7 : 6).fill({ color: def.color, alpha: 0.95 });
       this.plantG.ellipse(p.pos.x, p.pos.y - 1, 4, 2.6).fill({ color: 0xffffff, alpha: 0.7 * pulse });
+      // Cruzinha branca de "vida" no chapeu do cogumelo de cura.
+      if (heal) {
+        this.plantG.rect(p.pos.x - 3.2, p.pos.y - 1, 6.4, 2).fill({ color: 0xffffff, alpha: 0.95 });
+        this.plantG.rect(p.pos.x - 1, p.pos.y - 3.2, 2, 6.4).fill({ color: 0xffffff, alpha: 0.95 });
+      }
     }
 
     // Farol de extracao (so aparece quando a extracao abre).

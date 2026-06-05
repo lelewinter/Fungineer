@@ -47,9 +47,9 @@ export const JOY_DEAD = 8;        // zona morta do joystick (movimentos minuscul
 export const JOY_MAX = 64;        // quanto arrastar o dedo para chegar a velocidade maxima
 
 // ── Inimigos (robos-jardineiros) — nascem num anel ao redor do jogador ───────
-export const ENEMY_CAP = 110;     // numero maximo de inimigos vivos ao mesmo tempo
+export const ENEMY_CAP = 160;     // numero maximo de inimigos vivos ao mesmo tempo (horda maior)
 export const SPAWN_START = 1.1;   // intervalo inicial entre ondas de spawn (segundos)
-export const SPAWN_MIN = 0.22;    // intervalo minimo (o jogo vai acelerando)
+export const SPAWN_MIN = 0.14;    // intervalo minimo (o jogo vai acelerando — ondas mais rapidas)
 export const TOUCH_CD = 0.6;      // tempo de "recarga" do dano de toque de cada inimigo
 export const SPAWN_RING = 520;    // distancia em que os inimigos nascem (logo fora da tela)
 export const DESPAWN_R = 900;     // inimigos que se afastam demais sao removidos
@@ -62,15 +62,18 @@ export type EKind = 'sprout' | 'crawler' | 'brute' | 'boss';
 // Ficha tecnica de cada tipo: vida, velocidade, dano, raio, XP que solta e cor.
 export interface EnemyStat { hp: number; speed: number; dmg: number; r: number; xp: number; color: number }
 
+// "Frescos": HP base um pouco menor (morrem rapido, ceifar a horda e gostoso),
+// mas com dano de toque maior (a massa vira ameaca real, nao so estorvo).
 export const ESTATS: Record<EKind, EnemyStat> = {
-  sprout: { hp: 18, speed: 54, dmg: 7, r: 8, xp: 1, color: 0x4a5560 },
-  crawler: { hp: 40, speed: 74, dmg: 10, r: 9, xp: 2, color: 0x5a6470 },
-  brute: { hp: 130, speed: 36, dmg: 20, r: 14, xp: 5, color: 0x6a5560 },
-  boss: { hp: 1400, speed: 32, dmg: 26, r: 24, xp: 40, color: 0x7a4a5a },
+  sprout: { hp: 16, speed: 54, dmg: 9, r: 8, xp: 1, color: 0x4a5560 },
+  crawler: { hp: 34, speed: 74, dmg: 13, r: 9, xp: 2, color: 0x5a6470 },
+  brute: { hp: 110, speed: 36, dmg: 26, r: 14, xp: 5, color: 0x6a5560 },
+  boss: { hp: 1400, speed: 32, dmg: 30, r: 24, xp: 40, color: 0x7a4a5a },
 };
 
 // ── Plantas de buff — raras; pisar numa da um bonus temporario ───────────────
-export type PlantType = 'red' | 'blue' | 'green' | 'gold' | 'purple';
+// O cogumelo "orange" e especial: alem do efeito temporario, recupera vida.
+export type PlantType = 'red' | 'blue' | 'green' | 'gold' | 'purple' | 'orange';
 export interface PlantDef { color: number; name: string; short: string }
 
 export const PLANTS: Record<PlantType, PlantDef> = {
@@ -79,11 +82,15 @@ export const PLANTS: Record<PlantType, PlantDef> = {
   green: { color: 0x6dff9a, name: 'Veloz', short: 'VELOZ' },
   gold: { color: 0xffd36b, name: 'Áurea', short: 'ÍMÃ' },
   purple: { color: 0xc78fff, name: 'Esporal', short: 'ÁREA' },
+  orange: { color: 0xff8a1e, name: 'Restauradora', short: 'CURA' },  // cogumelo laranja brilhante
 };
-export const PLANT_TYPES: PlantType[] = ['red', 'blue', 'green', 'gold', 'purple'];
+export const PLANT_TYPES: PlantType[] = ['red', 'blue', 'green', 'gold', 'purple', 'orange'];
 
 export const BUFF_TIME = 7;        // duracao do bonus de uma planta (segundos)
-export const PLANTS_NEARBY = 2;    // quantas plantas existem por perto ao mesmo tempo
+export const BUFF_MAX = 30;        // teto do tempo acumulado de um buff (eles EMPILHAM)
+export const HEAL_INSTANT = 30;    // cura imediata ao pisar no cogumelo laranja
+export const HEAL_REGEN = 6;       // vida por segundo enquanto o cogumelo laranja dura
+export const PLANTS_NEARBY = 3;    // quantas plantas existem por perto ao mesmo tempo
 export const PLANT_DIST = { min: 300, max: 540 };  // a que distancia elas nascem
 export const PLANT_CULL_R = 760;   // plantas alem disto sao removidas
 
@@ -129,9 +136,9 @@ export const PASSIVE_NAME: Record<PassiveId, string> = {
   maxhp: 'Casca reforçada', speed: 'Passada leve', magnet: 'Esporo magnético', power: 'Toxina concentrada', regen: 'Micélio curativo',
 };
 export const PASSIVE_DESC: Record<PassiveId, string> = {
-  maxhp: '+25 vida máxima e cura na hora.',
-  speed: '+22 de velocidade de movimento.',
-  magnet: '+20 de raio de coleta de gemas.',
-  power: '+15% de dano em todas as armas.',
-  regen: '+0.8 de vida por segundo.',
+  maxhp: '+35 vida máxima e cura na hora.',
+  speed: '+30 de velocidade de movimento.',
+  magnet: '+32 de raio de coleta de gemas.',
+  power: '+22% de dano em todas as armas.',
+  regen: '+1.3 de vida por segundo.',
 };

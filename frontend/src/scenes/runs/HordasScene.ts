@@ -35,9 +35,9 @@ import { RunJuice } from '../../run/fx/RunJuice';
 import { bindDrag, type DragInput } from './RunFrame';
 import { RunScene } from './RunScene';
 import {
-  AURA, BASE_HP, BASE_PICKUP, BASE_SPEED, BUFF_TIME, DART, DESPAWN_R, ENEMY_CAP,
+  AURA, BASE_HP, BASE_PICKUP, BASE_SPEED, BUFF_MAX, BUFF_TIME, DART, DESPAWN_R, ENEMY_CAP,
   ESTATS, FOREST, GOAL, HARVEST_DECAY, HARVEST_DIST, HARVEST_NEARBY, HARVEST_SURGE,
-  HARVEST_TIME, HARVEST_VULN, JOY_DEAD, JOY_MAX, MAXLV, MOVE_ACCEL, NOVA, ORBIT,
+  HARVEST_TIME, HARVEST_VULN, HEAL_INSTANT, HEAL_REGEN, JOY_DEAD, JOY_MAX, MAXLV, MOVE_ACCEL, NOVA, ORBIT,
   PASSIVE_DESC, PASSIVE_NAME, PLANT_CULL_R, PLANT_DIST, PLANT_TYPES, PLANTS,
   PLANTS_NEARBY, PLAYER_R, PROJ_LIFE, PROJ_SPEED, SHADOW, SPAWN_MIN, SPAWN_RING,
   SPAWN_START, TAU, TOUCH_CD, VH, VW, WEAPON_DESC, WEAPON_NAME, ZONE,
@@ -78,8 +78,8 @@ export class HordasScene extends RunScene {
   private prevDrag = false;
   joyOrigin: Vec2 = { x: 0, y: 0 };
 
-  // Buffs ativos (tipo da planta -> segundos restantes).
-  buffs: Record<PlantType, number> = { red: 0, blue: 0, green: 0, gold: 0, purple: 0 };
+  // Buffs ativos (tipo da planta -> segundos restantes). Eles EMPILHAM o tempo.
+  buffs: Record<PlantType, number> = { red: 0, blue: 0, green: 0, gold: 0, purple: 0, orange: 0 };
 
   // ── Progressao ──────────────────────────────────────────────────────────────
   level = 1;
@@ -157,7 +157,9 @@ export class HordasScene extends RunScene {
     if (this.paused) return;
     this.elapsed += d;
     this.hurtFlash = Math.max(0, this.hurtFlash - d * 3);
-    if (this.regen > 0 && this.hp < this.maxHp) this.hp = Math.min(this.maxHp, this.hp + this.regen * d);
+    // Regen passivo + cura contínua enquanto o cogumelo laranja dura.
+    const regenNow = this.regen + (this.buffs.orange > 0 ? HEAL_REGEN : 0);
+    if (regenNow > 0 && this.hp < this.maxHp) this.hp = Math.min(this.maxHp, this.hp + regenNow * d);
 
     // Conta o tempo restante de cada buff ativo.
     for (const t of PLANT_TYPES) if (this.buffs[t] > 0) this.buffs[t] = Math.max(0, this.buffs[t] - d);
@@ -205,9 +207,11 @@ export class HordasScene extends RunScene {
   // ── Stats modificados pelos buffs (cada buff e um bonus brando e temporario) ──
   private get atk(): number { return this.damageMult * (this.buffs.red > 0 ? 1.45 : 1); }
   private get fireMult(): number { return this.buffs.blue > 0 ? 0.7 : 1; }
-  get areaMult(): number { return this.buffs.purple > 0 ? 1.35 : 1; }
+  // Bonus de raio que CRESCE conforme voce sobe de nivel (limitado para nao exagerar).
+  private get levelRadius(): number { return Math.min(0.45, (this.level - 1) * 0.03); }
+  get areaMult(): number { return (1 + this.levelRadius) * (this.buffs.purple > 0 ? 1.35 : 1); }
   private get effSpeed(): number { return this.moveSpeed * (this.buffs.green > 0 ? 1.35 : 1); }
-  private get effPickup(): number { return this.pickupRadius + (this.buffs.gold > 0 ? 130 : 0); }
+  private get effPickup(): number { return this.pickupRadius + (this.level - 1) * 6 + (this.buffs.gold > 0 ? 130 : 0); }
 
   // Multiplicador de recompensa: sobe com o tempo sobrevivido e com a sobre-coleta
   // (alem da meta). E o que torna tentador "empurrar a sorte". Limitado a 3x.
@@ -458,11 +462,11 @@ export class HordasScene extends RunScene {
   /** Recalcula os atributos do jogador a partir dos niveis das passivas. */
   private recomputeStats(healFromMaxHp: boolean): void {
     const prevMax = this.maxHp;
-    this.maxHp = BASE_HP + this.passives.maxhp * 25;
-    this.moveSpeed = BASE_SPEED + this.passives.speed * 22;
-    this.pickupRadius = BASE_PICKUP + this.passives.magnet * 20;
-    this.damageMult = 1 + this.passives.power * 0.15;
-    this.regen = this.passives.regen * 0.8;
+    this.maxHp = BASE_HP + this.passives.maxhp * 35;
+    this.moveSpeed = BASE_SPEED + this.passives.speed * 30;
+    this.pickupRadius = BASE_PICKUP + this.passives.magnet * 32;
+    this.damageMult = 1 + this.passives.power * 0.22;
+    this.regen = this.passives.regen * 1.3;
     // Ganhar +vida maxima tambem cura na hora a diferenca conquistada.
     if (healFromMaxHp) this.hp += this.maxHp - prevMax;
   }
@@ -697,9 +701,11 @@ export class HordasScene extends RunScene {
       const p = this.plants[i]!;
       const dist = Math.hypot(p.pos.x - this.player.x, p.pos.y - this.player.y);
       if (dist > PLANT_CULL_R) { this.plants.splice(i, 1); continue; }
-      // Pisou na planta: ativa o buff por BUFF_TIME segundos.
+      // Pisou na planta: ACUMULA o tempo do buff (empilha, ate o teto BUFF_MAX).
       if (dist < PLAYER_R + 13) {
-        this.buffs[p.type] = BUFF_TIME;
+        this.buffs[p.type] = Math.min(BUFF_MAX, this.buffs[p.type] + BUFF_TIME);
+        // O cogumelo laranja brilhante ainda recupera vida na hora.
+        if (p.type === 'orange') this.hp = Math.min(this.maxHp, this.hp + HEAL_INSTANT);
         this.juice.pop(this.sx(p.pos.x), this.sy(p.pos.y), PLANTS[p.type].color);
         this.juice.flash(PLANTS[p.type].color, 0.12, 0.22);
         this.plants.splice(i, 1);
@@ -713,9 +719,9 @@ export class HordasScene extends RunScene {
   private updateSpawns(dt: number): void {
     this.spawnTimer -= dt;
     if (this.spawnTimer > 0 || this.enemies.length >= ENEMY_CAP) return;
-    const burst = 1 + Math.floor(this.elapsed / 20);  // cada onda cresce ao longo do tempo
+    const burst = 2 + Math.floor(this.elapsed / 12);  // ondas crescem mais e mais rapido
     for (let i = 0; i < burst && this.enemies.length < ENEMY_CAP; i++) this.spawnEnemy();
-    this.spawnTimer = Math.max(SPAWN_MIN, SPAWN_START - this.elapsed * 0.014 - (this.extractOpen ? 0.4 : 0));
+    this.spawnTimer = Math.max(SPAWN_MIN, SPAWN_START - this.elapsed * 0.024 - (this.extractOpen ? 0.4 : 0));
   }
 
   /** Sorteia o tipo de inimigo, com tipos mais fortes liberando ao longo do tempo. */
@@ -735,7 +741,7 @@ export class HordasScene extends RunScene {
   private spawnEnemy(force?: EKind): void {
     const kind = force ?? this.pickKind();
     const s = ESTATS[kind];
-    const hpScale = 1 + this.elapsed * 0.006;  // inimigos ficam um pouco mais resistentes com o tempo
+    const hpScale = 1 + this.elapsed * 0.0034;  // resistencia sobe devagar — inimigos seguem "frescos" e morrem rapido
     this.enemies.push({
       kind, pos: this.ringPos(SPAWN_RING + rand(0, 80)),
       hp: s.hp * hpScale, maxHp: s.hp * hpScale,
