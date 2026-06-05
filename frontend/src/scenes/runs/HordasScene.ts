@@ -725,9 +725,9 @@ export class HordasScene extends Scene {
   private updateSpawns(dt: number): void {
     this.spawnTimer -= dt;
     if (this.spawnTimer > 0 || this.enemies.length >= ENEMY_CAP) return;
-    const burst = 1 + Math.floor(this.elapsed / 20);  // cada onda cresce ao longo do tempo
+    const burst = 2 + Math.floor(this.elapsed / 12);  // ondas crescem mais e mais rapido
     for (let i = 0; i < burst && this.enemies.length < ENEMY_CAP; i++) this.spawnEnemy();
-    this.spawnTimer = Math.max(SPAWN_MIN, SPAWN_START - this.elapsed * 0.014 - (this.extractOpen ? 0.4 : 0));
+    this.spawnTimer = Math.max(SPAWN_MIN, SPAWN_START - this.elapsed * 0.024 - (this.extractOpen ? 0.4 : 0));
   }
 
   /** Sorteia o tipo de inimigo, com tipos mais fortes liberando ao longo do tempo. */
@@ -747,7 +747,7 @@ export class HordasScene extends Scene {
   private spawnEnemy(force?: EKind): void {
     const kind = force ?? this.pickKind();
     const s = ESTATS[kind];
-    const hpScale = 1 + this.elapsed * 0.006;  // inimigos ficam um pouco mais resistentes com o tempo
+    const hpScale = 1 + this.elapsed * 0.0034;  // resistencia sobe devagar — inimigos seguem "frescos" e morrem rapido
     this.enemies.push({
       kind, pos: this.ringPos(SPAWN_RING + rand(0, 80)),
       hp: s.hp * hpScale, maxHp: s.hp * hpScale,
