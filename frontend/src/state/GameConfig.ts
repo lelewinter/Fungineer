@@ -251,6 +251,18 @@ export const GameConfig = {
   CATEDRAL_RUN_TIMER: 90,
   LABIRINTO_RUN_TIMER: 90,
 
+  // ── Collect Feel (juice.pop) ───────────────────────────────────
+  // Intensidades do momento de coleta — a recompensa mais frequente do jogo.
+  // Centralizado aqui para o designer tunar o "feel" sem mexer no RunJuice.
+  COLLECT_BURST_COUNT: 14,
+  COLLECT_BURST_SPEED: 170,
+  COLLECT_BURST_LIFE: 0.5,
+  COLLECT_BURST_SIZE: 2.6,
+  COLLECT_FLASH_ALPHA: 0.10,
+  COLLECT_SHAKE_TRAUMA: 0.16,
+  COLLECT_SHAKE_VIBRATE_MS: 12,
+  COLLECT_SFX_VOLUME: 0.45,
+
   // ── Debug ──────────────────────────────────────────────────────
   DEBUG_SHOW_RANGES: true,
 } as const;

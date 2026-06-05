@@ -110,10 +110,16 @@ export class RunJuice {
   // ── Combos de alto nível (juntam vários primitivos por "momento") ─────────
   /** Coleta satisfatória / objetivo cumprido. */
   pop(x: number, y: number, color: number = this.accent): void {
-    this.burst(x, y, { count: 14, color, speed: 170, life: 0.5, size: 2.6 });
-    this.flash(color, 0.10, 0.14);
-    this.shake(0.16, 12);
-    audioManager.playSfx('res://assets/audio/sfx/ui/Confirm_03.wav', 0.45);
+    this.burst(x, y, {
+      count: GameConfig.COLLECT_BURST_COUNT,
+      color,
+      speed: GameConfig.COLLECT_BURST_SPEED,
+      life: GameConfig.COLLECT_BURST_LIFE,
+      size: GameConfig.COLLECT_BURST_SIZE,
+    });
+    this.flash(color, GameConfig.COLLECT_FLASH_ALPHA, 0.14);
+    this.shake(GameConfig.COLLECT_SHAKE_TRAUMA, GameConfig.COLLECT_SHAKE_VIBRATE_MS);
+    audioManager.playSfx('res://assets/audio/sfx/ui/Confirm_03.wav', GameConfig.COLLECT_SFX_VOLUME);
   }
 
   /** Jogador tomou dano / quase foi atingido. */
