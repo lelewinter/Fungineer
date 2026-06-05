@@ -139,7 +139,7 @@ export class SacrificeScene extends Scene {
     this.juice = new RunJuice(this.root, { accent: Color.hex(ZONE.accent_color), shakeTarget: this.content, ambient: 26 });
     this.buildHud();
     this.bindPointer();
-    audioManager.playMusic('res://assets/audio/music/zones/dungeon_theme_1.wav', { loop: true, volume: 0.35, fadeMs: 400 }).catch(() => undefined);
+    if (ZONE.music) audioManager.playMusic(ZONE.music, { loop: true, volume: 0.35, fadeMs: 400 }).catch(() => undefined);
   }
 
   override async exit(): Promise<void> {

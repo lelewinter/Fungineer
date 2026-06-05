@@ -70,13 +70,68 @@ a partir de docs/config, não do scene shipado):
 - **"Labirinto em faixa de fotossensibilidade >2Hz" (UX):** o aviso de parede usa
   cadência de 2-3s (`MAZE_WARNING_*`), não blink rápido. Sem risco.
 
-## ⏳ Trabalho maior não feito neste pass (precisa de design/decisão ou é multi-sessão)
-- **Refactor `RunScene` base class** (Lead Programmer) — elimina duplicação real
-  (pointer binding ×7, delta-cap ×11, music ×11). Plano em `docs/architecture/run-framework-refactor.md`.
-- **Tela de recompensa unificada** (task-queue 002/003) e **SaveService** (005).
-- **Música data-driven** (Hordas/Field/Sacrifice hardcodam paths que divergem de
-  `ZONES[].music`) — qual valor é o certo precisa do audio/design.
-- **Quit button em Field/Sacrifice** (HUDs custom sem o botão de desistir).
-- **Transcode de áudio 106MB → ~15.8MB OGG** (Audio Director / `task-audio-transcode.md`) —
-  gate do deploy Cloudflare.
-- **Reconciliação de cânone Dr. Myco vs Dr. Paulo** (CD/Narrative/World-Builder).
+---
+
+# Pass 2 (2026-06-05) — "vamos de Dr. Myco"
+
+Build verde (tsc --noEmit + vite build) após cada item.
+
+## ✅ Implementado no Pass 2
+
+### 6. Cânone travado: Dr. Myco
+Decisão da Leticia. Reconciliação (World Builder): "Dr. Myco" é o apelido
+pós-Transição; "Paulo Vitor Santos" é o nome de nascimento / identidade anterior
+(quando ajudou a criar a IA). Regra completa em
+`design/narrative/canon-decision-protagonist.md`.
+- Strings player-facing → "Dr. Myco": `HubRocketPanel`, `RocketLaunchOverlay`,
+  `HubData` (hint do NPC doutor + glyph 'M', briefings do doutor/Hordas, fala da Priya),
+  comentários da `HordasScene`.
+- **Preservados de propósito:** comentário de passado em `FieldControlScene`
+  ("where Paulo stood, five years ago" — é o passado dele) e o NPC distinto
+  "Paulo A. Martins" em `LoreFragments` (pessoa diferente).
+- **Pendente:** ~23 docs em `design/narrative/` ainda usam "Paulo" como nome
+  corrente — alinhamento é tarefa do Writer (precisa de julgamento por contexto).
+
+### 7. Música data-driven (Hordas / Field / Sacrifice)
+As 3 zonas com HUD/enter custom hardcodavam o path da música. Agora leem
+`ZONE.music` (`if (ZONE.music) playMusic(ZONE.music, …)`), como as outras 8.
+- Faixas atuais preservadas: Field/Sacrifice já batiam com o data; a Hordas
+  movido para o data (`ZONES[0].music = battle.wav`, sua faixa de combate dedicada).
+
+### 8. Botão SAIR no Field
+O Field era a única zona sem como sair (o Sacrifício já tem o tile `EXIT_RECT`).
+Adicionado um botão "✕ SAIR" no HUD (hit area ~60px) que encerra a run como
+derrota e volta ao hub.
+
+### 9. SaveService — já estava pronto (nada a fazer)
+A task-queue marcava 005 como PENDING, mas o `SaveService` já está completo e
+fiado no `main.ts`: `load()` no boot, `arm()` nos signals do HubState (debounce
+1.5s), `flush()` no `pagehide`, fallback localStorage. **Verificado, nenhuma ação.**
+
+### Reward scene (task-queue 002/003) — já coberto
+`buildEndOverlay({zone, victory, rewardLabel, failLabel})` já mostra recompensa/
+derrota por zona no fim de cada run. Uma `RewardScene` separada seria redundante;
+não implementada de propósito.
+
+## ⛔ Bloqueado por tooling
+- **Transcode de áudio 106MB → ~15.8MB OGG** — `ffmpeg` **não está disponível**
+  neste ambiente. O script já existe e é idempotente; rodar localmente:
+  ```
+  tools/transcode-audio.sh          # gera .ogg ao lado dos .wav
+  tools/transcode-audio.sh --dry-run
+  ```
+  Depois: trocar refs `.wav → .ogg` no código (passo atômico separado) e remover
+  os WAVs. Gate do deploy Cloudflare (cap 25MB/arquivo).
+
+## ⏸️ Deferido por decisão (risco > valor sem playtest)
+- **Refactor `RunScene` base class** (Lead Programmer) — dedupe real (pointer
+  binding ×7, delta-cap ×11, music ×11). **Não feito de propósito:** o próprio
+  plano exige *"a zona migrada precisa ser jogável manualmente antes do merge"*,
+  e migrar 11 zonas que já funcionam **sem playtest** arrisca quebrar gameplay
+  shipado de forma que tsc/build não pegam (ordem de lifecycle, binding de input).
+  Recomendação: fazer zona-a-zona com a Leticia jogando cada uma. Plano completo
+  em `docs/architecture/run-framework-refactor.md`.
+
+## ⚠️ Decisões de design ainda em aberto (de Pass 1)
+- Timers Circuito (60→90) e Infecção (75→120) roteados pro valor do GameConfig —
+  confirmar se é o desejado (1 linha pra reverter).

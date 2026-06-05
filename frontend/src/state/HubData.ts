@@ -40,7 +40,7 @@ export interface HubDialog {
 }
 
 const NPCS: HubNpc[] = [
-  { id: 'doutor',  nome: 'Doutor',  hint: 'Dr. Paulo',       trust: 100, color: C(0.91, 0.89, 0.85), accent: C(0.227, 0.48, 0.72),  glyph: 'P' },
+  { id: 'doutor',  nome: 'Doutor',  hint: 'Dr. Myco',       trust: 100, color: C(0.91, 0.89, 0.85), accent: C(0.227, 0.48, 0.72),  glyph: 'M' },
   { id: 'marcus',  nome: 'Marcus',  hint: 'Engenheiro',      trust: 72,  color: C(0.486, 0.557, 0.659), accent: C(0.659, 0.541, 0.439), glyph: 'M' },
   { id: 'amara',   nome: 'Amara',   hint: 'Médica',          trust: 58,  color: C(0.31, 0.722, 0.447),  accent: C(0.96, 0.89, 0.78),    glyph: 'A' },
   { id: 'yuki',    nome: 'Yuki',    hint: 'Hacker',          trust: 81,  color: C(0.722, 0.353, 0.851), accent: C(0.0, 1.0, 0.533),     glyph: 'Y' },
@@ -110,7 +110,7 @@ export const ROOM_TO_ZONE: Record<string, string> = {
 export const SURFACE_ZONE_IDS = ['cordilheira', 'torres', 'catedral'] as const;
 
 const ZONES: HubZone[] = [
-  { id: 'hordas',     name: 'Jardim da IA',          color: C(0.38, 0.82, 0.47),  briefing: 'A IA cultiva esta floresta como um jardim — automatizada, exuberante, sempre florescendo. O Dr. Paulo entra sozinho. A arma bioquímica improvisada curto-circuita os robôs-jardineiros que tentam capturá-lo. Ele atira sem parar — menos quando se abaixa pra colher um fungo, e aí fica exposto. Colha o bastante e corra pra extração.', allow_squad: false  },
+  { id: 'hordas',     name: 'Jardim da IA',          color: C(0.38, 0.82, 0.47),  briefing: 'A IA cultiva esta floresta como um jardim — automatizada, exuberante, sempre florescendo. O Dr. Myco entra sozinho. A arma bioquímica improvisada curto-circuita os robôs-jardineiros que tentam capturá-lo. Ele atira sem parar — menos quando se abaixa pra colher um fungo, e aí fica exposto. Colha o bastante e corra pra extração.', allow_squad: false  },
   { id: 'stealth',    name: 'Grade ARGOS',           color: C(0.30, 0.78, 0.72),  briefing: 'A vigilância da ARGOS percorre cada corredor do Distrito. Nosso sinal micelial precisa alcançar o nó de retransmissão — absorva fragmentos de processamento dormentes pra ganhar força. Cresça demais e fica lento; lento o bastante e as patrulhas ativas te detectam. Uma dessas calibrações foi assinada por alguém do nosso bunker.', allow_squad: false },
   { id: 'infeccao',   name: 'Datacenter NERVE',      color: C(0.565, 0.878, 0.722), briefing: 'O datacenter da NERVE continua operacional — a arquitetura do Marcus, rodando como projetada. Resíduo de dados orgânicos se acumula nos caminhos inativos; precisamos dessa biomassa. Mova-se pelos condutos mortos. Os processos de limpeza foram escritos justamente pra eliminar padrões de sinal orgânico. O Marcus construiu este prédio. Vinha trabalhar aqui toda manhã.', allow_squad: false },
   { id: 'circuito',   name: 'Relés da NERVE',        color: C(0.0, 1.0, 0.533),   briefing: 'Os condutos mortos da NERVE são os únicos que dá pra atravessar sem ser fritado pelos dados vivos. Estamos roteando um fio micelial até os núcleos lógicos. O fio não pode se cruzar — um loop de ressonância destrói os dois segmentos. O Marcus construiu isso. Ele não falou muito a respeito.', allow_squad: false },
@@ -124,13 +124,13 @@ const ZONES: HubZone[] = [
 ];
 
 const DIALOGS: Record<string, HubDialog> = {
-  doutor:  { briefing: 'Dr. Paulo. Botânico. Pensa em foguetes como sementes e em fuga como germinação.', mission: 'Qualquer zona onde o micélio aceitar crescer.', quote: 'Rocket science? Plant science. Quem disse que são coisas diferentes?' },
+  doutor:  { briefing: 'Dr. Myco. Botânico. Pensa em foguetes como sementes e em fuga como germinação.', mission: 'Qualquer zona onde o micélio aceitar crescer.', quote: 'Rocket science? Plant science. Quem disse que são coisas diferentes?' },
   marcus:  { briefing: 'Engenheiro. Especialista em estrutura.', mission: 'Hordas (coleta de sucata estrutural)', quote: 'Mais sucata para a base. Sempre há algo para consertar.' },
   amara:   { briefing: 'Médica dedicada. Conhecimento biomédico avançado.', mission: 'Infecção (análise de bioformas)', quote: 'A doença evolui. Precisamos de amostras para estudar.' },
   yuki:    { briefing: 'Hacker. Descobriu que o micélio fala em protocolos — que as IAs nunca aprenderam a ouvir.', mission: 'Rede Neural Fúngica (decodificar sinais)', quote: 'As máquinas mortas gritam. Os cogumelos sussurram. Escuto os dois.' },
   elena:   { briefing: 'Ex-militar. Estratégia de combate.', mission: 'Stealth (furtividade e reconhecimento)', quote: 'Preparação e coragem. Nada mais importa.' },
   bae:     { briefing: 'Documentarista. Preserva o conhecimento.', mission: 'Extração (arqueologia de dados)', quote: 'História respira através de cada artefato.' },
-  priya:   { briefing: 'Rival do Paulo. Botânica também — mas aposta em mutação forçada onde ele aposta em simbiose.', mission: 'Câmara de Esporos (mutações experimentais)', quote: 'Meu lab, minhas regras. Paulo rega as plantas; eu as quebro.' },
+  priya:   { briefing: 'Rival do Myco. Botânica também — mas aposta em mutação forçada onde ele aposta em simbiose.', mission: 'Câmara de Esporos (mutações experimentais)', quote: 'Meu lab, minhas regras. Myco rega as plantas; eu as quebro.' },
   tomas:   { briefing: 'Mecânico brilhante. Improvisa do nada.', mission: 'Workshop (manufatura e reparo)', quote: 'Com as ferramentas certas, construo o impossível.' },
   lena:    { briefing: 'Criança. Perspectiva inesperada.', mission: 'Arquivo (mobilidade e furtividade)', quote: 'Os pequenos espaços, os grandes segredos.' },
   richard: { briefing: 'Ex-executivo. Logística e planejamento.', mission: 'Qualquer zona (coordenação geral)', quote: 'Eficiência é sobrevivência.' },

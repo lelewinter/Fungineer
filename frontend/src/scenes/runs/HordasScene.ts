@@ -145,7 +145,7 @@ interface Offer {
 const rand = (a: number, b: number): number => a + Math.random() * (b - a);
 
 /** HORDAS — the AI's automated forest, an infinite Vampire-Survivors arena.
- *  Dr. Paulo only steers (floating joystick); his bio-chem arsenal auto-fires.
+ *  Dr. Myco only steers (floating joystick); his bio-chem arsenal auto-fires.
  *  Gardener-bots swarm in escalating hordes — kill them for XP, level up, and
  *  draft upgrades. The objective is risky: biomass nodes must be CHANNELLED
  *  (stand exposed, gun stowed, taking extra damage while the horde surges).
@@ -285,7 +285,7 @@ export class HordasScene extends Scene {
 
     this.drag = bindDrag(this.app.pixi.canvas, this.app.world, { x: VW / 2, y: VH / 2 });
 
-    audioManager.playMusic('res://assets/audio/music/battle.wav', { loop: true, volume: 0.32, fadeMs: 500 }).catch(() => undefined);
+    if (ZONE.music) audioManager.playMusic(ZONE.music, { loop: true, volume: 0.32, fadeMs: 500 }).catch(() => undefined);
   }
 
   override exit(): void {
@@ -1059,7 +1059,7 @@ export class HordasScene extends Scene {
       }
     }
 
-    // Paulo — a warning ring pulses while channelling (exposed).
+    // Myco — a warning ring pulses while channelling (exposed).
     this.playerG.clear();
     const pc = this.hurtFlash > 0.4 ? 0xff5a5a : FOREST;
     const px = this.player.x;

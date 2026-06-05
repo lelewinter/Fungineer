@@ -1,4 +1,4 @@
-import { Container, Graphics, Text } from 'pixi.js';
+import { Container, Graphics, Rectangle, Text } from 'pixi.js';
 import { Scene } from '../../core/Scene';
 import { sceneManager } from '../../core/SceneManager';
 import { audioManager } from '../../core/AudioManager';
@@ -103,7 +103,7 @@ export class FieldControlScene extends Scene {
     this.juice = new RunJuice(this.root, { accent: Color.hex(ZONE.accent_color), shakeTarget: this.content, ambient: 26 });
     this.buildHud();
     this.bindPointer();
-    audioManager.playMusic('res://assets/audio/music/zones/field_theme_1.wav', { loop: true, volume: 0.32, fadeMs: 400 }).catch(() => undefined);
+    if (ZONE.music) audioManager.playMusic(ZONE.music, { loop: true, volume: 0.32, fadeMs: 400 }).catch(() => undefined);
   }
 
   override async exit(): Promise<void> {
@@ -197,6 +197,19 @@ export class FieldControlScene extends Scene {
     this.dominanceLabel.x = VW / 2;
     this.dominanceLabel.y = 68;
     this.hudLayer.addChild(this.dominanceLabel);
+
+    // Give-up button — Field has no in-world exit tile (unlike Sacrifice), so
+    // offer an explicit bail-to-hub. Ends the run as a defeat (no deposit).
+    const quitBtn = new Text({ text: '✕ SAIR', style: { fontFamily: FontFamily.mono, fontSize: 13, fill: 0xff8080, fontWeight: '700' } });
+    quitBtn.anchor.set(1, 0);
+    quitBtn.x = VW - 10;
+    quitBtn.y = 15;
+    quitBtn.eventMode = 'static';
+    quitBtn.cursor = 'pointer';
+    // Padded hit area for a reliable touch target (~60px wide).
+    quitBtn.hitArea = new Rectangle(-quitBtn.width - 16, -10, quitBtn.width + 32, quitBtn.height + 20);
+    quitBtn.on('pointertap', () => { if (!this.runEnded) this.endRun(false); });
+    this.hudLayer.addChild(quitBtn);
   }
 
   private bindPointer(): void {

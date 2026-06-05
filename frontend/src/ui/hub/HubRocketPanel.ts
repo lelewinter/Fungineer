@@ -55,7 +55,7 @@ export class HubRocketPanel extends Modal {
     cy += 18;
 
     const subtitle = new Text({
-      text: 'Dr. Paulo: "Foguete? Não. Semente."',
+      text: 'Dr. Myco: "Foguete? Não. Semente."',
       style: { fontFamily: '"Space Grotesk", system-ui, sans-serif', fontSize: 9, fill: Color.hex(Color.rgb(0.72, 0.45, 0.85)), align: 'center' },
     });
     subtitle.anchor.set(0.5, 0);
