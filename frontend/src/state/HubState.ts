@@ -196,6 +196,11 @@ class HubStateClass {
 
   rocket_pieces_built = 0;
 
+  /** Índices de peças construídas ainda não anunciados ao jogador (drenado pelo
+   *  HubScene ao voltar ao hub — o depósito ocorre durante a run). Transiente,
+   *  não entra no snapshot. */
+  pending_piece_beats: number[] = [];
+
   /** Mirrors CharacterRegistry rescued list. Kept for backwards compat. */
   rescued_characters: string[] = [];
 
@@ -300,6 +305,7 @@ class HubStateClass {
         this.spend(recipe);
         const idx = this.rocket_pieces_built;
         this.rocket_pieces_built += 1;
+        this.pending_piece_beats.push(idx);
         this.rocketPieceBuilt.emit(idx, recipe.name);
         this.checkZoneUnlocks();
         this.unlockRoomsForPiecesBuilt();
@@ -354,6 +360,7 @@ class HubStateClass {
   resetForNewCycle(): void {
     for (const key of Object.keys(this.stock) as ResourceKey[]) this.stock[key] = 0;
     this.rocket_pieces_built = 0;
+    this.pending_piece_beats = [];
     this.rescued_characters = [];
     this.zones_unlocked = this.zones_unlocked.map(() => true);
     this.zone_deterioration = this.zone_deterioration.map(() => 0);

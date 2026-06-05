@@ -119,14 +119,26 @@ export class HubRocketPanel extends Modal {
     this.panel.addChild(this.canvasContainer);
     cy += CANVAS_H + 8;
 
-    // Status
+    // Status — texto e cor por estágio (art spec §4.3).
     const built = HubState.rocket_pieces_built;
     const total = ROCKET_RECIPE.length;
-    const pct = Math.floor((built / total) * 100);
     const complete = HubState.isRocketComplete();
+    const STAGE: Array<[string, RGBA]> = [
+      ['0 / 8 · em espera de materiais', Color.rgb(0.35, 0.31, 0.25)],
+      ['1 / 8 · fundação fixada', Color.rgb(0.91, 0.58, 0.23)],
+      ['2 / 8 · motor germinando', Color.rgb(0.91, 0.58, 0.23)],
+      ['3 / 8 · circuitos acordando', Color.rgb(0.30, 0.79, 0.77)],
+      ['4 / 8 · revestimento tecido', Color.rgb(0.30, 0.79, 0.77)],
+      ['5 / 8 · rede neural ativa', Color.rgb(0.56, 0.83, 0.31)],
+      ['6 / 8 · sistema vital respirando', Color.rgb(0.56, 0.83, 0.31)],
+      ['7 / 8 · blindagem crescida', Color.rgb(0.72, 0.48, 0.86)],
+    ];
+    const stage: [string, RGBA] = complete
+      ? ['✓ Casulo germinado — pronto pra plantar no céu', Color.rgb(0.96, 0.64, 0.29)]
+      : (STAGE[built] ?? [`${built} / ${total} peças`, Color.rgb(0.30, 0.78, 0.72)]);
     const status = new Text({
-      text: complete ? '✓ Casulo germinado — pronto pra plantar no céu' : `${built} / ${total} peças · ${pct}% germinado`,
-      style: { fontFamily: '"Space Grotesk", system-ui, sans-serif', fontSize: 10, fill: Color.hex(complete ? Color.rgb(0.91, 0.58, 0.23) : Color.rgb(0.30, 0.78, 0.72)), align: 'center' },
+      text: stage[0],
+      style: { fontFamily: '"Space Grotesk", system-ui, sans-serif', fontSize: 10, fill: Color.hex(stage[1]), align: 'center' },
     });
     status.anchor.set(0.5, 0);
     status.x = 0;
@@ -227,9 +239,13 @@ export class HubRocketPanel extends Modal {
     // o que já foi construído e o que falta. O `sin` do tempo gera o brilho que
     // vai e volta (dashPulse).
     if (built > 0 && built < recipe.length) {
-      const dashPulse = 0.4 + 0.6 * Math.abs(Math.sin(this.elapsedMs * 0.006));
+      // Estágio 7 (última peça faltando): a solda pulsa o dobro de rápido e mais forte.
+      const urgent = built === recipe.length - 1;
+      const dashPulse = 0.4 + 0.6 * Math.abs(Math.sin(this.elapsedMs * (urgent ? 0.012 : 0.006)));
+      const weldW = urgent ? 2 : 1.2;
+      const weldA = urgent ? 1.0 : 0.85;
       this.g.moveTo(cx - bodyW * 0.6, buildY).lineTo(cx + bodyW * 0.6, buildY)
-        .stroke({ color: Color.hex(amber), width: 1.2, alpha: 0.85 * dashPulse });
+        .stroke({ color: Color.hex(amber), width: weldW, alpha: weldA * dashPulse });
       this.g.circle(cx - bodyW * 0.3, buildY, 1.6).fill({ color: Color.hex(amber), alpha: dashPulse });
       this.g.circle(cx + bodyW * 0.3, buildY, 1.4).fill({ color: Color.hex(amber), alpha: 1 - dashPulse });
     }
@@ -250,14 +266,29 @@ export class HubRocketPanel extends Modal {
     // Raízes/chama na base: só aparecem quando o foguete já está bem avançado
     // (5+ peças). Cada "raiz" pisca com intensidade própria graças ao `sin`.
     if (built >= 5) {
+      // Raízes alternam âmbar/verde-esporo (biologia + circuito integrando).
+      // No estágio 8 ficam mais longas e o movimento mais lento e orgânico.
+      const complete = built >= recipe.length;
+      const spore = Color.rgb(0.56, 0.83, 0.31);
+      const rootLen = complete ? 16 : 10;
+      const rootSpeed = complete ? 0.002 : 0.003;
       for (let j = 0; j < 5; j++) {
         const fx = cx + (j - 2) * 6;
         const fyBase = bottomY - 5;
-        const pulse = Math.abs(Math.sin(this.elapsedMs * 0.003 + j)) * 0.5 + 0.5;
-        const a: RGBA = { r: amber.r * pulse, g: amber.g * pulse, b: amber.b * pulse, a: 1 };
-        this.g.moveTo(fx, fyBase).lineTo(fx + Math.sin(j) * 2, fyBase + 10)
+        const pulse = Math.abs(Math.sin(this.elapsedMs * rootSpeed + j)) * 0.5 + 0.5;
+        const base = j % 2 === 0 ? amber : spore;
+        const a: RGBA = { r: base.r * pulse, g: base.g * pulse, b: base.b * pulse, a: 1 };
+        this.g.moveTo(fx, fyBase).lineTo(fx + Math.sin(j) * 2, fyBase + rootLen)
           .stroke({ color: Color.hex(a), width: 2 });
       }
+    }
+
+    // Estágio 8 — o casulo germinado RESPIRA: halo de bioluminescência pulsante
+    // ao redor do contorno (não pisca). A linha de solda some (já tratada acima).
+    if (built >= recipe.length) {
+      const breathe = 0.1 + 0.1 * Math.sin(this.elapsedMs * 0.003);
+      this.g.roundRect(cx - bodyW * 0.75, topY - 4, bodyW * 1.5, podH + 16, 10)
+        .stroke({ color: Color.hex(Color.rgb(0.78, 0.94, 0.48)), width: 3, alpha: breathe });
     }
 
     // Anotações: para cada peça, desenha uma linha de chamada saindo do corpo

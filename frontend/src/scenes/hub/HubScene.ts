@@ -3,7 +3,7 @@ import { Scene } from '../../core/Scene';
 import { sceneManager } from '../../core/SceneManager';
 import { Color } from '../../core/Color';
 import { GameConfig } from '../../state/GameConfig';
-import { HubState, ROCKET_RECIPE } from '../../state/HubState';
+import { HubState, ROCKET_RECIPE, PIECE_INSTALL_BEAT } from '../../state/HubState';
 import { HubData, ROOM_TO_ZONE } from '../../state/HubData';
 import { ZONES } from '../../state/Zones';
 import { StubRunScene } from '../runs/StubRunScene';
@@ -112,6 +112,50 @@ export class HubScene extends Scene {
     window.addEventListener('keydown', this.keyHandler);
 
     this.hubAudio.start();
+
+    // Peças construídas durante a última run (o depósito acontece na run, com o
+    // hub destruído) — anuncia a mais recente com um beat na voz do Dr. Myco.
+    if (HubState.pending_piece_beats.length > 0) {
+      const idx = HubState.pending_piece_beats[HubState.pending_piece_beats.length - 1]!;
+      HubState.pending_piece_beats = [];
+      this.hubAudio.playRocketProgressSfx();
+      this.showPieceBeat(PIECE_INSTALL_BEAT[idx] ?? '');
+    }
+  }
+
+  /** Toast efêmero (voz Dr. Myco) ao instalar uma peça do foguete. Auto-remove. */
+  private showPieceBeat(text: string): void {
+    if (!text) return;
+    const W = GameConfig.VIEWPORT_WIDTH;
+    const c = new Container();
+    const label = new Text({
+      text,
+      style: {
+        fontFamily: '"Space Grotesk", system-ui, sans-serif',
+        fontSize: 13, fontStyle: 'italic', fill: Color.hex(Color.rgb(0.78, 0.94, 0.48)),
+        align: 'center', wordWrap: true, wordWrapWidth: W - 80,
+      },
+    });
+    label.anchor.set(0.5, 0);
+    const bg = new Graphics();
+    bg.roundRect(-label.width / 2 - 14, -8, label.width + 28, label.height + 16, 8)
+      .fill({ color: 0x0a100c, alpha: 0.85 })
+      .stroke({ color: Color.hex(Color.rgb(0.78, 0.94, 0.48)), width: 1, alpha: 0.5 });
+    c.addChild(bg, label);
+    c.x = W / 2;
+    c.y = 80;
+    c.alpha = 0;
+    this.uiLayer.addChild(c);
+    const start = performance.now();
+    const tick = (): void => {
+      if (c.destroyed) return;
+      const e = performance.now() - start;
+      c.alpha = e < 300 ? e / 300 : e > 3400 ? Math.max(0, 1 - (e - 3400) / 600) : 1;
+      c.y = 80 - Math.min(10, e / 60); // sobe um pouco
+      if (e >= 4000) { c.destroy({ children: true }); return; }
+      requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
   }
 
   /** A cada quadro: repassa o delta time para o renderer e os NPCs animarem. */
