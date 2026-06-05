@@ -47,9 +47,9 @@ export const JOY_DEAD = 8;        // zona morta do joystick (movimentos minuscul
 export const JOY_MAX = 64;        // quanto arrastar o dedo para chegar a velocidade maxima
 
 // ── Inimigos (robos-jardineiros) — nascem num anel ao redor do jogador ───────
-export const ENEMY_CAP = 110;     // numero maximo de inimigos vivos ao mesmo tempo
+export const ENEMY_CAP = 160;     // numero maximo de inimigos vivos ao mesmo tempo (horda maior)
 export const SPAWN_START = 1.1;   // intervalo inicial entre ondas de spawn (segundos)
-export const SPAWN_MIN = 0.22;    // intervalo minimo (o jogo vai acelerando)
+export const SPAWN_MIN = 0.14;    // intervalo minimo (o jogo vai acelerando — ondas mais rapidas)
 export const TOUCH_CD = 0.6;      // tempo de "recarga" do dano de toque de cada inimigo
 export const SPAWN_RING = 520;    // distancia em que os inimigos nascem (logo fora da tela)
 export const DESPAWN_R = 900;     // inimigos que se afastam demais sao removidos
@@ -62,11 +62,13 @@ export type EKind = 'sprout' | 'crawler' | 'brute' | 'boss';
 // Ficha tecnica de cada tipo: vida, velocidade, dano, raio, XP que solta e cor.
 export interface EnemyStat { hp: number; speed: number; dmg: number; r: number; xp: number; color: number }
 
+// "Frescos": HP base um pouco menor (morrem rapido, ceifar a horda e gostoso),
+// mas com dano de toque maior (a massa vira ameaca real, nao so estorvo).
 export const ESTATS: Record<EKind, EnemyStat> = {
-  sprout: { hp: 18, speed: 54, dmg: 7, r: 8, xp: 1, color: 0x4a5560 },
-  crawler: { hp: 40, speed: 74, dmg: 10, r: 9, xp: 2, color: 0x5a6470 },
-  brute: { hp: 130, speed: 36, dmg: 20, r: 14, xp: 5, color: 0x6a5560 },
-  boss: { hp: 1400, speed: 32, dmg: 26, r: 24, xp: 40, color: 0x7a4a5a },
+  sprout: { hp: 16, speed: 54, dmg: 9, r: 8, xp: 1, color: 0x4a5560 },
+  crawler: { hp: 34, speed: 74, dmg: 13, r: 9, xp: 2, color: 0x5a6470 },
+  brute: { hp: 110, speed: 36, dmg: 26, r: 14, xp: 5, color: 0x6a5560 },
+  boss: { hp: 1400, speed: 32, dmg: 30, r: 24, xp: 40, color: 0x7a4a5a },
 };
 
 // ── Plantas de buff — raras; pisar numa da um bonus temporario ───────────────
