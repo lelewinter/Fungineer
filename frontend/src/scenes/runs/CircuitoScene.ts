@@ -10,24 +10,22 @@
 //   - Coletar a meta de reles antes do tempo acabar vence a fase.
 //
 // Como se encaixa no jogo:
-//   - E uma das fases de raid. Usa a "moldura" compartilhada do RunFrame (HUD do
-//     topo, tela de fim, e o bindDrag que converte o toque para coordenadas do
-//     jogo). Ao vencer, deposita "nucleo_logico" no bunker via HubState.
+//   - E uma das fases de raid. Herda de RunScene (a base compartilhada das zonas)
+//     que cuida do HUD do topo, da tela de fim, do ciclo de musica/juice e do
+//     input de ponteiro. Ao vencer, deposita "nucleo_logico" no bunker.
 //
 // A classe CircuitoScene continua exportada deste mesmo arquivo (o resto do jogo
 // importa ela daqui), entao nada quebra para quem usa esta fase.
 // ============================================================================
 
 import { Container, Graphics, Text } from 'pixi.js';
-import { Scene } from '../../core/Scene';
-import { audioManager } from '../../core/AudioManager';
 import { Color } from '../../core/Color';
 import { GameConfig } from '../../state/GameConfig';
 import { HubState } from '../../state/HubState';
 import { ZONES } from '../../state/Zones';
 import type { Vec2 } from '../../core/types';
 import { RunJuice } from '../../run/fx/RunJuice';
-import { buildHud, buildEndOverlay, bindDrag, type RunHud, type DragInput } from './RunFrame';
+import { RunScene } from './RunScene';
 
 const VW = GameConfig.VIEWPORT_WIDTH;
 const VH = GameConfig.VIEWPORT_HEIGHT;
@@ -46,15 +44,19 @@ const GOAL = 14;             // quantos reles coletar para vencer
 
 /** Fase "cobrinha". A cabeca segue o dedo; o rastro cresce a cada coleta e
  *  encostar nele perde a run. Veja o bloco no topo do arquivo. */
-export class CircuitoScene extends Scene {
+export class CircuitoScene extends RunScene {
+  protected readonly zone = ZONE;
+
   private content = new Container();
   private bg = new Graphics();
   private trailG = new Graphics();
   private nodeG = new Graphics();
   private headG = new Graphics();
-  private hud!: RunHud;
-  private drag!: DragInput;
-  private juice!: RunJuice;
+
+  // Alvo do ponteiro (atualizado pelo bindPointerEvents) e a funcao que remove
+  // os listeners ao sair.
+  private dragPos: Vec2 = { x: VW / 2, y: VH / 2 };
+  private cleanupDrag!: () => void;
 
   private head: Vec2 = { x: VW / 2, y: VH / 2 };  // posicao da cabeca, em coordenadas do jogo
   private trail: Vec2[] = [];        // pontos do rastro, do mais antigo (cauda) ao mais novo
@@ -63,12 +65,11 @@ export class CircuitoScene extends Scene {
   private collected = 0;             // quantos reles ja foram coletados
   private timeLeft = TIMER;
   private elapsed = 0;
-  private ended = false;
   // Retangulo jogavel: deixa uma margem em cima para nao colidir com o HUD.
   private boundaryRect = { x: 6, y: 50, w: VW - 12, h: VH - 60 };
 
-  /** Monta o cenario, o HUD e o controle por arraste e toca a musica. */
-  override async enter(): Promise<void> {
+  /** A base monta HUD/juice/musica; aqui so montamos o mundo e o input. */
+  protected override onEnter(): void {
     const accent = Color.hex(ZONE.accent_color);
     this.bg.rect(0, 0, VW, VH).fill({ color: 0x02080a });
     // Trilhas de placa de circuito ao fundo (apenas enfeite): linhas finas
@@ -99,33 +100,29 @@ export class CircuitoScene extends Scene {
 
     this.spawnNodes(4); // comeca com 4 reles no tabuleiro
 
-    // bindDrag liga o arraste do dedo/mouse e mantem "this.head" como o alvo a perseguir.
-    this.drag = bindDrag(this.app.pixi.canvas, this.app.world, this.head);
+    // Liga o arraste do dedo/mouse; "dragPos" vira o alvo que a cabeca persegue.
+    this.cleanupDrag = this.bindPointerEvents(
+      (pos) => { this.dragPos.x = pos.x; this.dragPos.y = pos.y; },
+      (pos) => { this.dragPos.x = pos.x; this.dragPos.y = pos.y; },
+      () => undefined,
+    );
 
-    this.juice = new RunJuice(this.root, { accent: Color.hex(ZONE.accent_color), shakeTarget: this.content, ambient: 30 });
-
-    this.hud = buildHud(ZONE);
-    this.root.addChild(this.hud.container);
     this.hud.setStatus('roteamento micótico');
-
-    if (ZONE.music) {
-      audioManager.playMusic(ZONE.music, { loop: true, volume: 0.3, fadeMs: 400 }).catch(() => undefined);
-    }
   }
 
-  /** Limpa musica, listeners de arraste e efeitos ao sair da fase. */
-  override exit(): void {
-    audioManager.stopMusic(300);
-    this.drag.cleanup();
-    this.juice.destroy();
+  /** A base para a musica e destroi o juice; aqui so soltamos o input. */
+  protected override onExit(): void {
+    this.cleanupDrag();
   }
 
-  /** Quadro a quadro: move a cabeca rumo ao dedo, checa colisoes e coletas. */
-  override update(dt: number): void {
-    // Limita o delta time para que travadas nao deem "saltos" enormes na cobrinha.
-    const d = Math.min(dt, 1 / 30);
-    this.juice.update(d);
-    if (this.ended) return;
+  /** O Circuito treme o conteudo do jogo (nao o root) e usa mais esporos. */
+  protected override buildJuice(): RunJuice {
+    return new RunJuice(this.root, { accent: this.accentHex(), shakeTarget: this.content, ambient: 30 });
+  }
+
+  /** Quadro a quadro: move a cabeca rumo ao dedo, checa colisoes e coletas.
+   *  `d` ja vem limitado pela base e ela ja retornou cedo se a run acabou. */
+  protected override onUpdate(d: number): void {
     this.elapsed += d;
     this.timeLeft -= d;
     // Acabou o tempo: vence se ja coletou pelo menos metade da meta.
@@ -133,8 +130,8 @@ export class CircuitoScene extends Scene {
 
     // Move a cabeca em direcao ao ponteiro; quanto mais reles, mais rapida ela fica.
     const speed = BASE_SPEED + this.collected * SPEED_PER_NODE;
-    const dx = this.drag.pos.x - this.head.x;
-    const dy = this.drag.pos.y - this.head.y;
+    const dx = this.dragPos.x - this.head.x;
+    const dy = this.dragPos.y - this.head.y;
     const dist = Math.hypot(dx, dy);
     if (dist > 0.5) {
       const step = Math.min(dist, speed * d); // nunca passa do ponteiro num so quadro
@@ -230,21 +227,16 @@ export class CircuitoScene extends Scene {
     this.headG.circle(this.head.x, this.head.y, HEAD_R - 3).fill({ color: accent });
   }
 
-  /** Encerra a fase (uma vez so): toca o efeito, deposita recompensa se venceu,
-   *  avisa o HubState e mostra a tela de fim. */
+  /** Encerra a fase: deposita recompensa se venceu e delega o resto (juice,
+   *  HubState, overlay, guarda de chamada-dupla) ao endRun() da base. */
   private end(victory: boolean): void {
-    if (this.ended) return; // protege contra chamar duas vezes
-    this.ended = true;
-    if (victory) this.juice.victoryFx(); else this.juice.defeatFx();
+    if (this.ended) return; // protege contra deposito duplo
     if (victory && this.collected > 0) {
       HubState.depositFlow('nucleo_logico', this.collected);
     }
-    HubState.onRunEnded(victory);
-    this.root.addChild(buildEndOverlay({
-      zone: ZONE,
-      victory,
+    this.endRun(victory, {
       rewardLabel: `+${this.collected} Núcleo Lógico — relés ativados`,
       failLabel: 'Loop de ressonância. Circuito destruído.',
-    }));
+    });
   }
 }

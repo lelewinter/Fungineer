@@ -18,15 +18,13 @@
 // ============================================================================
 
 import { Container, Graphics, Text } from 'pixi.js';
-import { Scene } from '../../core/Scene';
-import { audioManager } from '../../core/AudioManager';
 import { Color } from '../../core/Color';
 import { FontFamily, TextColor } from '../../core/typography';
 import { GameConfig } from '../../state/GameConfig';
 import { HubState } from '../../state/HubState';
 import { ZONES } from '../../state/Zones';
 import { RunJuice } from '../../run/fx/RunJuice';
-import { buildHud, buildEndOverlay, type RunHud } from './RunFrame';
+import { RunScene } from './RunScene';
 
 const VW = GameConfig.VIEWPORT_WIDTH;
 const VH = GameConfig.VIEWPORT_HEIGHT;
@@ -47,15 +45,15 @@ interface Lane { y: number; dir: 1 | -1; speed: number; hazards: Hazard[]; kind:
 
 /** Fase de travessia: pule e deslize entre faixas, fugindo das rondas, ate o
  *  telhado, 3 vezes. Veja o bloco no topo do arquivo. */
-export class CordilheiraScene extends Scene {
+export class CordilheiraScene extends RunScene {
+  protected readonly zone = ZONE;
+
   private content = new Container();
   private bg = new Graphics();
   private lanesG = new Graphics();
   private hazardsG = new Graphics();
   private playerG = new Graphics();
-  private hud!: RunHud;
   private statusLabel!: Text;
-  private juice!: RunJuice;
 
   private lanes: Lane[] = [];          // todas as faixas, de cima (goal) para baixo
   private px = VW / 2;                 // posicao horizontal do jogador
@@ -66,13 +64,12 @@ export class CordilheiraScene extends Scene {
   private banked = 0;                  // travessias concluidas
   private elapsed = 0;
   private timeLeft = TIMER;
-  private ended = false;
   private pointerStart = { x: 0, y: 0 };  // onde o arraste atual comecou
   private dragging = false;
   private cleanup: (() => void) | null = null;
 
-  /** Monta as faixas (alternando rua/seguro), o HUD e os toques. */
-  override async enter(): Promise<void> {
+  /** A base monta HUD/juice/musica; aqui montamos as faixas e os toques. */
+  protected override onEnter(): void {
     this.bg.rect(0, 0, VW, VH).fill({ color: 0x07070a });
     this.content.addChild(this.bg);
     this.root.addChild(this.content);
@@ -103,10 +100,6 @@ export class CordilheiraScene extends Scene {
     this.content.addChild(this.lanesG, this.hazardsG, this.playerG);
     this.drawLanes();
 
-    this.juice = new RunJuice(this.root, { accent: Color.hex(ZONE.accent_color), shakeTarget: this.content, ambient: 26 });
-
-    this.hud = buildHud(ZONE);
-    this.root.addChild(this.hud.container);
     this.hud.setStatus('travessia urbana');
 
     this.statusLabel = new Text({
@@ -129,24 +122,20 @@ export class CordilheiraScene extends Scene {
     }
 
     this.bindPointer();
-
-    if (ZONE.music) {
-      audioManager.playMusic(ZONE.music, { loop: true, volume: 0.3, fadeMs: 400 }).catch(() => undefined);
-    }
   }
 
-  /** Limpa musica, listeners de toque e efeitos ao sair da fase. */
-  override exit(): void {
-    audioManager.stopMusic(300);
+  /** A base para a musica e destroi o juice; aqui so soltamos o toque. */
+  protected override onExit(): void {
     this.cleanup?.();
-    this.juice.destroy();
+  }
+
+  /** A Cordilheira treme o conteudo do jogo (nao o root). */
+  protected override buildJuice(): RunJuice {
+    return new RunJuice(this.root, { accent: this.accentHex(), shakeTarget: this.content, ambient: 26 });
   }
 
   /** Quadro a quadro: move as ameacas, anima o pulo, checa colisao e a chegada. */
-  override update(dt: number): void {
-    const d = Math.min(dt, 1 / 30); // limita o delta time contra travadas
-    this.juice.update(d);
-    if (this.ended) return;
+  protected override onUpdate(d: number): void {
     this.elapsed += d;
     this.timeLeft -= d;
     if (this.timeLeft <= 0) { this.end(false); return; } // tempo esgotado: perdeu
@@ -301,20 +290,15 @@ export class CordilheiraScene extends Scene {
   /** Encerra a fase (uma vez so): efeito de fim, recompensa se venceu, avisa o
    *  HubState e mostra a tela de fim. */
   private end(victory: boolean): void {
-    if (this.ended) return;
-    this.ended = true;
-    if (victory) this.juice.victoryFx(); else this.juice.defeatFx();
+    if (this.ended) return; // protege contra deposito duplo
     if (victory && this.banked > 0) {
       // Nao existe um recurso "memorias_coletivas"; depositamos como scrap
       // (2 por travessia), tematicamente equivalente.
       HubState.depositFlow('scrap', this.banked * 2);
     }
-    HubState.onRunEnded(victory);
-    this.root.addChild(buildEndOverlay({
-      zone: ZONE,
-      victory,
+    this.endRun(victory, {
       rewardLabel: `+${this.banked * 2} Memórias Coletivas — travessias concluídas`,
       failLabel: 'Bloqueado pela ronda. Recue.',
-    }));
+    });
   }
 }

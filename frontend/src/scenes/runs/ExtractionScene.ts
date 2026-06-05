@@ -19,14 +19,12 @@
 // ============================================================================
 
 import { Container, Graphics, Text } from 'pixi.js';
-import { Scene } from '../../core/Scene';
-import { audioManager } from '../../core/AudioManager';
 import { Color } from '../../core/Color';
 import { GameConfig } from '../../state/GameConfig';
 import { HubState } from '../../state/HubState';
 import { ZONES } from '../../state/Zones';
 import { RunJuice } from '../../run/fx/RunJuice';
-import { buildHud, buildEndOverlay, type RunHud } from './RunFrame';
+import { RunScene } from './RunScene';
 
 const VW = GameConfig.VIEWPORT_WIDTH;
 const VH = GameConfig.VIEWPORT_HEIGHT;
@@ -51,13 +49,13 @@ interface FallState { col: number; row: number; t: number }
 
 /** Fase de escavacao: cave pela terra coletando combustivel sem ser esmagado
  *  pelas pedras que caem. Veja o bloco no topo do arquivo. */
-export class ExtractionScene extends Scene {
+export class ExtractionScene extends RunScene {
+  protected readonly zone = ZONE;
+
   private content = new Container();
   private bg = new Graphics();
   private gridG = new Graphics();
   private playerG = new Graphics();
-  private hud!: RunHud;
-  private juice!: RunJuice;
 
   private grid: Cell[][] = [];      // a grade da caverna [linha][coluna]
   private px = 1;                    // coluna do jogador
@@ -69,13 +67,12 @@ export class ExtractionScene extends Scene {
   private banked = 0;                // combustivel coletado
   private elapsed = 0;
   private timeLeft = TIMER;
-  private ended = false;
   private falling: FallState[] = []; // pedras atualmente caindo
 
   private cleanup: (() => void) | null = null;
 
-  /** Monta a grade, o HUD e os toques, e toca a musica. */
-  override async enter(): Promise<void> {
+  /** A base monta HUD/juice/musica; aqui montamos a grade e os toques. */
+  protected override onEnter(): void {
     const accent = Color.hex(ZONE.accent_color);
     this.bg.rect(0, 0, VW, VH).fill({ color: 0x080604 });
     this.bg.rect(0, TOP - 2, VW, 2).fill({ color: accent, alpha: 0.4 });
@@ -86,10 +83,6 @@ export class ExtractionScene extends Scene {
 
     this.content.addChild(this.gridG, this.playerG);
 
-    this.juice = new RunJuice(this.root, { accent, shakeTarget: this.content, ambient: 20 });
-
-    this.hud = buildHud(ZONE);
-    this.root.addChild(this.hud.container);
     this.hud.setStatus('escavação profunda');
 
     // Enfeite de lore: legenda de profundidade na margem esquerda (so visual).
@@ -101,24 +94,20 @@ export class ExtractionScene extends Scene {
     this.content.addChild(top, bottom);
 
     this.bindPointer();
-
-    if (ZONE.music) {
-      audioManager.playMusic(ZONE.music, { loop: true, volume: 0.3, fadeMs: 400 }).catch(() => undefined);
-    }
   }
 
-  /** Limpa musica, listeners de toque e efeitos ao sair da fase. */
-  override exit(): void {
-    audioManager.stopMusic(300);
+  /** A base para a musica e destroi o juice; aqui so soltamos o toque. */
+  protected override onExit(): void {
     this.cleanup?.();
-    this.juice.destroy();
+  }
+
+  /** A Extracao treme o conteudo do jogo (nao o root). */
+  protected override buildJuice(): RunJuice {
+    return new RunJuice(this.root, { accent: this.accentHex(), shakeTarget: this.content, ambient: 20 });
   }
 
   /** Quadro a quadro: cava conforme o arraste e atualiza as pedras que caem. */
-  override update(dt: number): void {
-    const d = Math.min(dt, 1 / 30); // limita o delta time contra travadas
-    this.juice.update(d);
-    if (this.ended) return;
+  protected override onUpdate(d: number): void {
     this.elapsed += d;
     this.timeLeft -= d;
     // Acabou o tempo: vence se ja coletou metade da meta.
@@ -337,18 +326,13 @@ export class ExtractionScene extends Scene {
   /** Encerra a fase (uma vez so): efeito de fim, recompensa se venceu, avisa o
    *  HubState e mostra a tela de fim. */
   private end(victory: boolean): void {
-    if (this.ended) return;
-    this.ended = true;
-    if (victory) this.juice.victoryFx(); else this.juice.defeatFx();
+    if (this.ended) return; // protege contra deposito duplo
     if (victory && this.banked > 0) {
       HubState.depositFlow('combustivel_volatil', this.banked);
     }
-    HubState.onRunEnded(victory);
-    this.root.addChild(buildEndOverlay({
-      zone: ZONE,
-      victory,
+    this.endRun(victory, {
       rewardLabel: `+${this.banked} Combustível Volátil — canisters recuperados`,
       failLabel: 'Soterrado. Missão abortada.',
-    }));
+    });
   }
 }

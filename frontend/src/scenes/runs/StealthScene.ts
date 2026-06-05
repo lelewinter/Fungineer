@@ -18,15 +18,13 @@
 // ============================================================================
 
 import { Container, Graphics, Text } from 'pixi.js';
-import { Scene } from '../../core/Scene';
-import { audioManager } from '../../core/AudioManager';
 import { Color } from '../../core/Color';
 import { GameConfig } from '../../state/GameConfig';
 import { HubState } from '../../state/HubState';
 import { ZONES } from '../../state/Zones';
 import type { Vec2 } from '../../core/types';
 import { RunJuice } from '../../run/fx/RunJuice';
-import { buildHud, buildEndOverlay, bindDrag, type RunHud, type DragInput } from './RunFrame';
+import { RunScene } from './RunScene';
 
 const VW = GameConfig.VIEWPORT_WIDTH;
 const VH = GameConfig.VIEWPORT_HEIGHT;
@@ -44,14 +42,16 @@ interface Blob { pos: Vec2; vel: Vec2; r: number; predator: boolean }
 
 /** Fase de infiltracao: cresca comendo bolhas menores e fuja das maiores; massa
  *  maior te deixa mais lento. Veja o bloco no topo do arquivo. */
-export class StealthScene extends Scene {
+export class StealthScene extends RunScene {
+  protected readonly zone = ZONE;
+
   private content = new Container();
   private bg = new Graphics();
   private blobsG = new Graphics();
   private playerG = new Graphics();
-  private hud!: RunHud;
-  private drag!: DragInput;
-  private juice!: RunJuice;
+
+  private dragPos: Vec2 = { x: VW / 2, y: VH / 2 };
+  private cleanupDrag!: () => void;
 
   private playerPos: Vec2 = { x: VW / 2, y: VH / 2 };  // posicao do jogador
   private playerR = START_R;  // raio atual do jogador (sua "massa")
@@ -59,10 +59,9 @@ export class StealthScene extends Scene {
   private timeLeft = TIMER;
   private elapsed = 0;
   private banked = 0;          // recompensa acumulada (Fragmentos de IA)
-  private ended = false;
 
-  /** Monta o cenario, semeia as bolhas, o HUD e o arraste, e toca a musica. */
-  override async enter(): Promise<void> {
+  /** A base monta HUD/juice/musica; aqui montamos o mundo, as bolhas e o input. */
+  protected override onEnter(): void {
     const accent = Color.hex(ZONE.accent_color);
     this.bg.rect(0, 0, VW, VH).fill({ color: 0x040806 });
     // Poeira de fundo: pontinhos espalhados so para dar profundidade.
@@ -105,31 +104,27 @@ export class StealthScene extends Scene {
 
     this.content.addChild(this.blobsG, this.playerG);
 
-    this.juice = new RunJuice(this.root, { accent: Color.hex(ZONE.accent_color), shakeTarget: this.content, ambient: 28 });
-
-    this.hud = buildHud(ZONE);
-    this.root.addChild(this.hud.container);
     this.hud.setStatus('infiltração micótica');
 
-    this.drag = bindDrag(this.app.pixi.canvas, this.app.world, this.playerPos);
-
-    if (ZONE.music) {
-      audioManager.playMusic(ZONE.music, { loop: true, volume: 0.3, fadeMs: 400 }).catch(() => undefined);
-    }
+    this.cleanupDrag = this.bindPointerEvents(
+      (pos) => { this.dragPos.x = pos.x; this.dragPos.y = pos.y; },
+      (pos) => { this.dragPos.x = pos.x; this.dragPos.y = pos.y; },
+      () => undefined,
+    );
   }
 
-  /** Limpa musica, listeners de arraste e efeitos ao sair da fase. */
-  override exit(): void {
-    audioManager.stopMusic(300);
-    this.drag.cleanup();
-    this.juice.destroy();
+  /** A base para a musica e destroi o juice; aqui so soltamos o input. */
+  protected override onExit(): void {
+    this.cleanupDrag();
+  }
+
+  /** Stealth treme o conteudo do jogo (nao o root) com ambiente um pouco menor. */
+  protected override buildJuice(): RunJuice {
+    return new RunJuice(this.root, { accent: this.accentHex(), shakeTarget: this.content, ambient: 28 });
   }
 
   /** Quadro a quadro: move o jogador, deriva as bolhas e resolve quem come quem. */
-  override update(dt: number): void {
-    const d = Math.min(dt, 1 / 30); // limita o delta time contra travadas
-    this.juice.update(d);
-    if (this.ended) return;
+  protected override onUpdate(d: number): void {
     this.elapsed += d;
     this.timeLeft -= d;
     // Acabou o tempo: vence se ja atingiu a massa-alvo.
@@ -137,8 +132,8 @@ export class StealthScene extends Scene {
 
     // Velocidade cai conforme a massa cresce — a desvantagem classica do Agar.io.
     const speed = Math.max(MIN_SPEED, MAX_BASE_SPEED - (this.playerR - START_R) * 7);
-    const dx = this.drag.pos.x - this.playerPos.x;
-    const dy = this.drag.pos.y - this.playerPos.y;
+    const dx = this.dragPos.x - this.playerPos.x;
+    const dy = this.dragPos.y - this.playerPos.y;
     const dist = Math.hypot(dx, dy);
     if (dist > 0.5) {
       const step = Math.min(dist, speed * d);
@@ -244,18 +239,13 @@ export class StealthScene extends Scene {
   /** Encerra a fase (uma vez so): efeito de fim, deposita recompensa se venceu,
    *  avisa o HubState e mostra a tela de fim. */
   private end(victory: boolean): void {
-    if (this.ended) return;
-    this.ended = true;
-    if (victory) this.juice.victoryFx(); else this.juice.defeatFx();
+    if (this.ended) return; // protege contra deposito duplo
     if (victory && this.banked > 0) {
       HubState.depositFlow('ai_components', this.banked);
     }
-    HubState.onRunEnded(victory);
-    this.root.addChild(buildEndOverlay({
-      zone: ZONE,
-      victory,
+    this.endRun(victory, {
       rewardLabel: `+${this.banked} Fragmentos de IA — absorvidos`,
       failLabel: 'Sinal detectado. ARGOS limpou a rota.',
-    }));
+    });
   }
 }

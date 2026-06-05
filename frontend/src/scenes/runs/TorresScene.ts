@@ -20,14 +20,12 @@
 // ============================================================================
 
 import { Graphics } from 'pixi.js';
-import { Scene } from '../../core/Scene';
-import { audioManager } from '../../core/AudioManager';
+import { RunScene } from './RunScene';
 import { Color } from '../../core/Color';
 import { GameConfig } from '../../state/GameConfig';
 import { HubState } from '../../state/HubState';
 import { ZONES } from '../../state/Zones';
 import { RunJuice } from '../../run/fx/RunJuice';
-import { buildHud, buildEndOverlay, type RunHud } from './RunFrame';
 
 const VW = GameConfig.VIEWPORT_WIDTH;
 const VH = GameConfig.VIEWPORT_HEIGHT;
@@ -54,14 +52,14 @@ interface Floor { y: number; xStart: number; xEnd: number; slope: number }
 
 /** Fase de escalada: suba a torre pelas escadas desviando dos barris ate o topo.
  *  Veja o bloco no topo do arquivo. */
-export class TorresScene extends Scene {
+export class TorresScene extends RunScene {
+  protected readonly zone = ZONE;
+
   private bg = new Graphics();
   private floorsG = new Graphics();
   private laddersG = new Graphics();
   private barrelsG = new Graphics();
   private playerG = new Graphics();
-  private hud!: RunHud;
-  private juice!: RunJuice;
 
   private floors: Floor[] = [];
   private ladders: Ladder[] = [];
@@ -74,15 +72,14 @@ export class TorresScene extends Scene {
   private barrelTimer = 2;   // segundos ate o proximo barril surgir
   private elapsed = 0;
   private timeLeft = TIMER;
-  private ended = false;
   private cameraY = 0;        // deslocamento atual da camera (rolagem para cima)
   private targetCameraY = 0;  // alvo suave que a camera persegue
   private dragging = false;
   private dragPos = { x: 0, y: 0 };  // posicao do dedo (em coordenadas do mundo)
   private cleanup: (() => void) | null = null;
 
-  /** Monta a torre, o HUD e os toques, e toca a musica. */
-  override async enter(): Promise<void> {
+  /** A base monta HUD/juice/musica; aqui montamos a torre e os toques. */
+  protected override onEnter(): void {
     this.bg.rect(0, 0, VW, VH).fill({ color: 0x05070b });
     // Silhueta de arranha-ceus ao fundo (so enfeite).
     for (let i = 0; i < 8; i++) {
@@ -105,25 +102,21 @@ export class TorresScene extends Scene {
     this.root.addChild(this.barrelsG);
     this.root.addChild(this.playerG);
 
-    this.juice = new RunJuice(this.root, { accent: Color.hex(ZONE.accent_color), ambient: 22, shakeTarget: null });
-
-    this.hud = buildHud(ZONE);
-    this.root.addChild(this.hud.container);
     this.hud.setStatus('escalada vertical');
 
     this.bindPointer();
     this.drawStatic();
-
-    if (ZONE.music) {
-      audioManager.playMusic(ZONE.music, { loop: true, volume: 0.3, fadeMs: 400 }).catch(() => undefined);
-    }
   }
 
-  /** Limpa musica, listeners de toque e efeitos ao sair da fase. */
-  override exit(): void {
-    audioManager.stopMusic(300);
+  /** A base para a musica e destroi o juice; aqui so soltamos o toque. */
+  protected override onExit(): void {
     this.cleanup?.();
-    this.juice.destroy();
+  }
+
+  /** Torres desenha direto no root (sem container de conteudo) — usa o shake
+   *  padrao (null) com ambiente um pouco menor. */
+  protected override buildJuice(): RunJuice {
+    return new RunJuice(this.root, { accent: this.accentHex(), ambient: 22, shakeTarget: null });
   }
 
   /** Posicao do jogador na TELA (as camadas do jogo rolam por -cameraY). */
@@ -132,10 +125,7 @@ export class TorresScene extends Scene {
   }
 
   /** Quadro a quadro: move jogador e barris e desloca a camera para acompanhar. */
-  override update(dt: number): void {
-    const d = Math.min(dt, 1 / 30); // limita o delta time contra travadas
-    this.juice.update(d);
-    if (this.ended) return;
+  protected override onUpdate(d: number): void {
     this.elapsed += d;
     this.timeLeft -= d;
     // Acabou o tempo: vence se chegou perto do topo (penultimo andar ou acima).
@@ -367,20 +357,15 @@ export class TorresScene extends Scene {
   /** Encerra a fase (uma vez so): efeito de fim, recompensa se venceu (1 por
    *  andar alcancado), avisa o HubState e mostra a tela de fim. */
   private end(victory: boolean): void {
-    if (this.ended) return;
-    this.ended = true;
-    if (victory) this.juice.victoryFx(); else this.juice.defeatFx();
+    if (this.ended) return; // protege contra deposito duplo
     const reward = this.storyIdx;
     if (victory && reward > 0) {
       // Depositado como ai_components (representa os Cristais de Memoria da zona).
       HubState.depositFlow('ai_components', reward);
     }
-    HubState.onRunEnded(victory);
-    this.root.addChild(buildEndOverlay({
-      zone: ZONE,
-      victory,
+    this.endRun(victory, {
       rewardLabel: `+${reward} Cristais de Memória — servidores acessados`,
       failLabel: 'Canister de patrulha. Queda confirmada.',
-    }));
+    });
   }
 }
