@@ -18,7 +18,7 @@ const FOOT = 80;
 const ROW_H = 60;
 const ROW_COUNT = Math.floor((VH - TOP - FOOT) / ROW_H);
 const HOP = 0.18; // seconds per hop animation
-const TIMER = 75;
+const TIMER = GameConfig.CORDILHEIRA_RUN_TIMER;
 
 interface Hazard { x: number; w: number }
 interface Lane { y: number; dir: 1 | -1; speed: number; hazards: Hazard[]; kind: 'road' | 'safe' | 'goal' }

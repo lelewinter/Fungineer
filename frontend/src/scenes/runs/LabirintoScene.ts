@@ -14,7 +14,7 @@ const VH = GameConfig.VIEWPORT_HEIGHT;
 const ZONE = ZONES[6]!;
 
 const STEP_TIME = 0.16;
-const TIMER = 90;
+const TIMER = GameConfig.LABIRINTO_RUN_TIMER;
 
 // '#' wall, '.' floor, 'F' fragment box, 'X' slot, '*' fragment-on-slot, '@' player, '+' player-on-slot
 const LEVELS: string[][] = [

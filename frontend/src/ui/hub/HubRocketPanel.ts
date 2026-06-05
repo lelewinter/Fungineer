@@ -2,10 +2,13 @@ import { Container, Graphics, Text } from 'pixi.js';
 import { Modal } from '../Modal';
 import { PixiButton } from '../PixiButton';
 import { Color, type RGBA } from '../../core/Color';
+import { Signal } from '../../core/Signal';
 import { HubState, ROCKET_RECIPE } from '../../state/HubState';
 
 /** Bio-pod schematic panel. Mirrors HubRocketPanel.gd. */
 export class HubRocketPanel extends Modal {
+  /** Emitted when the player taps LANÇAR on a completed rocket. */
+  readonly launchRequested = new Signal<[]>();
   private canvasContainer = new Container();
   private g = new Graphics();
   private elapsedMs = 0;
@@ -73,14 +76,33 @@ export class HubRocketPanel extends Modal {
     const built = HubState.rocket_pieces_built;
     const total = ROCKET_RECIPE.length;
     const pct = Math.floor((built / total) * 100);
+    const complete = HubState.isRocketComplete();
     const status = new Text({
-      text: `${built} / ${total} peças · ${pct}% germinado`,
-      style: { fontFamily: '"Space Grotesk", system-ui, sans-serif', fontSize: 10, fill: Color.hex(Color.rgb(0.30, 0.78, 0.72)), align: 'center' },
+      text: complete ? '✓ Casulo germinado — pronto pra plantar no céu' : `${built} / ${total} peças · ${pct}% germinado`,
+      style: { fontFamily: '"Space Grotesk", system-ui, sans-serif', fontSize: 10, fill: Color.hex(complete ? Color.rgb(0.91, 0.58, 0.23) : Color.rgb(0.30, 0.78, 0.72)), align: 'center' },
     });
     status.anchor.set(0.5, 0);
     status.x = 0;
     status.y = cy;
     this.panel.addChild(status);
+
+    // Launch button — only when every piece is built.
+    if (complete) {
+      const launch = new PixiButton({
+        label: '🚀 LANÇAR',
+        width: 150,
+        height: 34,
+        fill: 0x4a2f12,
+        hoverFill: 0x6b431a,
+        onClick: () => {
+          // openModal() on the host scene closes this panel for us.
+          this.launchRequested.emit();
+        },
+      });
+      launch.x = -75;
+      launch.y = halfH - padding - 70;
+      this.panel.addChild(launch);
+    }
 
     // Close button
     const close = new PixiButton({

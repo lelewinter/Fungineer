@@ -288,6 +288,20 @@ class HubStateClass {
     return this.rocket_pieces_built >= ROCKET_RECIPE.length;
   }
 
+  /** Wipes run progress for a fresh playthrough after a successful launch.
+   *  Cosmetic preferences (hub variant/density/visibility) are preserved. */
+  resetForNewCycle(): void {
+    for (const key of Object.keys(this.stock) as ResourceKey[]) this.stock[key] = 0;
+    this.rocket_pieces_built = 0;
+    this.rescued_characters = [];
+    this.zones_unlocked = this.zones_unlocked.map(() => true);
+    this.zone_deterioration = this.zone_deterioration.map(() => 0);
+    this.total_runs = 0;
+    this.lore_found = [];
+    this.room_unlocked = { saida_hordas: true, lab_rival: true };
+    this.stockChanged.emit(this.stock);
+  }
+
   getBackpackCapacity(): number {
     return GameConfig.BACKPACK_CAPACITY + CharacterRegistry.getBackpackBonus();
   }

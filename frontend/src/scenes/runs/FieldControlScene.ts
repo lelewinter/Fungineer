@@ -87,6 +87,8 @@ export class FieldControlScene extends Scene {
   private pulse = 0;
   private damageFlash = 0;
 
+  private exitTimeout: ReturnType<typeof setTimeout> | null = null;
+
   private onDown = (e: PointerEvent): void => this.pointerDown(e);
   private onMove = (e: PointerEvent): void => this.pointerMove(e);
   private onUp = (_e: PointerEvent): void => { this.dragging = false; };
@@ -105,6 +107,7 @@ export class FieldControlScene extends Scene {
   }
 
   override async exit(): Promise<void> {
+    if (this.exitTimeout !== null) { clearTimeout(this.exitTimeout); this.exitTimeout = null; }
     this.unbindPointer();
     audioManager.stopMusic(250);
     this.juice.destroy();
@@ -472,7 +475,7 @@ export class FieldControlScene extends Scene {
     HubState.onRunEnded(victory);
     GameState.endRun(victory);
     this.showEndOverlay();
-    setTimeout(() => { void sceneManager.replace(new HubScene()); }, 2500);
+    this.exitTimeout = setTimeout(() => { void sceneManager.replace(new HubScene()); }, 2500);
   }
 
   private showEndOverlay(): void {

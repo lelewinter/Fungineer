@@ -100,6 +100,7 @@ export class SacrificeScene extends Scene {
   private bagLabel!: Text;
   private hpLabel!: Text;
   private exitLabel!: Text;
+  private exitTimeout: ReturnType<typeof setTimeout> | null = null;
   private hubTitle!: Text;
   private coreLabel!: Text;
 
@@ -142,6 +143,7 @@ export class SacrificeScene extends Scene {
   }
 
   override async exit(): Promise<void> {
+    if (this.exitTimeout !== null) { clearTimeout(this.exitTimeout); this.exitTimeout = null; }
     this.unbindPointer();
     audioManager.stopMusic(250);
     this.juice.destroy();
@@ -728,7 +730,7 @@ export class SacrificeScene extends Scene {
     HubState.onRunEnded(victory);
     GameState.endRun(victory);
     this.showEndOverlay();
-    setTimeout(() => { void sceneManager.replace(new HubScene()); }, 2500);
+    this.exitTimeout = setTimeout(() => { void sceneManager.replace(new HubScene()); }, 2500);
   }
 
   private showEndOverlay(): void {

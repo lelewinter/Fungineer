@@ -17,7 +17,7 @@ const TILE_W = 56;
 const TILE_H = 40;
 const TILE_DEPTH = 22;
 const HOP_TIME = 0.18;
-const TIMER = 90;
+const TIMER = GameConfig.CATEDRAL_RUN_TIMER;
 const DROP_INTERVAL = 3.5;
 
 interface TileCell { lit: boolean }

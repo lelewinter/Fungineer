@@ -16,7 +16,7 @@ const ZONE = ZONES[1]!;
 const START_R = 8;
 const MAX_BASE_SPEED = 240;
 const MIN_SPEED = 80;
-const TIMER = 50;
+const TIMER = GameConfig.STEALTH_RUN_TIMER;
 const GOAL_MASS = 32;
 
 interface Blob { pos: Vec2; vel: Vec2; r: number; predator: boolean }

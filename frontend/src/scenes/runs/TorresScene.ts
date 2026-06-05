@@ -21,7 +21,7 @@ const MOVE_SPEED = 130;
 const CLIMB_SPEED = 90;
 const BARREL_FALL = 60;
 const BARREL_ROLL = 70;
-const TIMER = 80;
+const TIMER = GameConfig.TORRES_RUN_TIMER;
 
 interface Barrel { x: number; y: number; dir: 1 | -1; falling: boolean; landed: boolean }
 interface Ladder { x: number; storyTop: number }

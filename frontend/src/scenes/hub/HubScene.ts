@@ -23,6 +23,7 @@ import { HubRenderer } from './HubRenderer';
 import { HubNPCManager } from './HubNPCManager';
 import { HubCharacterCard } from '../../ui/hub/HubCharacterCard';
 import { HubRocketPanel } from '../../ui/hub/HubRocketPanel';
+import { RocketLaunchOverlay } from '../../ui/hub/RocketLaunchOverlay';
 import { HubZoomPanel } from '../../ui/hub/HubZoomPanel';
 import { AudioButton } from '../../ui/hub/AudioButton';
 import { AudioSettingsModal } from '../../ui/AudioSettingsModal';
@@ -69,6 +70,7 @@ export class HubScene extends Scene {
           this.hubAudio.playClosePanelSfx();
           HubState.hubRocketClosed.emit();
         });
+        panel.launchRequested.connect(() => this.openModal(new RocketLaunchOverlay()));
         this.openModal(panel);
         HubState.hubRocketOpened.emit();
       }),

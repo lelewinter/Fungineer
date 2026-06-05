@@ -19,7 +19,7 @@ const SPEED_PER_NODE = 9;
 const TRAIL_SEG_DIST = 14;
 const NODE_R = 9;
 const COLLECT_DIST = 22;
-const TIMER = 60;
+const TIMER = GameConfig.CIRCUIT_RUN_TIMER;
 const TRAIL_GRACE_SEGS = 5; // ignore first N tail segments for self-collision
 const GOAL = 14;
 
@@ -154,7 +154,7 @@ export class CircuitoScene extends Scene {
     this.draw();
     this.hud.setTimer(this.timeLeft);
     this.hud.setScore(`relés ${this.collected}/${GOAL}`);
-    this.hud.setHealth(1 - this.collected / GOAL);
+    this.hud.setHealth(this.collected / GOAL);
   }
 
   private spawnNodes(n: number): void {

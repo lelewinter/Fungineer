@@ -19,7 +19,7 @@ const TILE = Math.floor(Math.min((VH - TOP - 90) / ROWS, VW / COLS));
 const PLAYER_SPEED = 80; // px/s
 const GHOST_SPEED = 60;
 const POWER_TIME = 6;
-const TIMER = 75;
+const TIMER = GameConfig.INFECTION_RUN_TIMER;
 
 // 1 = wall, 0 = corridor with pellet, 2 = power pellet
 type Cell = 0 | 1 | 2 | -1; // -1 = eaten
@@ -80,6 +80,7 @@ export class InfeccaoScene extends Scene {
   private nextDir: { x: number; y: number } = { x: 0, y: 0 };
   private ghosts: Ghost[] = [];
   private pelletsLeft = 0;
+  private totalPellets = 0;
   private banked = 0;
   private power = 0;
   private timeLeft = TIMER;
@@ -108,6 +109,7 @@ export class InfeccaoScene extends Scene {
     for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
       if (this.cells[r]![c] === 0 || this.cells[r]![c] === 2) this.pelletsLeft += 1;
     }
+    this.totalPellets = Math.max(1, this.pelletsLeft);
     // Eat starting tile.
     this.cells[this.py]![this.px] = -1;
     this.pelletsLeft -= 1;
@@ -188,7 +190,7 @@ export class InfeccaoScene extends Scene {
     this.draw();
     this.hud.setTimer(this.timeLeft);
     this.hud.setScore(`biomassa ${this.banked}`);
-    this.hud.setHealth(1 - this.pelletsLeft / (COLS * ROWS));
+    this.hud.setHealth(1 - this.pelletsLeft / this.totalPellets);
   }
 
   private tickPlayer(dt: number): void {

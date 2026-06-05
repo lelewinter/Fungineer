@@ -237,6 +237,16 @@ export const GameConfig = {
   SACRIFICE_DRONE_CAP: 5,
   SACRIFICE_CATALYST_DISCOUNT: 0.30,
 
+  // ── Surface & remaining zone run timers ────────────────────────
+  // Centralised here so the scenes stop hardcoding `const TIMER = N`.
+  // Source of truth for run length lives in GameConfig (project rule:
+  // no magic gameplay numbers in scene code).
+  STEALTH_RUN_TIMER: 50,
+  CORDILHEIRA_RUN_TIMER: 75,
+  TORRES_RUN_TIMER: 80,
+  CATEDRAL_RUN_TIMER: 90,
+  LABIRINTO_RUN_TIMER: 90,
+
   // ── Debug ──────────────────────────────────────────────────────
   DEBUG_SHOW_RANGES: true,
 } as const;

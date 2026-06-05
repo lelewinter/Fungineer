@@ -19,7 +19,7 @@ const TILE = Math.floor(VW / COLS);
 const ROWS = Math.floor((VH - TOP - FOOT) / TILE);
 const STEP_TIME = 0.18; // seconds per grid step (driven by drag direction)
 const ROCK_FALL_TIME = 0.22;
-const TIMER = 60;
+const TIMER = GameConfig.EXTRACTION_RUN_TIMER;
 const FUEL_GOAL = 8;
 
 type Cell = 'dirt' | 'empty' | 'rock' | 'fuel' | 'wall';
@@ -119,7 +119,7 @@ export class ExtractionScene extends Scene {
     this.draw();
     this.hud.setTimer(this.timeLeft);
     this.hud.setScore(`comb ${this.banked}/${FUEL_GOAL}`);
-    this.hud.setHealth(1 - this.banked / FUEL_GOAL);
+    this.hud.setHealth(this.banked / FUEL_GOAL);
   }
 
   private bindPointer(): void {
