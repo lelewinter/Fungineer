@@ -11,6 +11,9 @@ import type { ZoneData } from '../../state/Zones';
 const VW = GameConfig.VIEWPORT_WIDTH;
 const VH = GameConfig.VIEWPORT_HEIGHT;
 
+// Drop shadow keeps HUD text legible over busy, low-contrast gameplay.
+const HUD_SHADOW = { color: 0x000000, alpha: 0.85, blur: 3, distance: 1, angle: Math.PI / 2 } as const;
+
 export interface RunHud {
   container: Container;
   setTimer: (s: number) => void;
@@ -33,32 +36,32 @@ export function buildHud(zone: ZoneData): RunHud {
 
   const title = new Text({
     text: zone.zone_name,
-    style: { fontFamily: FontFamily.body, fontSize: 15, fill: accent, fontWeight: '700', letterSpacing: 1 },
+    style: { fontFamily: FontFamily.body, fontSize: 16, fill: accent, fontWeight: '700', letterSpacing: 1, dropShadow: HUD_SHADOW },
   });
   title.x = 40;
-  title.y = 7;
+  title.y = 6;
   container.addChild(title);
 
   const status = new Text({
     text: '',
-    style: { fontFamily: FontFamily.mono, fontSize: 12, fill: TextColor.muted, letterSpacing: 0.5 },
+    style: { fontFamily: FontFamily.mono, fontSize: 13, fill: TextColor.ink, fontWeight: '600', letterSpacing: 0.5, dropShadow: HUD_SHADOW },
   });
   status.x = 40;
-  status.y = 28;
+  status.y = 27;
   container.addChild(status);
 
   const timer = new Text({
     text: '',
-    style: { fontFamily: FontFamily.mono, fontSize: 17, fill: TextColor.ink, fontWeight: '700' },
+    style: { fontFamily: FontFamily.mono, fontSize: 18, fill: TextColor.white, fontWeight: '700', dropShadow: HUD_SHADOW },
   });
   timer.anchor.set(1, 0);
   timer.x = VW - 12;
-  timer.y = 6;
+  timer.y = 5;
   container.addChild(timer);
 
   const score = new Text({
     text: '',
-    style: { fontFamily: FontFamily.mono, fontSize: 13, fill: accent, fontWeight: '600' },
+    style: { fontFamily: FontFamily.mono, fontSize: 14, fill: accent, fontWeight: '700', dropShadow: HUD_SHADOW },
   });
   score.anchor.set(1, 0);
   score.x = VW - 12;
@@ -69,7 +72,7 @@ export function buildHud(zone: ZoneData): RunHud {
   const healthFg = new Graphics();
   const HBW = 110;
   const HBX = (VW - HBW) / 2;
-  healthBg.rect(HBX, 40, HBW, 4).fill({ color: 0x2a2a2a, alpha: 0.85 });
+  healthBg.rect(HBX, 39, HBW, 5).fill({ color: 0x2a2a2a, alpha: 0.9 });
   container.addChild(healthBg);
   container.addChild(healthFg);
 
@@ -151,7 +154,7 @@ export function buildHud(zone: ZoneData): RunHud {
     setHealth: (pct: number) => {
       const w = Math.max(0, Math.min(1, pct)) * HBW;
       healthFg.clear();
-      healthFg.rect(HBX, 40, w, 4).fill({ color: pct > 0.4 ? accent : 0xe05050, alpha: 0.95 });
+      healthFg.rect(HBX, 39, w, 5).fill({ color: pct > 0.4 ? accent : 0xe05050, alpha: 0.98 });
     },
   };
 }
@@ -188,9 +191,9 @@ export function buildEndOverlay(opts: RunEndOpts): Container {
   const title = new Text({
     text: opts.victory ? 'MISSÃO CUMPRIDA' : 'RUN PERDIDA',
     style: {
-      fontFamily: FontFamily.body, fontSize: 20,
+      fontFamily: FontFamily.body, fontSize: 22,
       fill: opts.victory ? accent : TextColor.red,
-      fontWeight: '700', letterSpacing: 1.5,
+      fontWeight: '700', letterSpacing: 1.5, dropShadow: HUD_SHADOW,
     },
   });
   title.anchor.set(0.5);
@@ -202,7 +205,7 @@ export function buildEndOverlay(opts: RunEndOpts): Container {
     text: opts.victory
       ? (opts.rewardLabel ?? '+0')
       : (opts.failLabel ?? 'Você não voltou com nada.'),
-    style: { fontFamily: FontFamily.mono, fontSize: 13, fill: TextColor.ink, align: 'center', wordWrap: true, wordWrapWidth: cardW - 28 },
+    style: { fontFamily: FontFamily.mono, fontSize: 13, fill: TextColor.white, fontWeight: '600', align: 'center', wordWrap: true, wordWrapWidth: cardW - 28, dropShadow: HUD_SHADOW },
   });
   detail.anchor.set(0.5);
   detail.x = cx;

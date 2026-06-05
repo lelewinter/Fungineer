@@ -16,6 +16,7 @@ const ZONE = ZONES[0]!;
 const TAU = Math.PI * 2;
 
 const FOREST = Color.hex(Color.rgb(0.38, 0.82, 0.47));
+const SHADOW = { color: 0x000000, alpha: 0.85, blur: 3, distance: 1, angle: Math.PI / 2 } as const;
 
 const TOP = 46;            // HUD strip height
 const GRID = 48;           // scrolling background grid spacing
@@ -30,20 +31,21 @@ const JOY_DEAD = 8;        // joystick dead-zone (scene px)
 const JOY_MAX = 64;        // joystick travel to full speed (scene px)
 
 // ── Enemies (gardener-bots) — spawn in a ring around the player ──────────────
-const ENEMY_CAP = 80;
-const SPAWN_START = 1.3;
-const SPAWN_MIN = 0.3;
+const ENEMY_CAP = 110;
+const SPAWN_START = 1.1;
+const SPAWN_MIN = 0.22;
 const TOUCH_CD = 0.6;
 const SPAWN_RING = 520;    // just outside the viewport
-const DESPAWN_R = 880;     // cull wanderers beyond this
+const DESPAWN_R = 900;     // cull wanderers beyond this
+const SEPARATION = 0.5;    // anti-pile push strength
 
 type EKind = 'sprout' | 'crawler' | 'brute' | 'boss';
 interface EnemyStat { hp: number; speed: number; dmg: number; r: number; xp: number; color: number }
 const ESTATS: Record<EKind, EnemyStat> = {
-  sprout: { hp: 14, speed: 52, dmg: 6, r: 8, xp: 1, color: 0x4a5560 },
-  crawler: { hp: 32, speed: 72, dmg: 8, r: 9, xp: 2, color: 0x5a6470 },
-  brute: { hp: 96, speed: 34, dmg: 16, r: 14, xp: 5, color: 0x6a5560 },
-  boss: { hp: 900, speed: 30, dmg: 24, r: 24, xp: 40, color: 0x7a4a5a },
+  sprout: { hp: 18, speed: 54, dmg: 7, r: 8, xp: 1, color: 0x4a5560 },
+  crawler: { hp: 40, speed: 74, dmg: 10, r: 9, xp: 2, color: 0x5a6470 },
+  brute: { hp: 130, speed: 36, dmg: 20, r: 14, xp: 5, color: 0x6a5560 },
+  boss: { hp: 1400, speed: 32, dmg: 26, r: 24, xp: 40, color: 0x7a4a5a },
 };
 
 interface Enemy {
@@ -59,27 +61,40 @@ interface Enemy {
   flash: number;
   touchCd: number;
   orbitCd: number;
+  pushX: number;
+  pushY: number;
 }
 
 interface Proj { pos: Vec2; vel: Vec2; life: number; dmg: number; pierce: number; hit: Set<Enemy> }
 interface Gem { pos: Vec2; vel: Vec2; value: number; t: number }
 interface Nova { x: number; y: number; r: number; max: number; life: number }
 
-// ── Buff plants — walk over one for a 10s perk ──────────────────────────────
+// ── Buff plants — rare; walk over one for a short perk ──────────────────────
 type PlantType = 'red' | 'blue' | 'green' | 'gold' | 'purple';
-interface PlantDef { color: number; name: string; perk: string }
+interface PlantDef { color: number; name: string; short: string }
 const PLANTS: Record<PlantType, PlantDef> = {
-  red: { color: 0xff5a5a, name: 'Carmesim', perk: 'DANO +60%' },
-  blue: { color: 0x5ab0ff, name: 'Glacial', perk: 'CADÊNCIA +66%' },
-  green: { color: 0x6dff9a, name: 'Veloz', perk: 'VELOCIDADE +45%' },
-  gold: { color: 0xffd36b, name: 'Áurea', perk: 'ÍMÃ GIGANTE' },
-  purple: { color: 0xc78fff, name: 'Esporal', perk: 'ÁREA +50%' },
+  red: { color: 0xff5a5a, name: 'Carmesim', short: 'DANO' },
+  blue: { color: 0x5ab0ff, name: 'Glacial', short: 'CADÊNCIA' },
+  green: { color: 0x6dff9a, name: 'Veloz', short: 'VELOZ' },
+  gold: { color: 0xffd36b, name: 'Áurea', short: 'ÍMÃ' },
+  purple: { color: 0xc78fff, name: 'Esporal', short: 'ÁREA' },
 };
 const PLANT_TYPES: PlantType[] = ['red', 'blue', 'green', 'gold', 'purple'];
-const BUFF_TIME = 10;
-const PLANTS_NEARBY = 5;
-const PLANT_CULL_R = 740;
+const BUFF_TIME = 7;
+const PLANTS_NEARBY = 2;      // far fewer perks scattered around
+const PLANT_DIST = { min: 300, max: 540 };
+const PLANT_CULL_R = 760;
 interface Plant { pos: Vec2; type: PlantType; phase: number }
+
+// ── Biomass harvest nodes — the risky objective (channel to collect) ─────────
+const HARVEST_NEARBY = 3;
+const HARVEST_TIME = 2.6;     // seconds of exposed channelling per node
+const HARVEST_DIST = { min: 220, max: 460 };
+const HARVEST_DECAY = 0.7;    // progress lost per second when you step off
+const HARVEST_VULN = 1.5;     // extra contact damage taken while channelling
+const HARVEST_SURGE = 0.85;   // interval of the punishing add-spawn while channelling
+const GOAL = 6;               // minimum to OPEN extraction (collecting more pays more)
+interface Node { pos: Vec2; phase: number; progress: number }
 
 // ── Arsenal — Vampire-Survivors-style auto weapons (level 1..5) ──────────────
 const MAXLV = 5;
@@ -126,25 +141,24 @@ interface Offer {
   tag: string;
 }
 
-const GOAL = 6;
-
 const rand = (a: number, b: number): number => a + Math.random() * (b - a);
 
 /** HORDAS — the AI's automated forest, an infinite Vampire-Survivors arena.
- *  Dr. Paulo enters alone; his bio-chem arsenal auto-fires while he only steers
- *  (floating joystick, continuous motion). The world scrolls endlessly under a
- *  camera locked to him. Gardener-bots swarm in escalating hordes — kill them
- *  for XP gems, level up, and draft new weapons/upgrades. Colour-coded plants
- *  grant 10-second perks on pickup; collect the quota to call extraction and
- *  face the Jardineiro-Mestre. */
+ *  Dr. Paulo only steers (floating joystick); his bio-chem arsenal auto-fires.
+ *  Gardener-bots swarm in escalating hordes — kill them for XP, level up, and
+ *  draft upgrades. The objective is risky: biomass nodes must be CHANNELLED
+ *  (stand exposed, gun stowed, taking extra damage while the horde surges).
+ *  Hitting the quota opens extraction, but the reward multiplier keeps climbing
+ *  — stay and harvest more to bank more, at rising risk. */
 export class HordasScene extends Scene {
   private content = new Container();         // shaken by RunJuice; holds bg + camera
-  private bgStatic = new Graphics();         // calm gradient + vignette (drawn once, screen-space)
-  private gridG = new Graphics();            // scrolling grid (screen-space, per frame)
+  private bgStatic = new Graphics();         // calm gradient + vignette (drawn once)
+  private gridG = new Graphics();            // scrolling grid (per frame)
   private camera = new Container();          // translated by -cam offset; holds the world
 
   private auraG = new Graphics();
   private extractG = new Graphics();
+  private nodeG = new Graphics();
   private plantG = new Graphics();
   private gemG = new Graphics();
   private enemyG = new Graphics();
@@ -153,12 +167,13 @@ export class HordasScene extends Scene {
   private orbitG = new Graphics();
   private playerG = new Graphics();
 
-  private overlay = new Container();         // steady screen-space UI (XP, buffs, joystick, pointers)
+  private overlay = new Container();         // steady screen-space UI
   private xpG = new Graphics();
-  private buffG = new Graphics();
   private joyG = new Graphics();
   private pointerG = new Graphics();
   private levelText!: Text;
+  private rewardText!: Text;
+  private buffText!: Text;
 
   private hud!: RunHud;
   private drag!: DragInput;
@@ -186,7 +201,7 @@ export class HordasScene extends Scene {
   // Progression
   private level = 1;
   private xp = 0;
-  private xpNext = 5;
+  private xpNext = 8;
   private pendingLevels = 0;
   private kills = 0;
   private paused = false;
@@ -205,9 +220,12 @@ export class HordasScene extends Scene {
   private gems: Gem[] = [];
   private novas: Nova[] = [];
   private plants: Plant[] = [];
+  private nodes: Node[] = [];
 
   // Run flow
-  private collected = 0;
+  private harvested = 0;       // uncapped — more = more reward
+  private channeling = false;
+  private surgeTimer = 0;
   private spawnTimer = SPAWN_START;
   private elapsed = 0;
   private extractOpen = false;
@@ -218,28 +236,42 @@ export class HordasScene extends Scene {
   override async enter(): Promise<void> {
     this.buildBackground();
     this.camera.addChild(
-      this.auraG, this.extractG, this.plantG, this.gemG, this.enemyG,
+      this.auraG, this.extractG, this.nodeG, this.plantG, this.gemG, this.enemyG,
       this.novaG, this.projG, this.orbitG, this.playerG,
     );
     this.content.addChild(this.bgStatic, this.gridG, this.camera);
     this.root.addChild(this.content);
 
+    for (let i = 0; i < HARVEST_NEARBY; i++) this.spawnNode();
     for (let i = 0; i < PLANTS_NEARBY; i++) this.spawnPlant();
 
-    this.juice = new RunJuice(this.root, { accent: FOREST, shakeTarget: this.content, ambient: 26 });
+    this.juice = new RunJuice(this.root, { accent: FOREST, shakeTarget: this.content, ambient: 22 });
 
     this.hud = buildHud(ZONE);
     this.root.addChild(this.hud.container);
 
-    // Steady screen-space overlay (XP bar, buff chips, joystick, off-screen pointers).
+    // Steady screen-space overlay — bright, shadowed text for legibility.
     this.overlay.zIndex = 90;
     this.levelText = new Text({
       text: 'Nv 1',
-      style: { fontFamily: FontFamily.mono, fontSize: 11, fill: TextColor.ink, fontWeight: '700' },
+      style: { fontFamily: FontFamily.mono, fontSize: 13, fill: TextColor.white, fontWeight: '700', dropShadow: SHADOW },
     });
     this.levelText.x = 8;
-    this.levelText.y = TOP + 2;
-    this.overlay.addChild(this.pointerG, this.xpG, this.buffG, this.levelText, this.joyG);
+    this.levelText.y = TOP + 4;
+    this.rewardText = new Text({
+      text: '',
+      style: { fontFamily: FontFamily.mono, fontSize: 13, fill: TextColor.amber, fontWeight: '700', dropShadow: SHADOW },
+    });
+    this.rewardText.anchor.set(1, 0);
+    this.rewardText.x = VW - 8;
+    this.rewardText.y = TOP + 4;
+    this.buffText = new Text({
+      text: '',
+      style: { fontFamily: FontFamily.mono, fontSize: 12, fill: TextColor.bio, fontWeight: '700', dropShadow: SHADOW },
+    });
+    this.buffText.x = 8;
+    this.buffText.y = TOP + 30;
+    this.overlay.addChild(this.pointerG, this.xpG, this.levelText, this.rewardText, this.buffText, this.joyG);
     this.root.addChild(this.overlay);
 
     this.drag = bindDrag(this.app.pixi.canvas, this.app.world, { x: VW / 2, y: VH / 2 });
@@ -261,12 +293,11 @@ export class HordasScene extends Scene {
     this.hurtFlash = Math.max(0, this.hurtFlash - d * 3);
     if (this.regen > 0 && this.hp < this.maxHp) this.hp = Math.min(this.maxHp, this.hp + this.regen * d);
 
-    // Tick buff timers.
     for (const t of PLANT_TYPES) if (this.buffs[t] > 0) this.buffs[t] = Math.max(0, this.buffs[t] - d);
 
     this.movePlayer(d);
+    this.updateHarvest(d);
 
-    // Arsenal.
     this.updateDart(d);
     this.updateAura(d);
     this.updateOrbit(d);
@@ -277,39 +308,43 @@ export class HordasScene extends Scene {
     this.updateEnemies(d);
     this.updateGems(d);
     this.updateNovaRings(d);
-    this.updatePlants(d);
+    this.updatePlants();
 
     if (this.extractOpen && Math.hypot(this.player.x - this.extractPos.x, this.player.y - this.extractPos.y) < 28) {
       this.end(true);
       return;
     }
 
-    // Camera locks the player to screen centre; the world scrolls under him.
     this.camera.x = VW / 2 - this.player.x;
     this.camera.y = VH / 2 - this.player.y;
 
     this.draw();
     this.drawHudOverlay();
     this.hud.setTimer(this.elapsed);
-    this.hud.setScore(this.extractOpen ? '→ EXTRAÇÃO' : `☠ ${this.kills}`);
-    this.hud.setStatus(`Nv ${this.level} · plantas ${this.collected}/${GOAL}`);
+    this.hud.setScore(`☠ ${this.kills}`);
+    this.hud.setStatus(this.extractOpen ? 'extração aberta — colha mais!' : `coleta ${this.harvested}/${GOAL}`);
     this.hud.setHealth(this.hp / this.maxHp);
   }
 
-  // ── World ↔ screen helpers (overlay/juice live in screen space) ─────────────
+  // ── World ↔ screen helpers ──────────────────────────────────────────────────
   private sx(wx: number): number { return wx + (VW / 2 - this.player.x); }
   private sy(wy: number): number { return wy + (VH / 2 - this.player.y); }
 
-  // ── Buff-modified stats ─────────────────────────────────────────────────────
-  private get atk(): number { return this.damageMult * (this.buffs.red > 0 ? 1.6 : 1); }
-  private get fireMult(): number { return this.buffs.blue > 0 ? 0.6 : 1; }
-  private get areaMult(): number { return this.buffs.purple > 0 ? 1.5 : 1; }
-  private get effSpeed(): number { return this.moveSpeed * (this.buffs.green > 0 ? 1.45 : 1); }
-  private get effPickup(): number { return this.pickupRadius + (this.buffs.gold > 0 ? 170 : 0); }
+  // ── Buff-modified stats (perks are milder now) ──────────────────────────────
+  private get atk(): number { return this.damageMult * (this.buffs.red > 0 ? 1.45 : 1); }
+  private get fireMult(): number { return this.buffs.blue > 0 ? 0.7 : 1; }
+  private get areaMult(): number { return this.buffs.purple > 0 ? 1.35 : 1; }
+  private get effSpeed(): number { return this.moveSpeed * (this.buffs.green > 0 ? 1.35 : 1); }
+  private get effPickup(): number { return this.pickupRadius + (this.buffs.gold > 0 ? 130 : 0); }
+
+  // Reward multiplier climbs with time survived + over-harvest (push your luck).
+  private get rewardMult(): number {
+    return Math.min(3, 1 + this.elapsed / 100 + Math.max(0, this.harvested - GOAL) * 0.08);
+  }
+  private get reward(): number { return Math.round(this.harvested * this.rewardMult); }
 
   // ── Player — floating joystick, continuous motion ───────────────────────────
   private movePlayer(dt: number): void {
-    // Capture the joystick origin on the press edge (floating joystick).
     if (this.drag.dragging && !this.prevDrag) this.joyOrigin = { ...this.drag.pos };
     this.prevDrag = this.drag.dragging;
 
@@ -325,7 +360,6 @@ export class HordasScene extends Scene {
         tvy = (dy / len) * this.effSpeed * mag;
       }
     }
-    // Smooth toward the target velocity for a continuous, weighty feel.
     const k = Math.min(1, MOVE_ACCEL * dt);
     this.vel.x += (tvx - this.vel.x) * k;
     this.vel.y += (tvy - this.vel.y) * k;
@@ -333,13 +367,68 @@ export class HordasScene extends Scene {
     this.player.y += this.vel.y * dt;
   }
 
-  // ── XP / level-up ───────────────────────────────────────────────────────────
+  // ── Biomass harvest — exposed channelling, the run's real risk ──────────────
+  private updateHarvest(dt: number): void {
+    // Cull far nodes (never the one being channelled) and top up nearby.
+    for (let i = this.nodes.length - 1; i >= 0; i--) {
+      const n = this.nodes[i]!;
+      const dist = Math.hypot(n.pos.x - this.player.x, n.pos.y - this.player.y);
+      if (dist > PLANT_CULL_R && n.progress <= 0) { this.nodes.splice(i, 1); continue; }
+      if (dist > PLAYER_R + 16) n.progress = Math.max(0, n.progress - dt * HARVEST_DECAY);
+    }
+    while (this.nodes.length < HARVEST_NEARBY) this.spawnNode();
+
+    // The node we're standing on (if any) channels.
+    let cur: Node | null = null;
+    for (const n of this.nodes) {
+      if (Math.hypot(n.pos.x - this.player.x, n.pos.y - this.player.y) <= PLAYER_R + 16) { cur = n; break; }
+    }
+    const startNow = cur !== null && !this.channeling;
+    this.channeling = cur !== null;
+    if (startNow) { this.juice.alarm(0xffb347); this.surgeTimer = 0; this.harvestSurge(4); }
+    if (!cur) return;
+
+    cur.progress += dt;
+    // Time punishment — the AI floods reinforcements while you're pinned.
+    this.surgeTimer -= dt;
+    if (this.surgeTimer <= 0) { this.surgeTimer = HARVEST_SURGE; this.harvestSurge(2); }
+
+    if (cur.progress >= HARVEST_TIME) {
+      this.harvested += 1;
+      this.nodes.splice(this.nodes.indexOf(cur), 1);
+      this.channeling = false;
+      this.juice.pop(VW / 2, VH / 2, 0xffd36b);
+      this.juice.flash(0xffd36b, 0.16, 0.26);
+      if (this.harvested >= GOAL && !this.extractOpen) this.openExtraction();
+      this.spawnNode();
+    }
+  }
+
+  private harvestSurge(count: number): void {
+    for (let i = 0; i < count && this.enemies.length < ENEMY_CAP; i++) this.spawnEnemy(this.elapsed > 30 ? 'crawler' : 'sprout');
+  }
+
+  private spawnNode(): void {
+    const a = Math.random() * TAU;
+    const d = rand(HARVEST_DIST.min, HARVEST_DIST.max);
+    this.nodes.push({ pos: { x: this.player.x + Math.cos(a) * d, y: this.player.y + Math.sin(a) * d }, phase: Math.random() * TAU, progress: 0 });
+  }
+
+  private openExtraction(): void {
+    this.extractOpen = true;
+    const a = Math.random() * TAU;
+    this.extractPos = { x: this.player.x + Math.cos(a) * 280, y: this.player.y + Math.sin(a) * 280 };
+    this.juice.alarm(FOREST);
+    this.spawnBoss();
+  }
+
+  // ── XP / level-up (slower curve) ────────────────────────────────────────────
   private gainXp(v: number): void {
     this.xp += v;
     while (this.xp >= this.xpNext) {
       this.xp -= this.xpNext;
       this.level += 1;
-      this.xpNext = Math.round(this.xpNext * 1.35 + 3);
+      this.xpNext = Math.round(this.xpNext * 1.5 + 6);
       this.pendingLevels += 1;
     }
     if (this.pendingLevels > 0 && !this.paused) this.openLevelUp();
@@ -372,32 +461,33 @@ export class HordasScene extends Scene {
     panel.zIndex = 150;
 
     const dim = new Graphics();
-    dim.rect(0, 0, VW, VH).fill({ color: 0x000000, alpha: 0.72 });
+    dim.rect(0, 0, VW, VH).fill({ color: 0x000000, alpha: 0.78 });
+    dim.eventMode = 'static';
     panel.addChild(dim);
 
     const title = new Text({
       text: 'SUBIU DE NÍVEL',
-      style: { fontFamily: FontFamily.body, fontSize: 20, fill: FOREST, fontWeight: '700', letterSpacing: 1.5 },
+      style: { fontFamily: FontFamily.body, fontSize: 22, fill: FOREST, fontWeight: '700', letterSpacing: 1.5, dropShadow: SHADOW },
     });
     title.anchor.set(0.5);
     title.x = VW / 2;
-    title.y = VH * 0.26;
+    title.y = VH * 0.25;
     panel.addChild(title);
 
     const sub = new Text({
       text: 'Escolha uma melhoria — toque numa carta',
-      style: { fontFamily: FontFamily.mono, fontSize: 12, fill: TextColor.muted },
+      style: { fontFamily: FontFamily.mono, fontSize: 13, fill: TextColor.ink, dropShadow: SHADOW },
     });
     sub.anchor.set(0.5);
     sub.x = VW / 2;
-    sub.y = VH * 0.26 + 26;
+    sub.y = VH * 0.25 + 28;
     panel.addChild(sub);
 
-    const cardW = 320;
-    const cardH = 82;
+    const cardW = 322;
+    const cardH = 86;
     const gap = 14;
     const x0 = (VW - cardW) / 2;
-    const y0 = VH * 0.36;
+    const y0 = VH * 0.35;
     offers.forEach((offer, i) => {
       panel.addChild(this.buildCard(offer, x0, y0 + i * (cardH + gap), cardW, cardH, () => {
         this.applyOffer(offer);
@@ -421,34 +511,34 @@ export class HordasScene extends Scene {
     const paint = (hover: boolean): void => {
       bg.clear();
       bg.roundRect(0, 0, w, h, 8)
-        .fill({ color: hover ? 0x14241a : 0x0c1410, alpha: 0.98 })
-        .stroke({ color: FOREST, width: hover ? 2 : 1.4, alpha: hover ? 1 : 0.7 });
+        .fill({ color: hover ? 0x16291d : 0x0d1611, alpha: 0.99 })
+        .stroke({ color: FOREST, width: hover ? 2.4 : 1.6, alpha: hover ? 1 : 0.8 });
     };
     paint(false);
     card.addChild(bg);
 
     const tag = new Text({
       text: offer.tag,
-      style: { fontFamily: FontFamily.mono, fontSize: 10, fill: FOREST, fontWeight: '700', letterSpacing: 1 },
+      style: { fontFamily: FontFamily.mono, fontSize: 11, fill: TextColor.amber, fontWeight: '700', letterSpacing: 1, dropShadow: SHADOW },
     });
     tag.x = 14;
-    tag.y = 12;
+    tag.y = 11;
     card.addChild(tag);
 
     const name = new Text({
       text: offer.name,
-      style: { fontFamily: FontFamily.body, fontSize: 16, fill: TextColor.ink, fontWeight: '700' },
+      style: { fontFamily: FontFamily.body, fontSize: 18, fill: TextColor.white, fontWeight: '700', dropShadow: SHADOW },
     });
     name.x = 14;
-    name.y = 26;
+    name.y = 27;
     card.addChild(name);
 
     const desc = new Text({
       text: offer.desc,
-      style: { fontFamily: FontFamily.mono, fontSize: 11, fill: TextColor.muted, wordWrap: true, wordWrapWidth: w - 28 },
+      style: { fontFamily: FontFamily.mono, fontSize: 12, fill: TextColor.ink, wordWrap: true, wordWrapWidth: w - 28, dropShadow: SHADOW },
     });
     desc.x = 14;
-    desc.y = 48;
+    desc.y = 52;
     card.addChild(desc);
 
     card.eventMode = 'static';
@@ -484,9 +574,10 @@ export class HordasScene extends Scene {
     if (healFromMaxHp) this.hp += this.maxHp - prevMax;
   }
 
-  // ── Weapon: Bio-dart (auto-fire at nearest) ─────────────────────────────────
+  // ── Weapon: Bio-dart (stowed while channelling — that's the vulnerability) ───
   private updateDart(dt: number): void {
     this.fireTimer -= dt;
+    if (this.channeling) return;
     const lv = this.weapons.dart;
     if (lv === 0 || this.fireTimer > 0) return;
     const target = this.nearestEnemy();
@@ -543,7 +634,6 @@ export class HordasScene extends Scene {
     }
   }
 
-  // ── Weapon: spore aura (continuous AoE around player) ───────────────────────
   private updateAura(dt: number): void {
     const lv = this.weapons.aura;
     if (lv === 0) return;
@@ -560,7 +650,6 @@ export class HordasScene extends Scene {
     }
   }
 
-  // ── Weapon: orbiting bulbs (melee ring) ─────────────────────────────────────
   private updateOrbit(dt: number): void {
     const lv = this.weapons.orbit;
     if (lv === 0) return;
@@ -584,7 +673,6 @@ export class HordasScene extends Scene {
     }
   }
 
-  // ── Weapon: pollen nova (periodic expanding AoE) ────────────────────────────
   private updateNova(dt: number): void {
     const lv = this.weapons.nova;
     if (lv === 0) return;
@@ -632,7 +720,7 @@ export class HordasScene extends Scene {
     if (e.kind === 'boss') {
       this.juice.alarm(FOREST);
       for (let i = 0; i < 8; i++) this.dropGem(e.pos.x + rand(-18, 18), e.pos.y + rand(-18, 18), 5);
-      this.collected = Math.min(GOAL, this.collected + 2);
+      this.harvested += 2; // a hefty biomass bounty
     } else {
       this.dropGem(e.pos.x, e.pos.y, e.xp);
     }
@@ -668,60 +756,42 @@ export class HordasScene extends Scene {
     }
   }
 
-  // ── Buff plants ──────────────────────────────────────────────────────────────
+  // ── Buff plants (rare) ──────────────────────────────────────────────────────
   private spawnPlant(): void {
     const a = Math.random() * TAU;
-    const d = rand(180, 360);
+    const d = rand(PLANT_DIST.min, PLANT_DIST.max);
     const type = PLANT_TYPES[Math.floor(Math.random() * PLANT_TYPES.length)]!;
     this.plants.push({ pos: { x: this.player.x + Math.cos(a) * d, y: this.player.y + Math.sin(a) * d }, type, phase: Math.random() * TAU });
   }
 
-  private updatePlants(_dt: number): void {
-    // Cull plants left far behind, pick up any the player walks over, keep a handful nearby.
+  private updatePlants(): void {
     for (let i = this.plants.length - 1; i >= 0; i--) {
       const p = this.plants[i]!;
       const dist = Math.hypot(p.pos.x - this.player.x, p.pos.y - this.player.y);
       if (dist > PLANT_CULL_R) { this.plants.splice(i, 1); continue; }
-      if (dist < PLAYER_R + 13) this.pickPlant(i);
+      if (dist < PLAYER_R + 13) {
+        this.buffs[p.type] = BUFF_TIME;
+        this.juice.pop(this.sx(p.pos.x), this.sy(p.pos.y), PLANTS[p.type].color);
+        this.juice.flash(PLANTS[p.type].color, 0.12, 0.22);
+        this.plants.splice(i, 1);
+      }
     }
     while (this.plants.length < PLANTS_NEARBY) this.spawnPlant();
-  }
-
-  private pickPlant(idx: number): void {
-    const p = this.plants[idx]!;
-    const def = PLANTS[p.type];
-    this.buffs[p.type] = BUFF_TIME; // refresh to full
-    this.plants.splice(idx, 1);
-    if (this.collected < GOAL) {
-      this.collected += 1;
-      if (this.collected >= GOAL && !this.extractOpen) this.openExtraction();
-    }
-    this.juice.pop(this.sx(p.pos.x), this.sy(p.pos.y), def.color);
-    this.juice.flash(def.color, 0.12, 0.22);
-  }
-
-  private openExtraction(): void {
-    this.extractOpen = true;
-    const a = Math.random() * TAU;
-    this.extractPos = { x: this.player.x + Math.cos(a) * 240, y: this.player.y + Math.sin(a) * 240 };
-    this.hud.setStatus('extração aberta');
-    this.juice.alarm(FOREST);
-    this.spawnBoss();
   }
 
   // ── Enemies ───────────────────────────────────────────────────────────────
   private updateSpawns(dt: number): void {
     this.spawnTimer -= dt;
     if (this.spawnTimer > 0 || this.enemies.length >= ENEMY_CAP) return;
-    const burst = 1 + Math.floor(this.elapsed / 25);
+    const burst = 1 + Math.floor(this.elapsed / 20);
     for (let i = 0; i < burst && this.enemies.length < ENEMY_CAP; i++) this.spawnEnemy();
-    this.spawnTimer = Math.max(SPAWN_MIN, SPAWN_START - this.elapsed * 0.01 - (this.extractOpen ? 0.4 : 0));
+    this.spawnTimer = Math.max(SPAWN_MIN, SPAWN_START - this.elapsed * 0.014 - (this.extractOpen ? 0.4 : 0));
   }
 
   private pickKind(): EKind {
     const r = Math.random();
-    if (this.elapsed > 75 && r < 0.14) return 'brute';
-    if (this.elapsed > 30 && r < 0.42) return 'crawler';
+    if (this.elapsed > 55 && r < 0.18) return 'brute';
+    if (this.elapsed > 20 && r < 0.46) return 'crawler';
     return 'sprout';
   }
 
@@ -730,15 +800,15 @@ export class HordasScene extends Scene {
     return { x: this.player.x + Math.cos(a) * radius, y: this.player.y + Math.sin(a) * radius };
   }
 
-  private spawnEnemy(): void {
-    const kind = this.pickKind();
+  private spawnEnemy(force?: EKind): void {
+    const kind = force ?? this.pickKind();
     const s = ESTATS[kind];
-    const hpScale = 1 + this.elapsed * 0.004;
+    const hpScale = 1 + this.elapsed * 0.006;
     this.enemies.push({
       kind, pos: this.ringPos(SPAWN_RING + rand(0, 80)),
       hp: s.hp * hpScale, maxHp: s.hp * hpScale,
       speed: s.speed + Math.random() * 16, dmg: s.dmg, r: s.r, xp: s.xp, color: s.color,
-      flash: 0, touchCd: 0, orbitCd: 0,
+      flash: 0, touchCd: 0, orbitCd: 0, pushX: 0, pushY: 0,
     });
   }
 
@@ -749,11 +819,34 @@ export class HordasScene extends Scene {
     this.enemies.push({
       kind: 'boss', pos: this.ringPos(SPAWN_RING),
       hp: s.hp, maxHp: s.hp, speed: s.speed, dmg: s.dmg, r: s.r, xp: s.xp, color: s.color,
-      flash: 0, touchCd: 0, orbitCd: 0,
+      flash: 0, touchCd: 0, orbitCd: 0, pushX: 0, pushY: 0,
     });
   }
 
   private updateEnemies(dt: number): void {
+    const n = this.enemies.length;
+    // Soft separation so the horde crowds instead of stacking on one point.
+    for (let i = 0; i < n; i++) { const e = this.enemies[i]!; e.pushX = 0; e.pushY = 0; }
+    for (let i = 0; i < n; i++) {
+      const a = this.enemies[i]!;
+      for (let j = i + 1; j < n; j++) {
+        const b = this.enemies[j]!;
+        const dx = b.pos.x - a.pos.x;
+        const dy = b.pos.y - a.pos.y;
+        const rr = a.r + b.r + 2;
+        const d2 = dx * dx + dy * dy;
+        if (d2 > 0.0001 && d2 < rr * rr) {
+          const dist = Math.sqrt(d2);
+          const push = ((rr - dist) / dist) * SEPARATION;
+          const px = dx * push;
+          const py = dy * push;
+          a.pushX -= px; a.pushY -= py;
+          b.pushX += px; b.pushY += py;
+        }
+      }
+    }
+
+    const contactMult = this.channeling ? HARVEST_VULN : 1;
     for (let i = this.enemies.length - 1; i >= 0; i--) {
       const e = this.enemies[i]!;
       e.flash = Math.max(0, e.flash - dt);
@@ -761,13 +854,12 @@ export class HordasScene extends Scene {
       const dx = this.player.x - e.pos.x;
       const dy = this.player.y - e.pos.y;
       const dist = Math.hypot(dx, dy) || 1;
-      // Cull non-boss wanderers that fall far behind; they respawn in the ring.
       if (e.kind !== 'boss' && dist > DESPAWN_R) { this.enemies.splice(i, 1); continue; }
-      e.pos.x += (dx / dist) * e.speed * dt;
-      e.pos.y += (dy / dist) * e.speed * dt;
+      e.pos.x += (dx / dist) * e.speed * dt + (e.kind === 'boss' ? 0 : e.pushX);
+      e.pos.y += (dy / dist) * e.speed * dt + (e.kind === 'boss' ? 0 : e.pushY);
       if (dist < PLAYER_R + e.r && e.touchCd <= 0) {
         e.touchCd = TOUCH_CD;
-        this.hp -= e.dmg;
+        this.hp -= e.dmg * contactMult;
         this.hurtFlash = 1;
         this.juice.hurt(VW / 2, VH / 2);
         if (this.hp <= 0) { this.hp = 0; this.end(false); return; }
@@ -775,7 +867,7 @@ export class HordasScene extends Scene {
     }
   }
 
-  // ── Background art (calm: gradient + vignette + scrolling grid) ──────────────
+  // ── Background art ──────────────────────────────────────────────────────────
   private buildBackground(): void {
     const steps = 26;
     for (let i = 0; i < steps; i++) {
@@ -783,7 +875,6 @@ export class HordasScene extends Scene {
       const c = Color.rgb(0.03 + t * 0.015, 0.075 + t * 0.06, 0.05 + t * 0.035);
       this.bgStatic.rect(0, (VH * i) / steps, VW, VH / steps + 1).fill(Color.hex(c));
     }
-    // Soft vignette — darken the edges so the action centre reads clearly.
     for (let k = 0; k < 6; k++) {
       const inset = k * 7;
       this.bgStatic.rect(inset, inset, VW - inset * 2, VH - inset * 2).stroke({ color: 0x000000, width: 8, alpha: 0.05 });
@@ -801,12 +892,12 @@ export class HordasScene extends Scene {
     this.gridG.stroke({ color: 0x2c5a36, width: 1, alpha: 0.10 });
   }
 
-  // ── Rendering (world graphics live inside the camera, drawn at world coords) ─
+  // ── Rendering ────────────────────────────────────────────────────────────────
   private draw(): void {
     const t = this.elapsed;
     this.drawGrid();
 
-    // Spore aura field.
+    // Spore aura.
     this.auraG.clear();
     if (this.weapons.aura > 0) {
       const r = AURA.r[this.weapons.aura - 1]! * this.areaMult;
@@ -815,15 +906,34 @@ export class HordasScene extends Scene {
       this.auraG.circle(this.player.x, this.player.y, r).stroke({ color: FOREST, width: 1.5, alpha: 0.25 + 0.15 * pulse });
     }
 
-    // Buff plants — colour-coded blooms.
+    // Biomass harvest nodes — amber pods; the current one fills a ring.
+    this.nodeG.clear();
+    for (const nd of this.nodes) {
+      const pulse = 0.6 + 0.4 * Math.sin(t * 2.5 + nd.phase);
+      this.nodeG.circle(nd.pos.x, nd.pos.y, 20).fill({ color: 0xffd36b, alpha: 0.08 * pulse });
+      // pod cluster
+      for (let k = 0; k < 3; k++) {
+        const a = nd.phase + (k / 3) * TAU;
+        this.nodeG.circle(nd.pos.x + Math.cos(a) * 5, nd.pos.y + Math.sin(a) * 5, 5).fill({ color: 0xe0a83a, alpha: 0.95 });
+      }
+      this.nodeG.circle(nd.pos.x, nd.pos.y, 4).fill({ color: 0xfff0c0, alpha: 0.9 });
+      if (nd.progress > 0) {
+        const prog = Math.min(1, nd.progress / HARVEST_TIME);
+        this.nodeG.arc(nd.pos.x, nd.pos.y, 22, -Math.PI / 2, -Math.PI / 2 + TAU * prog, false)
+          .stroke({ color: 0xfff0a0, width: 3.5, alpha: 0.95 });
+      }
+    }
+
+    // Buff plants.
     this.plantG.clear();
     for (const p of this.plants) {
       const def = PLANTS[p.type];
       const pulse = 0.6 + 0.4 * Math.sin(t * 3 + p.phase);
-      this.plantG.circle(p.pos.x, p.pos.y, 17).fill({ color: def.color, alpha: 0.10 * pulse });
+      this.plantG.circle(p.pos.x, p.pos.y, 17).fill({ color: def.color, alpha: 0.12 * pulse });
+      this.plantG.circle(p.pos.x, p.pos.y, 17).stroke({ color: def.color, width: 1.5, alpha: 0.4 });
       this.plantG.rect(p.pos.x - 2, p.pos.y, 4, 9).fill({ color: 0xe6e0c8, alpha: 0.9 });
       this.plantG.ellipse(p.pos.x, p.pos.y, 9, 6).fill({ color: def.color, alpha: 0.95 });
-      this.plantG.ellipse(p.pos.x, p.pos.y - 1, 4, 2.6).fill({ color: 0xffffff, alpha: 0.6 * pulse });
+      this.plantG.ellipse(p.pos.x, p.pos.y - 1, 4, 2.6).fill({ color: 0xffffff, alpha: 0.7 * pulse });
     }
 
     // Extraction beacon.
@@ -869,8 +979,8 @@ export class HordasScene extends Scene {
 
     // Nova rings.
     this.novaG.clear();
-    for (const n of this.novas) {
-      this.novaG.circle(n.x, n.y, n.r).stroke({ color: FOREST, width: 3, alpha: 0.6 * (n.life / 0.45) });
+    for (const nv of this.novas) {
+      this.novaG.circle(nv.x, nv.y, nv.r).stroke({ color: FOREST, width: 3, alpha: 0.6 * (nv.life / 0.45) });
     }
 
     // Projectiles.
@@ -895,43 +1005,47 @@ export class HordasScene extends Scene {
       }
     }
 
-    // Paulo (always at world = player pos → screen centre via camera).
+    // Paulo — a warning ring pulses while channelling (exposed).
     this.playerG.clear();
     const pc = this.hurtFlash > 0.4 ? 0xff5a5a : FOREST;
     const px = this.player.x;
     const py = this.player.y;
+    if (this.channeling) {
+      const wp = 0.5 + 0.5 * Math.sin(t * 9);
+      this.playerG.circle(px, py, PLAYER_R + 7).stroke({ color: 0xffcf4d, width: 2.5, alpha: 0.4 + 0.45 * wp });
+    }
     this.playerG.circle(px, py, PLAYER_R + 4).fill({ color: pc, alpha: 0.2 });
     this.playerG.circle(px, py, PLAYER_R).fill({ color: pc, alpha: 0.95 });
     this.playerG.circle(px, py, PLAYER_R - 4).fill({ color: 0xffffff, alpha: 0.65 });
-    const tgt = this.nearestEnemy();
-    const a = tgt ? Math.atan2(tgt.pos.y - py, tgt.pos.x - px) : this.facing;
-    this.playerG.moveTo(px, py).lineTo(px + Math.cos(a) * (PLAYER_R + 8), py + Math.sin(a) * (PLAYER_R + 8))
-      .stroke({ color: 0x9fffe0, width: 3, alpha: 0.8 });
+    if (!this.channeling) {
+      const tgt = this.nearestEnemy();
+      const a = tgt ? Math.atan2(tgt.pos.y - py, tgt.pos.x - px) : this.facing;
+      this.playerG.moveTo(px, py).lineTo(px + Math.cos(a) * (PLAYER_R + 8), py + Math.sin(a) * (PLAYER_R + 8))
+        .stroke({ color: 0x9fffe0, width: 3, alpha: 0.8 });
+    }
   }
 
-  // ── Screen-space overlay (XP bar, buff chips, joystick, off-screen pointers) ─
+  // ── Screen-space overlay (legible HUD: XP, level, reward, buffs, pointers) ───
   private drawHudOverlay(): void {
     // XP bar.
     this.xpG.clear();
-    const x = 44;
-    const w = VW - x - 8;
-    const y = TOP + 6;
-    this.xpG.rect(x, y, w, 4).fill({ color: 0x10201a, alpha: 0.9 });
-    this.xpG.rect(x, y, w * Math.max(0, Math.min(1, this.xp / this.xpNext)), 4).fill({ color: FOREST, alpha: 0.95 });
+    const x = 8;
+    const w = VW - 16;
+    const y = TOP + 22;
+    this.xpG.rect(x, y, w, 5).fill({ color: 0x09140f, alpha: 0.92 });
+    this.xpG.rect(x, y, w * Math.max(0, Math.min(1, this.xp / this.xpNext)), 5).fill({ color: FOREST, alpha: 0.98 });
+    this.xpG.rect(x, y, w, 5).stroke({ color: 0x0a0d0e, width: 1, alpha: 0.6 });
     this.levelText.text = `Nv ${this.level}`;
 
-    // Active buff chips (colour conveys the perk; bar shows time remaining).
-    this.buffG.clear();
-    let bx = 44;
-    const by = TOP + 14;
+    // Reward meter — grows with survival + over-harvest, to entice staying.
+    this.rewardText.text = `BIOMASSA ${this.reward}  ×${this.rewardMult.toFixed(1)}`;
+
+    // Active buffs as bright text with countdowns.
+    const parts: string[] = [];
     for (const type of PLANT_TYPES) {
-      const left = this.buffs[type];
-      if (left <= 0) continue;
-      const def = PLANTS[type];
-      this.buffG.roundRect(bx, by, 30, 11, 3).fill({ color: def.color, alpha: 0.28 }).stroke({ color: def.color, width: 1, alpha: 0.9 });
-      this.buffG.rect(bx + 1, by + 9, 28 * (left / BUFF_TIME), 1.5).fill({ color: def.color, alpha: 0.95 });
-      bx += 34;
+      if (this.buffs[type] > 0) parts.push(`${PLANTS[type].short} ${Math.ceil(this.buffs[type])}s`);
     }
+    this.buffText.text = parts.join('   ');
 
     // Off-screen pointers — guide to extraction beacon / boss.
     this.pointerG.clear();
@@ -960,7 +1074,7 @@ export class HordasScene extends Scene {
     const m = 26;
     const px = this.sx(wx);
     const py = this.sy(wy);
-    if (px >= m && px <= VW - m && py >= TOP + m && py <= VH - m) return; // on-screen
+    if (px >= m && px <= VW - m && py >= TOP + m && py <= VH - m) return;
     const cx = VW / 2;
     const cy = VH / 2;
     const ang = Math.atan2(py - cy, px - cx);
@@ -973,22 +1087,23 @@ export class HordasScene extends Scene {
         ex + Math.cos(ang + 2.4) * s, ey + Math.sin(ang + 2.4) * s,
         ex + Math.cos(ang - 2.4) * s, ey + Math.sin(ang - 2.4) * s,
       ])
-      .fill({ color, alpha: 0.85 });
+      .fill({ color, alpha: 0.9 });
   }
 
   private end(victory: boolean): void {
     if (this.ended) return;
     this.ended = true;
     if (victory) this.juice.victoryFx(); else this.juice.defeatFx();
-    if (victory && this.collected > 0) {
-      HubState.depositFlow('biomassa_adaptativa', this.collected);
+    const payout = this.reward;
+    if (victory && payout > 0) {
+      HubState.depositFlow('biomassa_adaptativa', payout);
     }
     HubState.onRunEnded(victory);
     this.root.addChild(buildEndOverlay({
       zone: ZONE,
       victory,
-      rewardLabel: `+${this.collected} Biomassa — plantas coletadas · Nv ${this.level} · ☠ ${this.kills}`,
-      failLabel: 'Capturado pelos jardineiros.',
+      rewardLabel: `+${payout} Biomassa  (×${this.rewardMult.toFixed(1)}) · Nv ${this.level} · ☠ ${this.kills}`,
+      failLabel: 'Capturado pelos jardineiros — biomassa perdida.',
     }));
   }
 }
