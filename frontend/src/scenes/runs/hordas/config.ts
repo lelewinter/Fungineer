@@ -142,3 +142,22 @@ export const PASSIVE_DESC: Record<PassiveId, string> = {
   power: '+22% de dano em todas as armas.',
   regen: '+1.3 de vida por segundo.',
 };
+
+// ── Reforços (limit break) — melhorias PERMANENTES que acumulam SEM LIMITE ────
+// Entram no menu de level up junto das armas/passivas. Diferente delas, nunca
+// "maxam": e o trilho de progressao infinito que mantem Myco ficando mais forte
+// quanto mais a run dura, acompanhando os inimigos que engrossam com o tempo.
+export type BoostId = 'edge' | 'bloom' | 'haste' | 'lure' | 'vigor';
+export const BOOST_NAME: Record<BoostId, string> = {
+  edge: 'Fio cortante', bloom: 'Esporo expansivo', haste: 'Ímpeto', lure: 'Atração', vigor: 'Vigor',
+};
+export const BOOST_DESC: Record<BoostId, string> = {
+  edge: '+8% de dano. Acumula sem limite.',
+  bloom: '+8% de área das armas. Acumula sem limite.',
+  haste: '+6% de velocidade. Acumula sem limite.',
+  lure: '+25 de raio de coleta. Acumula sem limite.',
+  vigor: '+20 de vida máxima e cura igual. Acumula sem limite.',
+};
+// Magnitude de cada reforço por acumulo (lido pela cena ao recalcular atributos).
+export const BOOST_VAL = { edge: 0.08, bloom: 0.08, haste: 0.06, lure: 25, vigor: 20 } as const;
+export const BOOST_IDS: BoostId[] = ['edge', 'bloom', 'haste', 'lure', 'vigor'];
