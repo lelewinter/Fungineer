@@ -5,6 +5,32 @@ Backlog priorizado do **próximo vertical slice**: um build jogável de ponta-a-
 no hub -> peça do foguete sobe -> repetir, com polish suficiente pra playtest e um
 estado de vitória quando o foguete fica completo).
 
+## Estado (atualizado 2026-06-05 — Rodada 2)
+
+Muita coisa da Rodada 1 já está no `main`. Esta passagem (a) marcou as tasks
+shipadas como **DONE** com nota de onde foram implementadas, (b) re-priorizou o
+restante e (c) adicionou as tasks reais que faltavam. Fonte de verdade do que
+mergeou: `production/implementation-notes.md` + código em `frontend/src/`.
+
+Verificado contra o código real nesta passagem: `HubState.ts` (loop/receita do
+foguete, ResourceKey, resetForNewCycle), `Zones.ts` (música ainda em `.wav` →
+confirma #016 bloqueada) e `GameConfig.ts` (keys mortas `EXTRACTION_LANE_*`/
+`SCROLL_*`/`DEBUFF_*`/`SPARK_*` ainda presentes nas linhas ~197-209 → confirma
+#017; timers `CIRCUIT_RUN_TIMER=90` e `INFECTION_RUN_TIMER=120` → confirma #019).
+
+Contagem: **7 DONE** (#002, #003, #005, #007 + os fixes do implementation-notes),
+**1 BLOCKED** (#016, gate de deploy travado por ffmpeg), **1 SUPERSEDED** (#015 →
+#019). Restante PENDING priorizado abaixo.
+
+Resumo do que entrou no main desde a Rodada 1: final do jogo (LANÇAR + Novo
+Ciclo, era #007), SaveService já completo c/ nuvem (#005), reward overlay por
+zona via `buildEndOverlay` (#002/#003), timers centralizados no GameConfig,
+música data-driven, barras de progresso invertidas corrigidas, denominador da
+barra de Infecção, botão SAIR no Field, cânone Dr. Myco nas strings player-facing,
+vazamento de setTimeout (Field/Sacrifice). Um plano de refactor da run-framework
+(`docs/architecture/run-framework-refactor.md`) foi escrito mas **deferido** —
+vira a task #018 (zona-a-zona com playtest).
+
 ## Premissas assumidas (subagente não-interativo, Leticia indisponível)
 
 Decididas sozinha pra destravar o slice. Revisar quando ela voltar.
@@ -48,7 +74,11 @@ Como verificar: rodar Hordas, coletar 3 recursos, voltar ao hub: o stock da Reso
 
 ---TASK---
 ID: 002
-Status: PENDING
+Status: DONE
+Nota: Coberto por `buildEndOverlay({zone, victory, rewardLabel, failLabel})` —
+cada run já emite recompensa/derrota por zona no fim. Um `RunResult` unificado
+formal seria redundante; o overlay consome o resultado por zona diretamente.
+Ver implementation-notes "Reward scene (task-queue 002/003) — já coberto".
 Tela: frontend/src/scenes/runs/RunFrame (e cada *RunScene)
 Descrição: Padronizar a saída de toda run num único contrato de resultado. Criar tipo `RunResult { victory: boolean; resourceKey: ResourceKey | null; resourceCount: number; fragments: number; }` e garantir que toda cena de run (Hordas, Field, Sacrifice, Stealth, Circuito, Extraction, Infeccao, Labirinto) emita esse resultado via GameState.runEnded ao terminar. Hoje GameState.runEnded emite só (victory, fragments) e o backpack vive à parte; unificar para a tela de recompensa (task 003) consumir uma estrutura só. Não alterar valores de balance — só o contrato de saída.
 Como verificar: terminar qualquer zona jogável (vitória ou derrota) loga no console um RunResult coerente com o que foi coletado, e nenhuma cena de run lança erro de tipo no `npm run typecheck`.
@@ -56,7 +86,10 @@ Como verificar: terminar qualquer zona jogável (vitória ou derrota) loga no co
 
 ---TASK---
 ID: 003
-Status: PENDING
+Status: DONE
+Nota: `buildEndOverlay` já mostra vitória/derrota + recompensa por zona entre a
+run e o hub, reusando Modal/PixiButton. Uma RewardScene separada foi avaliada e
+descartada como redundante (implementation-notes).
 Tela: frontend/src/scenes/runs (nova RewardScene/Overlay) + frontend/src/ui/Modal
 Descrição: Criar a tela de recompensa pós-run que aparece entre a run e o retorno ao hub. Consome o RunResult (task 002). Mostra: vitória/derrota, recursos coletados (ícone+contagem por ResourceKey), tech fragments ganhos, e botão "Voltar ao Hub". Ao confirmar, chama HubState.depositBackpack/depositFlow e navega pro HubScene. Valores de timing/layout em GameConfig (ex: REWARD_REVEAL_DELAY), nunca hardcoded. Reusar Modal/PixiButton existentes.
 Como verificar: ao terminar Hordas com vitória e 2 recursos coletados, aparece a tela de recompensa listando "+2 Biomassa" e os fragments; clicar "Voltar ao Hub" leva ao HubScene com o stock atualizado.
@@ -72,7 +105,12 @@ Como verificar: depositar recurso suficiente pra fechar a "Base Estrutural" faz 
 
 ---TASK---
 ID: 005
-Status: PENDING
+Status: DONE
+Nota: `SaveService` já estava completo e fiado no `main.ts`: `load()` no boot,
+`arm()` nos signals do HubState (debounce 1.5s), `flush()` no `pagehide`,
+fallback localStorage + slot na nuvem. Verificado em código, nenhuma ação
+necessária (implementation-notes #9). Nota: o ID #005 também é o slot de save —
+não confundir.
 Tela: frontend/src/state/SaveService + HubState/GameState
 Descrição: Persistir o progresso do meta-loop em localStorage a cada ponto estável (peça construída, retorno ao hub, recurso depositado). HubState.toSnapshot/loadFromSnapshot já existem; ligar o SaveService para chamar toSnapshot após cada deposito/build e restaurar no boot. Chave e debounce em GameConfig (ex: SAVE_DEBOUNCE_MS). Sem backend — só localStorage, com try/catch silencioso. Fazer o BootScene chamar loadFromSnapshot.
 Como verificar: construir 1 peça do foguete, dar refresh (F5) no navegador: o hub volta com rocket_pieces_built preservado e o stock restante intacto.
@@ -90,7 +128,12 @@ Como verificar: no hub, o painel mostra a próxima peça e o progresso de cada r
 
 ---TASK---
 ID: 007
-Status: PENDING
+Status: DONE
+Nota: Implementado. `HubState.resetForNewCycle()` zera o progresso (preserva
+prefs cosméticas); `HubRocketPanel` mostra botão 🚀 LANÇAR quando completo
+(signal `launchRequested`); `ui/hub/RocketLaunchOverlay.ts` é a tela de vitória
+(DECOLAGEM + resumo peças/raides/sobreviventes) com botão Novo Ciclo; fiado no
+HubScene. FX de subida com câmera fica como polish futuro → ver task #021.
 Tela: frontend/src/scenes/hub/HubScene (nova LaunchScene/sequence)
 Descrição: Implementar o estado de vitória do jogo. Quando HubState.isRocketComplete() é true, o foguete no hub fica interagível ("Lançar"); ao acionar, roda uma sequência de lançamento (tween de subida + FX) e abre uma tela final de vitória com resumo do run (peças, recursos totais, sobreviventes resgatados, runs totais). Botão "Novo Ciclo" reseta o estado pra rejogar. Timings/FX em GameConfig.
 Como verificar: com as 8 peças construídas, o botão "Lançar" aparece no foguete; acioná-lo roda a animação e mostra a tela de vitória com o resumo; "Novo Ciclo" zera o progresso.
@@ -128,6 +171,48 @@ Descrição: Fazer as zonas ainda-stub (Cordilheira, Torres, Catedral) não queb
 Como verificar: entrar na Cordilheira pelo mapa permite coletar recursos e sair com recompensa creditada no hub; a zona aparece com badge "Prévia" no mapa-mundo.
 ---END---
 
+---TASK---
+ID: 016
+Status: BLOCKED
+Tela: tools/transcode-audio.sh + frontend/public/assets/audio (+ refs de música/SFX no código)
+Descrição: GATE DO DEPLOY. Os WAVs somam ~106MB; o Cloudflare Pages tem cap de 25MB/arquivo e o bundle inteiro fica pesado demais pra PWA mobile. O script `tools/transcode-audio.sh` já existe e é idempotente (gera .ogg ao lado dos .wav, ~106MB → ~15.8MB). Passo 1: rodar `tools/transcode-audio.sh` localmente (requer ffmpeg, AUSENTE neste ambiente → BLOCKED). Passo 2 (atômico, separado): trocar as refs `.wav` → `.ogg` no código — `ZONES[*].music`, AudioManager/SFX e qualquer path hardcoded — e remover os WAVs do repo. Não mudar nomes de faixa, só extensão.
+Como verificar: `tools/transcode-audio.sh --dry-run` lista os pares wav→ogg; após rodar, cada .wav tem um .ogg irmão e o jogo toca música/SFX normalmente com os WAVs removidos; `du -sh frontend/public/assets/audio` cai pra ~16MB e `npm run build` fica abaixo do cap do Cloudflare.
+---END---
+
+## P1 — Continuação (qualidade do build / playtest)
+
+---TASK---
+ID: 017
+Status: PENDING
+Tela: frontend/src/state/GameConfig.ts
+Descrição: Limpeza de config morto. O design lane-runner antigo da Extração foi substituído por Boulder Dash (cavar/empurrar pedras), então as keys `EXTRACTION_LANE_*`, `EXTRACTION_SCROLL_*`, `EXTRACTION_DEBUFF_*` e `EXTRACTION_SPARK_*` em GameConfig estão mortas (confirmado em implementation-notes — `ExtractionScene` não as referencia). Fazer grep por cada key, confirmar zero usos fora do GameConfig, e removê-las. Varrer também outras keys órfãs no mesmo passe (qualquer constante sem leitor). Não tocar em keys vivas (timers, drop counts, FX intensities).
+Como verificar: `grep -rn "EXTRACTION_LANE\|EXTRACTION_SCROLL\|EXTRACTION_DEBUFF\|EXTRACTION_SPARK" frontend/src` retorna vazio; `npm run typecheck` e `npm run build` ficam verdes; nenhuma zona muda de comportamento.
+---END---
+
+---TASK---
+ID: 018
+Status: PENDING
+Tela: frontend/src/scenes/runs/* + frontend/src/run/RunFrame
+Descrição: Continuar o refactor da run-framework UMA ZONA POR VEZ, com playtest obrigatório antes do merge de cada zona. Plano completo em `docs/architecture/run-framework-refactor.md` (dedupe de pointer binding ×7, delta-cap ×11, music ×11). Começar migrando UMA zona já jogável (sugestão: Extração, que reimplementa `bindPointer`/`toLocal` à mão) para o `bindDrag()`/helpers compartilhados do RunFrame, sem alterar gameplay. Cada zona migrada precisa ser jogada manualmente (mover o personagem, coletar, vencer/perder) antes do merge — o risco é ordem de lifecycle e binding de input, que tsc/build NÃO pegam. NÃO migrar as 11 de uma vez.
+Como verificar: a zona migrada (Extração) joga idêntica ao comportamento atual — mover/cavar, coletar canisters, sair com recompensa — e seu `bindPointer`/`toLocal` locais sumiram em favor do helper do RunFrame; `npm run build` verde; diff toca só 1 zona.
+---END---
+
+---TASK---
+ID: 019
+Status: PENDING
+Tela: frontend/src/scenes/runs (RocketScene/Foguete) + assets/data/zone_rewards.json + GameConfig
+Descrição: Passe de balance do foguete. Cruzar o custo total de ROCKET_RECIPE (8 peças, ~37+ unidades) com o que cada zona dropa por run, ajustando os drop-counts (em assets/data, não hardcoded) pra que fechar o foguete leve ~6-10 runs bem-sucedidas. Incluir nesse passe a confirmação dos timers roteados no Pass 1 que ficaram em aberto: Circuito 60→90s (`CIRCUIT_RUN_TIMER`) e Infecção 75→120s (`INFECTION_RUN_TIMER`) — decidir o valor canônico (Level Designer marcou Circuito como a "parede"). Documentar a curva esperada num comentário no JSON.
+Como verificar: jogando o loop normal, fechar o foguete leva entre 6 e 10 runs; mudar os drop-counts no JSON muda a curva sem tocar em scene code; os timers de Circuito/Infecção batem com o valor decidido (1 linha no GameConfig se reverter).
+---END---
+
+---TASK---
+ID: 020
+Status: PENDING
+Tela: frontend/src/scenes/runs (todas) + FX core (esporo/número flutuante)
+Descrição: Feel-pass de coleta, compartilhado entre zonas. Toda coleta de recurso deve disparar: partícula de esporo no ponto de pickup, número flutuante "+1" subindo e desvanecendo, micro pop (squash/stretch) no item, e SFX de pickup via AudioManager. Extrair num helper único (ex: `Juice.collectFx(x, y)`) chamado por cada zona no momento da coleta, pra ser idêntico em Hordas, Extração, Sacrifício, etc. Intensidades (escala do número, duração, nº de partículas, volume) em GameConfig — nada hardcoded.
+Como verificar: coletar um recurso em qualquer zona jogável dispara esporo + "+1" flutuante + pop + som, e o efeito é visualmente idêntico entre pelo menos 3 zonas diferentes; intensidade muda ao editar GameConfig sem tocar em scene code.
+---END---
+
 ## P2 — Nice-to-have (não bloqueia o playtest)
 
 ---TASK---
@@ -156,8 +241,27 @@ Como verificar: abrir o hub mostra esporos animados e a luz de lanterna sobre o 
 
 ---TASK---
 ID: 015
-Status: PENDING
+Status: SUPERSEDED
+Nota: Promovido pra P1 e absorvido pela task #019 (passe de balance do foguete),
+que cobre o mesmo escopo (drop-counts em assets/data vs. ROCKET_RECIPE,
+~6-10 runs) e ainda fecha os timers Circuito/Infecção em aberto. Usar #019.
 Tela: frontend/src/scenes/runs (todas) + frontend/src/state/GameConfig.ts
 Descrição: Passe de balance inicial pro playtest: ajustar quantos recursos cada zona dá por run vs. o custo total de ROCKET_RECIPE (37+ unidades distribuídas) pra que o foguete completo leve ~6-10 runs, não 1 nem 40. Centralizar drop-count por zona em assets/data/zone_rewards.json e referenciar em GameConfig. Documentar a curva esperada num comentário.
 Como verificar: jogando o loop normalmente, fechar o foguete leva entre 6 e 10 runs bem-sucedidas; o número de drops por zona vem do JSON e mudar o JSON muda a curva sem tocar em scene code.
+---END---
+
+---TASK---
+ID: 021
+Status: PENDING
+Tela: frontend/src/scenes/hub/HubScene + ui/hub/RocketLaunchOverlay
+Descrição: Polish da sequência de lançamento (o final hoje é mínimo — só bob/flicker do glifo). Antes de abrir o RocketLaunchOverlay, rodar uma sequência: tween de subida do sprite do foguete saindo do topo da tela, trilha de esporos/chama bioluminescente, leve zoom-punch + shake da câmera, e fade temático pra tela de vitória. Timings/FX em GameConfig (ex: `LAUNCH_RISE_MS`, `LAUNCH_SHAKE`). Sem hardcode de coordenadas/durações no scene.
+Como verificar: com as 8 peças construídas, acionar LANÇAR roda a animação de subida (foguete sobe e some) com shake e trilha de esporos antes de a tela de vitória aparecer; editar os timings no GameConfig muda a sequência sem tocar no scene.
+---END---
+
+---TASK---
+ID: 022
+Status: PENDING
+Tela: design/narrative/*.md (docs, não código)
+Descrição: Alinhar os ~23 docs em `design/narrative/` ao cânone Dr. Myco. As strings player-facing já migraram (implementation-notes #6), mas os docs ainda usam "Paulo" como nome corrente. Regra em `design/narrative/canon-decision-protagonist.md`: "Dr. Myco" é o apelido pós-Transição; "Paulo Vitor Santos" é o nome de nascimento / identidade anterior (quando ajudou a criar a IA) — usar SÓ em contexto de passado/origem. PRESERVAR de propósito: referências de passado legítimas (ex: o "Paulo stood, five years ago" do Field) e a PESSOA DIFERENTE "Paulo A. Martins" em LoreFragments (não é o protagonista). Requer julgamento por contexto, doc a doc — não é find-and-replace cego.
+Como verificar: passar cada doc em `design/narrative/`, toda menção ao protagonista no presente vira "Dr. Myco"; "Paulo Vitor Santos" só aparece em contexto de passado/origem; "Paulo A. Martins" intocado; um grep final de "Paulo" só retorna ocorrências justificadas.
 ---END---
