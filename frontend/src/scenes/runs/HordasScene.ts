@@ -27,13 +27,13 @@
 // ============================================================================
 
 import { Container, Graphics, Text } from 'pixi.js';
-import { Scene } from '../../core/Scene';
 import { audioManager } from '../../core/AudioManager';
 import { FontFamily, TextColor } from '../../core/typography';
 import { HubState } from '../../state/HubState';
 import type { Vec2 } from '../../core/types';
 import { RunJuice } from '../../run/fx/RunJuice';
-import { buildHud, buildEndOverlay, bindDrag, type RunHud, type DragInput } from './RunFrame';
+import { bindDrag, type DragInput } from './RunFrame';
+import { RunScene } from './RunScene';
 import {
   AURA, BASE_HP, BASE_PICKUP, BASE_SPEED, BUFF_TIME, DART, DESPAWN_R, ENEMY_CAP,
   ESTATS, FOREST, GOAL, HARVEST_DECAY, HARVEST_DIST, HARVEST_NEARBY, HARVEST_SURGE,
@@ -49,16 +49,16 @@ import { HordasRenderer } from './hordas/HordasRenderer';
 
 /** Cena principal da fase Hordas. Cuida da LOGICA do jogo; o desenho fica no
  *  HordasRenderer e os numeros no config. Veja o bloco no topo do arquivo. */
-export class HordasScene extends Scene {
+export class HordasScene extends RunScene {
+  protected readonly zone = ZONE;
+
   private content = new Container();  // container que treme com o RunJuice; segura fundo + camera
   private camera = new Container();   // deslocado por -cam; segura o mundo (inimigos, jogador, ...)
   private overlay = new Container();  // HUD fixo de tela (nao se mexe com a camera)
 
   private renderer = new HordasRenderer();  // tudo que desenha a tela mora aqui
 
-  private hud!: RunHud;
   drag!: DragInput;
-  private juice!: RunJuice;
 
   // ── Estado do jogador (em coordenadas do mundo; o mundo nao tem bordas) ────
   // OBS: campos sem "private" sao lidos pelo HordasRenderer (interface HordasView).
@@ -121,9 +121,8 @@ export class HordasScene extends Scene {
   private bossSpawned = false;
   boss: Enemy | null = null;
   extractPos: Vec2 = { x: 0, y: 0 };
-  private ended = false;
 
-  override async enter(): Promise<void> {
+  protected override onEnter(): void {
     this.renderer.buildBackground();
     this.renderer.attachWorldLayers(this.camera);
     this.content.addChild(this.renderer.bgStatic, this.renderer.gridG, this.camera);
@@ -133,34 +132,29 @@ export class HordasScene extends Scene {
     for (let i = 0; i < HARVEST_NEARBY; i++) this.spawnNode();
     for (let i = 0; i < PLANTS_NEARBY; i++) this.spawnPlant();
 
-    this.juice = new RunJuice(this.root, { accent: FOREST, shakeTarget: this.content, ambient: 22 });
-
-    this.hud = buildHud(ZONE);
-    this.root.addChild(this.hud.container);
-
     // Overlay de tela: textos brilhantes e com sombra para boa legibilidade.
     this.overlay.zIndex = 90;
     this.renderer.attachOverlayLayers(this.overlay);
     this.root.addChild(this.overlay);
 
     this.drag = bindDrag(this.app.pixi.canvas, this.app.world, { x: VW / 2, y: VH / 2 });
-
-    audioManager.playMusic('res://assets/audio/music/battle.wav', { loop: true, volume: 0.32, fadeMs: 500 }).catch(() => undefined);
   }
 
-  override exit(): void {
-    audioManager.stopMusic(300);
+  /** A base para a musica e destroi o juice; aqui so soltamos o drag. */
+  protected override onExit(): void {
     this.drag.cleanup();
-    this.juice.destroy();
+  }
+
+  /** Hordas treme o conteudo do jogo (camera+fundo), nao o root/HUD. */
+  protected override buildJuice(): RunJuice {
+    return new RunJuice(this.root, { accent: FOREST, shakeTarget: this.content, ambient: 22 });
   }
 
   /** Coracao do jogo: roda uma vez por frame. "dt" e o delta time (segundos
    *  desde o frame anterior). Limitamos a 1/30 para que, num travamento, a
    *  fisica nao "salte" muito de uma vez. */
-  override update(dt: number): void {
-    const d = Math.min(dt, 1 / 30);
-    this.juice.update(d);
-    if (this.ended || this.paused) return;
+  protected override onUpdate(d: number): void {
+    if (this.paused) return;
     this.elapsed += d;
     this.hurtFlash = Math.max(0, this.hurtFlash - d * 3);
     if (this.regen > 0 && this.hp < this.maxHp) this.hp = Math.min(this.maxHp, this.hp + this.regen * d);
@@ -792,19 +786,14 @@ export class HordasScene extends Scene {
 
   /** Encerra a run (vitoria ou derrota): aplica efeitos, deposita recompensa e mostra o overlay. */
   private end(victory: boolean): void {
-    if (this.ended) return;
-    this.ended = true;
-    if (victory) this.juice.victoryFx(); else this.juice.defeatFx();
+    if (this.ended) return; // protege contra deposito duplo
     const payout = this.reward;
     if (victory && payout > 0) {
       HubState.depositFlow('biomassa_adaptativa', payout);
     }
-    HubState.onRunEnded(victory);
-    this.root.addChild(buildEndOverlay({
-      zone: ZONE,
-      victory,
+    this.endRun(victory, {
       rewardLabel: `+${payout} Biomassa  (×${this.rewardMult.toFixed(1)}) · Nv ${this.level} · ☠ ${this.kills}`,
       failLabel: 'Capturado pelos jardineiros — biomassa perdida.',
-    }));
+    });
   }
 }
