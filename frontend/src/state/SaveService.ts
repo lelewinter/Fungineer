@@ -7,11 +7,12 @@ import { HubState, type HubStateSnapshot } from './HubState';
  *  Slot id defaults to 'default' — single save slot is enough for now. */
 
 const STORAGE_KEY = 'fungineer.save.v1';
-const DEFAULT_SLOT = 'default';
 const SAVE_DEBOUNCE_MS = 1500;
 
 class SaveServiceClass {
-  private slotId = DEFAULT_SLOT;
+  // Per-device slot (random secret) instead of a shared 'default' — so one
+  // device's cloud save can't be read or clobbered by another.
+  private slotId = apiClient.slotId;
   private debounceTimer: ReturnType<typeof setTimeout> | null = null;
   private armed = false;
 
