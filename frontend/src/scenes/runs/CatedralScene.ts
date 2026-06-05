@@ -19,14 +19,12 @@
 // ============================================================================
 
 import { Container, Graphics } from 'pixi.js';
-import { Scene } from '../../core/Scene';
-import { audioManager } from '../../core/AudioManager';
 import { Color } from '../../core/Color';
 import { GameConfig } from '../../state/GameConfig';
 import { HubState } from '../../state/HubState';
 import { ZONES } from '../../state/Zones';
 import { RunJuice } from '../../run/fx/RunJuice';
-import { buildHud, buildEndOverlay, type RunHud } from './RunFrame';
+import { RunScene } from './RunScene';
 
 const VW = GameConfig.VIEWPORT_WIDTH;
 const VH = GameConfig.VIEWPORT_HEIGHT;
@@ -48,14 +46,14 @@ interface Hazard { row: number; col: number; t: number; falling: boolean }
 
 /** Fase da piramide: pule entre degraus para acender todos, fugindo das sondas
  *  que descem. Veja o bloco no topo do arquivo. */
-export class CatedralScene extends Scene {
+export class CatedralScene extends RunScene {
+  protected readonly zone = ZONE;
+
   private content = new Container();
   private bg = new Graphics();
   private pyramidG = new Graphics();
   private hazardsG = new Graphics();
   private playerG = new Graphics();
-  private hud!: RunHud;
-  private juice!: RunJuice;
 
   private tiles: TileCell[][] = [];   // grade triangular de degraus [fileira][coluna]
   private row = 0;                     // fileira atual do jogador
@@ -69,13 +67,12 @@ export class CatedralScene extends Scene {
   private timeLeft = TIMER;
   private litCount = 0;                // quantos degraus ja foram acesos
   private totalTiles = 0;             // total de degraus da piramide
-  private ended = false;
   private originX = VW / 2;            // posicao na tela do degrau do topo
   private originY = 130;
   private cleanup: (() => void) | null = null;  // remove os listeners de toque ao sair
 
-  /** Monta a piramide, posiciona o jogador no topo, o HUD e os toques. */
-  override async enter(): Promise<void> {
+  /** A base monta HUD/juice/musica; aqui montamos a piramide e os toques. */
+  protected override onEnter(): void {
     const accent = Color.hex(ZONE.accent_color);
     this.bg.rect(0, 0, VW, VH).fill({ color: 0x080606 });
     // Halo suave atras da piramide (varios circulos quase transparentes).
@@ -114,31 +111,23 @@ export class CatedralScene extends Scene {
 
     this.content.addChild(this.pyramidG, this.hazardsG, this.playerG);
 
-    this.juice = new RunJuice(this.root, { accent: Color.hex(ZONE.accent_color), shakeTarget: this.content, ambient: 24 });
-
-    this.hud = buildHud(ZONE);
-    this.root.addChild(this.hud.container);
     this.hud.setStatus('liturgia');
 
     this.bindPointer();
-
-    if (ZONE.music) {
-      audioManager.playMusic(ZONE.music, { loop: true, volume: 0.3, fadeMs: 400 }).catch(() => undefined);
-    }
   }
 
-  /** Limpa musica, listeners de toque e efeitos ao sair da fase. */
-  override exit(): void {
-    audioManager.stopMusic(300);
+  /** A base para a musica e destroi o juice; aqui so soltamos o toque. */
+  protected override onExit(): void {
     this.cleanup?.();
-    this.juice.destroy();
+  }
+
+  /** A Catedral treme o conteudo do jogo (nao o root). */
+  protected override buildJuice(): RunJuice {
+    return new RunJuice(this.root, { accent: this.accentHex(), shakeTarget: this.content, ambient: 24 });
   }
 
   /** Quadro a quadro: avanca a animacao de pulo e move/checa as ameacas. */
-  override update(dt: number): void {
-    const d = Math.min(dt, 1 / 30); // limita o delta time contra travadas
-    this.juice.update(d);
-    if (this.ended) return;
+  protected override onUpdate(d: number): void {
     this.elapsed += d;
     this.timeLeft -= d;
     // Acabou o tempo: vence se 70% ou mais dos degraus estiverem acesos.
@@ -315,21 +304,16 @@ export class CatedralScene extends Scene {
   /** Encerra a fase (uma vez so): efeito de fim, recompensa se venceu, avisa o
    *  HubState e mostra a tela de fim. */
   private end(victory: boolean): void {
-    if (this.ended) return;
-    this.ended = true;
-    if (victory) this.juice.victoryFx(); else this.juice.defeatFx();
+    if (this.ended) return; // protege contra deposito duplo
     const reward = victory ? this.litCount : 0;
     if (victory && reward > 0) {
       // Nao existe um recurso "reliquias"; depositamos como fragmentos_estruturais
       // (1 fragmento a cada 4 degraus acesos), tematicamente equivalente.
       HubState.depositFlow('fragmentos_estruturais', Math.ceil(reward / 4));
     }
-    HubState.onRunEnded(victory);
-    this.root.addChild(buildEndOverlay({
-      zone: ZONE,
-      victory,
+    this.endRun(victory, {
       rewardLabel: `+${Math.ceil(reward / 4)} Relíquias — padrão ressonante completo`,
       failLabel: 'Probe de ARGOS. Padrão interrompido.',
-    }));
+    });
   }
 }
