@@ -191,22 +191,11 @@ export const GameConfig = {
   CIRCUIT_PLAYER_HP: 3,
   CIRCUIT_PLATE_RADIUS: 30,
 
-  // ── Extraction Zone (Lane Runner) ──────────────────────────────
+  // ── Extraction Zone (Boulder Dash) ─────────────────────────────
+  // The lane-runner design was scrapped; ExtractionScene is a dig/push-rocks
+  // zone. Only the run timer survives — the old lane/scroll/debuff/spark keys
+  // were dead (0 references, verified) and have been removed.
   EXTRACTION_RUN_TIMER: 60,
-  EXTRACTION_BONUS_TIME: 10,
-  EXTRACTION_LANE_COUNT: 7,
-  EXTRACTION_LANE_H: 122,
-  EXTRACTION_SCROLL_START: 180,
-  EXTRACTION_SCROLL_END: 380,
-  EXTRACTION_LANE_SWITCH_DUR: 0.15,
-  EXTRACTION_SPAWN_IVRL_START: 1.8,
-  EXTRACTION_SPAWN_IVRL_END: 0.85,
-  EXTRACTION_DEBUFF_SMOKE: 2.5,
-  EXTRACTION_DEBUFF_SLOW: 3.0,
-  EXTRACTION_DEBUFF_EMP: 2.0,
-  EXTRACTION_DEBUFF_WIRE: 1.5,
-  EXTRACTION_SPARK_TICK: 0.5,
-  EXTRACTION_SPARK_DMG: 8,
 
   // ── Field Control Zone ─────────────────────────────────────────
   FIELD_RUN_TIMER: 90,

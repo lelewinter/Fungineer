@@ -58,7 +58,7 @@ export class RocketLaunchOverlay extends Modal {
     this.panel.addChild(this.flame);
 
     const title = new Text({
-      text: 'DECOLAGEM',
+      text: 'GERMINAÇÃO',
       style: { fontFamily: FontFamily.display, fontSize: 26, fontWeight: '700', fill: amber, align: 'center', letterSpacing: 3 },
     });
     title.anchor.set(0.5, 0);
@@ -66,7 +66,7 @@ export class RocketLaunchOverlay extends Modal {
     this.panel.addChild(title);
 
     const flavor = new Text({
-      text: 'Dr. Myco: "Eu disse que a semente voaria."',
+      text: 'Dr. Myco: "Não era um foguete. Era uma semente. Ela encontrou solo."',
       style: { fontFamily: FontFamily.body, fontSize: 11, fill: cyan, align: 'center', fontStyle: 'italic', wordWrap: true, wordWrapWidth: this.panelW - padding * 2 },
     });
     flavor.anchor.set(0.5, 0);

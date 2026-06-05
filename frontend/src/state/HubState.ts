@@ -54,15 +54,33 @@ export interface RocketRecipe {
 
 // As pecas do foguete, NA ORDEM em que sao construidas. O jogo sempre constroi
 // a proxima peca da lista assim que houver recursos para ela.
+// Nomes player-facing em voz Dr. Myco (o foguete é uma semente biológica).
+// As ResourceKey internas (scrap, nucleo_logico, …) NÃO mudam — só o `name`.
+// sinais_controle reduzido (Rede 20→12, Ignição 30→18, total 50→30) para tirar
+// o gargalo de fonte única do Campo — alvo ~3 runs de Campo. Ver
+// design/systems/rocket-tuning-verified.md.
 export const ROCKET_RECIPE: RocketRecipe[] = [
-  { name: 'Base Estrutural', scrap: 3 },
-  { name: 'Motor Principal', combustivel_volatil: 3 },
-  { name: 'Processador', nucleo_logico: 2 },
-  { name: 'Revestimento', fragmentos_estruturais: 3, scrap: 2 },
-  { name: 'Rede Neural', ai_components: 4, sinais_controle: 20 },
-  { name: 'Sistema Vital', biomassa_adaptativa: 6, combustivel_volatil: 2 },
-  { name: 'Blindagem Externa', fragmentos_estruturais: 3, ai_components: 3 },
-  { name: 'Ignição Final', scrap: 2, nucleo_logico: 1, sinais_controle: 30, biomassa_adaptativa: 4 },
+  { name: 'Raiz-Âncora', scrap: 3 },
+  { name: 'Câmara Viva', combustivel_volatil: 3 },
+  { name: 'Núcleo Lógico', nucleo_logico: 2 },
+  { name: 'Casca Adaptada', fragmentos_estruturais: 3, scrap: 2 },
+  { name: 'Rede de Esporo', ai_components: 4, sinais_controle: 12 },
+  { name: 'Bolsão Vital', biomassa_adaptativa: 6, combustivel_volatil: 2 },
+  { name: 'Blindagem Orgânica', fragmentos_estruturais: 3, ai_components: 3 },
+  { name: 'Ignição Final', scrap: 2, nucleo_logico: 1, sinais_controle: 18, biomassa_adaptativa: 4 },
+];
+
+/** Micro-beat (voz Dr. Myco) exibido ao instalar a peça de mesmo índice em
+ *  ROCKET_RECIPE. Copy: design/narrative/launch-and-piece-copy.md §2.2. */
+export const PIECE_INSTALL_BEAT: string[] = [
+  'Enraizou. Agora o foguete sabe onde está o chão.',
+  'A câmara de fermentação está ativa. Ela já respira.',
+  'Conexões estabelecidas. O foguete começou a pensar.',
+  'Casca integrada. Resistência melhor que qualquer composto sintético.',
+  'A rede propagou. Cada nó conversa com o outro — como um micélio saudável.',
+  'Sistemas vitais respondem. Ele vai sobreviver lá fora.',
+  'Blindagem fundida. A casca exterior cresceu junto com o núcleo.',
+  'Ignição carregada. Agora só falta plantar ela no céu.',
 ];
 
 export interface Survivor {

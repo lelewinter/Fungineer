@@ -556,6 +556,16 @@ export class FieldControlScene extends Scene {
       sub.x = VW / 2;
       sub.y = VH * 0.45 + 36;
       this.endOverlay.addChild(sub);
+    } else {
+      // Voz de Dr. Myco — diagnóstico, não consolação.
+      const sub = new Text({
+        text: 'O próximo desenho vai ser mais exato.',
+        style: { fontFamily: FontFamily.body, fontSize: 16, fill: 0xc7b8a0, fontStyle: 'italic' },
+      });
+      sub.anchor.set(0.5);
+      sub.x = VW / 2;
+      sub.y = VH * 0.45 + 36;
+      this.endOverlay.addChild(sub);
     }
     this.root.addChild(this.endOverlay);
     void TextColor;
