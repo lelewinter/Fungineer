@@ -59,10 +59,17 @@ export class App {
       antialias: false,
       width: host.clientWidth || window.innerWidth,
       height: host.clientHeight || window.innerHeight,
-      resolution: Math.min(window.devicePixelRatio || 1, 2),
+      // A full-screen CRT post-process runs every frame, so rendering at a
+      // phone's full 3x DPR cooks the GPU. 1.5x stays crisp (the CRT scanlines
+      // mask the softness) while cutting fill-rate ~44% vs 2x — much cooler.
+      resolution: Math.min(window.devicePixelRatio || 1, 1.5),
       autoDensity: true,
       preference: 'webgl',
     });
+    // Cap at 60fps. On 90/120Hz phones the uncapped ticker renders 1.5–2x the
+    // frames — and runs the CRT shader + scene update that many times — heating
+    // the device with no visual benefit for this art style.
+    pixi.ticker.maxFPS = 60;
     host.appendChild(pixi.canvas);
     pixi.canvas.style.width = '100%';
     pixi.canvas.style.height = '100%';
