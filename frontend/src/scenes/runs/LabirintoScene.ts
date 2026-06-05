@@ -34,7 +34,7 @@ const VH = GameConfig.VIEWPORT_HEIGHT;
 const ZONE = ZONES[6]!;
 
 const STEP_TIME = 0.16;  // intervalo minimo entre dois passos (segundos)
-const TIMER = 90;        // duracao da fase em segundos
+const TIMER = GameConfig.LABIRINTO_RUN_TIMER;        // duracao da fase em segundos
 
 // Cada fase e desenhada como texto. Legenda dos caracteres:
 //   '#' parede, '.' chao, 'F' caixa, 'X' receptor, '*' caixa-sobre-receptor,

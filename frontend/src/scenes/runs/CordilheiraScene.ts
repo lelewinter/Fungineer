@@ -38,7 +38,7 @@ const FOOT = 80;            // margem inferior
 const ROW_H = 60;           // altura de cada faixa
 const ROW_COUNT = Math.floor((VH - TOP - FOOT) / ROW_H);  // quantas faixas cabem
 const HOP = 0.18;           // duracao da animacao de pulo, em segundos
-const TIMER = 75;           // duracao da fase em segundos
+const TIMER = GameConfig.CORDILHEIRA_RUN_TIMER;           // duracao da fase em segundos
 
 // Uma ameaca numa faixa: sua posicao horizontal e sua largura.
 interface Hazard { x: number; w: number }

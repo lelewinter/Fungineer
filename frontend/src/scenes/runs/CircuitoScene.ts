@@ -40,7 +40,7 @@ const SPEED_PER_NODE = 9;    // quanto a velocidade sobe a cada rele coletado
 const TRAIL_SEG_DIST = 14;   // distancia entre dois pontos do rastro
 const NODE_R = 9;            // raio visual do rele a coletar
 const COLLECT_DIST = 22;     // distancia para "encostar" e coletar o rele
-const TIMER = 60;            // duracao da fase em segundos
+const TIMER = GameConfig.CIRCUIT_RUN_TIMER;            // duracao da fase em segundos
 const TRAIL_GRACE_SEGS = 5;  // ignora os N segmentos mais novos do rastro na auto-colisao
 const GOAL = 14;             // quantos reles coletar para vencer
 
@@ -185,7 +185,7 @@ export class CircuitoScene extends Scene {
     this.draw();
     this.hud.setTimer(this.timeLeft);
     this.hud.setScore(`relés ${this.collected}/${GOAL}`);
-    this.hud.setHealth(1 - this.collected / GOAL);
+    this.hud.setHealth(this.collected / GOAL);
   }
 
   /** Cria N reles em posicoes aleatorias dentro do tabuleiro, longe da cabeca

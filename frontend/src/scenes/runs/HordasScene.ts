@@ -2,14 +2,14 @@
 // HORDAS — A FLORESTA AUTOMATIZADA DA IA (arena estilo Vampire Survivors)
 // ----------------------------------------------------------------------------
 // O que e esta fase, em palavras simples:
-//   - Dr. Paulo esta numa floresta infinita controlada pela IA. Robos-
+//   - Dr. Myco esta numa floresta infinita controlada pela IA. Robos-
 //     jardineiros surgem em ondas cada vez maiores e correm atras dele.
-//   - Paulo NAO atira sozinho com botoes: ele so se DESLOCA (com um joystick
+//   - Myco NAO atira sozinho com botoes: ele so se DESLOCA (com um joystick
 //     flutuante que aparece onde voce toca). As armas dele disparam automaticamente.
 //   - Matar inimigos solta gemas de XP; juntar XP sobe de nivel; ao subir,
 //     voce escolhe uma melhoria (nova arma, mais nivel de arma, ou uma passiva).
 //   - O objetivo de verdade e arriscado: existem NODULOS DE BIOMASSA. Para
-//     coletar um, Paulo precisa ficar PARADO em cima dele por alguns segundos,
+//     coletar um, Myco precisa ficar PARADO em cima dele por alguns segundos,
 //     com as armas guardadas e tomando dano extra, enquanto a IA despeja reforcos.
 //   - Atingir a meta de biomassa ABRE a extracao (e invoca um boss). Mas quanto
 //     mais voce coleta e mais tempo sobrevive, maior o multiplicador de
@@ -113,7 +113,7 @@ export class HordasScene extends Scene {
 
   // ── Fluxo da run ────────────────────────────────────────────────────────────
   private harvested = 0;       // biomassa coletada — sem teto; mais = mais recompensa
-  channeling = false;          // true enquanto Paulo esta coletando um nodulo (exposto)
+  channeling = false;          // true enquanto Myco esta coletando um nodulo (exposto)
   private surgeTimer = 0;
   private spawnTimer = SPAWN_START;
   elapsed = 0;

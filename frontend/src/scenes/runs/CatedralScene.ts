@@ -38,7 +38,7 @@ const TILE_W = 56;           // largura do losango de um degrau
 const TILE_H = 40;           // altura do losango (face de cima)
 const TILE_DEPTH = 22;       // profundidade das faces laterais (o "degrau" 3D)
 const HOP_TIME = 0.18;       // duracao da animacao de pulo, em segundos
-const TIMER = 90;            // duracao da fase em segundos
+const TIMER = GameConfig.CATEDRAL_RUN_TIMER;            // duracao da fase em segundos
 const DROP_INTERVAL = 3.5;   // intervalo base entre o surgimento de ameacas
 
 // Um degrau da piramide: so guarda se ja foi aceso.

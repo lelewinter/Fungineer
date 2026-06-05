@@ -40,7 +40,7 @@ const TILE = Math.floor(VW / COLS);                    // lado de cada quadrado,
 const ROWS = Math.floor((VH - TOP - FOOT) / TILE);     // quantas linhas cabem
 const STEP_TIME = 0.18;     // intervalo entre passos ao cavar (segundos)
 const ROCK_FALL_TIME = 0.22; // tempo para uma pedra completar um passo de queda
-const TIMER = 60;           // duracao da fase em segundos
+const TIMER = GameConfig.EXTRACTION_RUN_TIMER;           // duracao da fase em segundos
 const FUEL_GOAL = 8;        // tanques de combustivel para vencer
 
 // O conteudo de um quadrado da grade.
@@ -146,7 +146,7 @@ export class ExtractionScene extends Scene {
     this.draw();
     this.hud.setTimer(this.timeLeft);
     this.hud.setScore(`comb ${this.banked}/${FUEL_GOAL}`);
-    this.hud.setHealth(1 - this.banked / FUEL_GOAL);
+    this.hud.setHealth(this.banked / FUEL_GOAL);
   }
 
   /** Liga o arraste: guarda a direcao do gesto, lida no update para cavar. */

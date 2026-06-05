@@ -126,6 +126,7 @@ export class SacrificeScene extends Scene {
   private bagLabel!: Text;
   private hpLabel!: Text;
   private exitLabel!: Text;
+  private exitTimeout: ReturnType<typeof setTimeout> | null = null;
   private hubTitle!: Text;
   private coreLabel!: Text;
 
@@ -164,10 +165,11 @@ export class SacrificeScene extends Scene {
     this.juice = new RunJuice(this.root, { accent: Color.hex(ZONE.accent_color), shakeTarget: this.content, ambient: 26 });
     this.buildHud();
     this.bindPointer();
-    audioManager.playMusic('res://assets/audio/music/zones/dungeon_theme_1.wav', { loop: true, volume: 0.35, fadeMs: 400 }).catch(() => undefined);
+    if (ZONE.music) audioManager.playMusic(ZONE.music, { loop: true, volume: 0.35, fadeMs: 400 }).catch(() => undefined);
   }
 
   override async exit(): Promise<void> {
+    if (this.exitTimeout !== null) { clearTimeout(this.exitTimeout); this.exitTimeout = null; }
     this.unbindPointer();
     audioManager.stopMusic(250);
     this.juice.destroy();
@@ -787,7 +789,7 @@ export class SacrificeScene extends Scene {
     HubState.onRunEnded(victory);
     GameState.endRun(victory);
     this.showEndOverlay();
-    setTimeout(() => { void sceneManager.replace(new HubScene()); }, 2500);
+    this.exitTimeout = setTimeout(() => { void sceneManager.replace(new HubScene()); }, 2500);
   }
 
   private showEndOverlay(): void {

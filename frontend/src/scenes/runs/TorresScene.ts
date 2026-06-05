@@ -43,7 +43,7 @@ const MOVE_SPEED = 130;   // velocidade andando (pixels/seg)
 const CLIMB_SPEED = 90;   // velocidade subindo escada (pixels/seg)
 const BARREL_FALL = 60;   // velocidade de queda dos barris
 const BARREL_ROLL = 70;   // velocidade de rolagem dos barris num andar
-const TIMER = 80;         // duracao da fase em segundos
+const TIMER = GameConfig.TORRES_RUN_TIMER;         // duracao da fase em segundos
 
 // Um barril rolando/caindo: posicao, sentido da rolagem e se esta caindo.
 interface Barrel { x: number; y: number; dir: 1 | -1; falling: boolean }

@@ -36,7 +36,7 @@ const ZONE = ZONES[1]!;
 const START_R = 8;          // raio inicial do jogador (massa de partida)
 const MAX_BASE_SPEED = 240; // velocidade quando voce esta pequeno (pixels/seg)
 const MIN_SPEED = 80;       // velocidade minima quando voce esta enorme
-const TIMER = 50;           // duracao da fase em segundos
+const TIMER = GameConfig.STEALTH_RUN_TIMER;           // duracao da fase em segundos
 const GOAL_MASS = 32;       // raio-alvo para vencer
 
 // Uma bolha do mapa: posicao, velocidade de deriva, raio e se e predadora.

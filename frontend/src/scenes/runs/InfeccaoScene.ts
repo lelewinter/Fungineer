@@ -41,7 +41,7 @@ const TILE = Math.floor(Math.min((VH - TOP - 90) / ROWS, VW / COLS)); // lado do
 const PLAYER_SPEED = 80; // velocidade do jogador (pixels/seg)
 const GHOST_SPEED = 60;  // velocidade dos drones
 const POWER_TIME = 6;    // duracao do "modo poder" em segundos
-const TIMER = 75;        // duracao da fase em segundos
+const TIMER = GameConfig.INFECTION_RUN_TIMER; // duracao da fase em segundos
 
 // O conteudo de um quadrado do labirinto:
 //   1 = parede, 0 = corredor com pastilha, 2 = pastilha de poder, -1 = ja comido.
@@ -106,6 +106,7 @@ export class InfeccaoScene extends Scene {
   private nextDir: { x: number; y: number } = { x: 0, y: 0 };   // direcao desejada (aplicada quando possivel)
   private ghosts: Ghost[] = [];
   private pelletsLeft = 0;  // pastilhas ainda nao comidas
+  private totalPellets = 0; // total de pastilhas no inicio (barra de progresso)
   private banked = 0;       // biomassa acumulada
   private power = 0;        // segundos restantes do "modo poder"
   private timeLeft = TIMER;
@@ -135,7 +136,8 @@ export class InfeccaoScene extends Scene {
     for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
       if (this.cells[r]![c] === 0 || this.cells[r]![c] === 2) this.pelletsLeft += 1;
     }
-    // Come a pastilha do quadrado inicial.
+    this.totalPellets = Math.max(1, this.pelletsLeft);
+    // Eat starting tile.
     this.cells[this.py]![this.px] = -1;
     this.pelletsLeft -= 1;
 
@@ -219,7 +221,7 @@ export class InfeccaoScene extends Scene {
     this.draw();
     this.hud.setTimer(this.timeLeft);
     this.hud.setScore(`biomassa ${this.banked}`);
-    this.hud.setHealth(1 - this.pelletsLeft / (COLS * ROWS));
+    this.hud.setHealth(1 - this.pelletsLeft / this.totalPellets);
   }
 
   /** Move o jogador pelo labirinto. Ele so muda de direcao quando esta alinhado
