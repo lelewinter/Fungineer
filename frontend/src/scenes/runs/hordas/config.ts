@@ -70,7 +70,8 @@ export const ESTATS: Record<EKind, EnemyStat> = {
 };
 
 // ── Plantas de buff — raras; pisar numa da um bonus temporario ───────────────
-export type PlantType = 'red' | 'blue' | 'green' | 'gold' | 'purple';
+// O cogumelo "orange" e especial: alem do efeito temporario, recupera vida.
+export type PlantType = 'red' | 'blue' | 'green' | 'gold' | 'purple' | 'orange';
 export interface PlantDef { color: number; name: string; short: string }
 
 export const PLANTS: Record<PlantType, PlantDef> = {
@@ -79,11 +80,15 @@ export const PLANTS: Record<PlantType, PlantDef> = {
   green: { color: 0x6dff9a, name: 'Veloz', short: 'VELOZ' },
   gold: { color: 0xffd36b, name: 'Áurea', short: 'ÍMÃ' },
   purple: { color: 0xc78fff, name: 'Esporal', short: 'ÁREA' },
+  orange: { color: 0xff8a1e, name: 'Restauradora', short: 'CURA' },  // cogumelo laranja brilhante
 };
-export const PLANT_TYPES: PlantType[] = ['red', 'blue', 'green', 'gold', 'purple'];
+export const PLANT_TYPES: PlantType[] = ['red', 'blue', 'green', 'gold', 'purple', 'orange'];
 
 export const BUFF_TIME = 7;        // duracao do bonus de uma planta (segundos)
-export const PLANTS_NEARBY = 2;    // quantas plantas existem por perto ao mesmo tempo
+export const BUFF_MAX = 30;        // teto do tempo acumulado de um buff (eles EMPILHAM)
+export const HEAL_INSTANT = 30;    // cura imediata ao pisar no cogumelo laranja
+export const HEAL_REGEN = 6;       // vida por segundo enquanto o cogumelo laranja dura
+export const PLANTS_NEARBY = 3;    // quantas plantas existem por perto ao mesmo tempo
 export const PLANT_DIST = { min: 300, max: 540 };  // a que distancia elas nascem
 export const PLANT_CULL_R = 760;   // plantas alem disto sao removidas
 
@@ -129,9 +134,9 @@ export const PASSIVE_NAME: Record<PassiveId, string> = {
   maxhp: 'Casca reforçada', speed: 'Passada leve', magnet: 'Esporo magnético', power: 'Toxina concentrada', regen: 'Micélio curativo',
 };
 export const PASSIVE_DESC: Record<PassiveId, string> = {
-  maxhp: '+25 vida máxima e cura na hora.',
-  speed: '+22 de velocidade de movimento.',
-  magnet: '+20 de raio de coleta de gemas.',
-  power: '+15% de dano em todas as armas.',
-  regen: '+0.8 de vida por segundo.',
+  maxhp: '+35 vida máxima e cura na hora.',
+  speed: '+30 de velocidade de movimento.',
+  magnet: '+32 de raio de coleta de gemas.',
+  power: '+22% de dano em todas as armas.',
+  regen: '+1.3 de vida por segundo.',
 };
