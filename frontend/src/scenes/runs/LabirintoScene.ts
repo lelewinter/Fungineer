@@ -19,7 +19,6 @@
 // ============================================================================
 
 import { Container, Graphics, Text } from 'pixi.js';
-import { Scene } from '../../core/Scene';
 import { audioManager } from '../../core/AudioManager';
 import { Color } from '../../core/Color';
 import { FontFamily, TextColor } from '../../core/typography';
@@ -27,7 +26,7 @@ import { GameConfig } from '../../state/GameConfig';
 import { HubState } from '../../state/HubState';
 import { ZONES } from '../../state/Zones';
 import { RunJuice } from '../../run/fx/RunJuice';
-import { buildHud, buildEndOverlay, type RunHud } from './RunFrame';
+import { RunScene } from './RunScene';
 
 const VW = GameConfig.VIEWPORT_WIDTH;
 const VH = GameConfig.VIEWPORT_HEIGHT;
@@ -60,15 +59,15 @@ interface Box { x: number; y: number }  // uma caixa, pela sua posicao na grade
 
 /** Fase de empurrar caixas: leve cada fragmento ate um receptor; so empurra,
  *  nunca puxa. Veja o bloco no topo do arquivo. */
-export class LabirintoScene extends Scene {
+export class LabirintoScene extends RunScene {
+  protected readonly zone = ZONE;
+
   private content = new Container();
   private bg = new Graphics();
   private mapG = new Graphics();
   private boxG = new Graphics();
   private playerG = new Graphics();
   private statusLabel!: Text;
-  private hud!: RunHud;
-  private juice!: RunJuice;
 
   private tiles: Tile[][] = [];        // o cenario fixo (paredes, chao, receptores)
   private boxes: Box[] = [];           // as caixas que se movem
@@ -87,11 +86,10 @@ export class LabirintoScene extends Scene {
   private elapsed = 0;
   private timeLeft = TIMER;
   private banked = 0;                   // caixas ja posicionadas em receptores
-  private ended = false;
   private cleanup: (() => void) | null = null;
 
-  /** Carrega a fase, centraliza na tela, monta o HUD e os toques. */
-  override async enter(): Promise<void> {
+  /** A base monta HUD/juice/musica; aqui carregamos a sala e os toques. */
+  protected override onEnter(): void {
     this.bg.rect(0, 0, VW, VH).fill({ color: 0x06080a });
     this.content.addChild(this.bg);
     this.root.addChild(this.content);
@@ -103,10 +101,6 @@ export class LabirintoScene extends Scene {
 
     this.content.addChild(this.mapG, this.boxG, this.playerG);
 
-    this.juice = new RunJuice(this.root, { accent: Color.hex(ZONE.accent_color), shakeTarget: this.content, ambient: 22 });
-
-    this.hud = buildHud(ZONE);
-    this.root.addChild(this.hud.container);
     this.hud.setStatus('roteamento de carga');
 
     this.statusLabel = new Text({
@@ -130,24 +124,20 @@ export class LabirintoScene extends Scene {
 
     this.bindPointer();
     this.drawMap();
-
-    if (ZONE.music) {
-      audioManager.playMusic(ZONE.music, { loop: true, volume: 0.3, fadeMs: 400 }).catch(() => undefined);
-    }
   }
 
-  /** Limpa musica, listeners de toque e efeitos ao sair da fase. */
-  override exit(): void {
-    audioManager.stopMusic(300);
+  /** A base para a musica e destroi o juice; aqui so soltamos o toque. */
+  protected override onExit(): void {
     this.cleanup?.();
-    this.juice.destroy();
+  }
+
+  /** O Labirinto treme o conteudo do jogo (nao o root). */
+  protected override buildJuice(): RunJuice {
+    return new RunJuice(this.root, { accent: this.accentHex(), shakeTarget: this.content, ambient: 22 });
   }
 
   /** Quadro a quadro: anda no ritmo do arraste e checa se a sala foi resolvida. */
-  override update(dt: number): void {
-    const d = Math.min(dt, 1 / 30); // limita o delta time contra travadas
-    this.juice.update(d);
-    if (this.ended) return;
+  protected override onUpdate(d: number): void {
     this.elapsed += d;
     this.timeLeft -= d;
     if (this.timeLeft <= 0) { this.end(false); return; } // tempo esgotado: perdeu
@@ -341,18 +331,13 @@ export class LabirintoScene extends Scene {
   /** Encerra a fase (uma vez so): efeito de fim, recompensa se venceu, avisa o
    *  HubState e mostra a tela de fim. */
   private end(victory: boolean): void {
-    if (this.ended) return;
-    this.ended = true;
-    if (victory) this.juice.victoryFx(); else this.juice.defeatFx();
+    if (this.ended) return; // protege contra deposito duplo
     if (victory && this.banked > 0) {
       HubState.depositFlow('fragmentos_estruturais', this.banked);
     }
-    HubState.onRunEnded(victory);
-    this.root.addChild(buildEndOverlay({
-      zone: ZONE,
-      victory,
+    this.endRun(victory, {
       rewardLabel: `+${this.banked} Frag. Estruturais — entregas concluídas`,
       failLabel: 'Rota de contenção ativada. Saída bloqueada.',
-    }));
+    });
   }
 }
