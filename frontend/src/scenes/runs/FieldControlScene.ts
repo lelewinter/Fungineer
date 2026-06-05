@@ -16,19 +16,20 @@ const VW = GameConfig.VIEWPORT_WIDTH;
 const VH = GameConfig.VIEWPORT_HEIGHT;
 const ZONE = ZONES[4]!;
 
-const PLAYER_SPEED = 200;
-const PLAYER_R = 14;
-const RECAPTURER_HP = 70;
-const RECAPTURER_SPEED = 90;
-const SQUAD_DPS = 25;
-const RECAPTURER_DPS = 8;
-const SQUAD_HP_PER = 100;
-const SMALL_RATE = 0.20;
-const MEDIUM_RATE = 0.10;
-const CENTRAL_RATE = 0.05;
-const DECAY_MULT = 0.50;
-const CONTEST_DECAY = 0.50;
-const KILL_REWARD = 8;
+// ── Numeros de balanceamento (a "receita" da fase; nada aqui foi alterado) ──
+const PLAYER_SPEED = 200;      // velocidade do esquadrao (pixels por segundo)
+const PLAYER_R = 14;           // raio do esquadrao (hitbox)
+const RECAPTURER_HP = 70;      // vida de cada inimigo "recapturador"
+const RECAPTURER_SPEED = 90;   // velocidade dos recapturadores
+const SQUAD_DPS = 25;          // dano por segundo de cada membro do esquadrao
+const RECAPTURER_DPS = 8;      // dano por segundo de cada recapturador
+const SQUAD_HP_PER = 100;      // vida que cada membro do esquadrao soma ao total
+const SMALL_RATE = 0.20;       // velocidade de captura das zonas pequenas
+const MEDIUM_RATE = 0.10;      // velocidade de captura das zonas medias
+const CENTRAL_RATE = 0.05;     // velocidade de captura da zona central (a mais lenta)
+const DECAY_MULT = 0.50;       // o quanto a barra cai quando so o inimigo esta na zona
+const CONTEST_DECAY = 0.50;    // o quanto a barra cai quando os dois disputam a zona
+const KILL_REWARD = 8;         // sinais ganhos ao derrotar um recapturador
 
 type ZoneState = 'neutral' | 'capturing' | 'captured' | 'contested' | 'losing';
 
@@ -49,12 +50,30 @@ interface Recapturer {
   idleTimer: number;
 }
 
+// Os 4 cantos do mapa de onde os recapturadores aparecem.
 const SPAWN_POINTS: Vec2[] = [
   { x: 20, y: 70 }, { x: 460, y: 70 }, { x: 20, y: 834 }, { x: 460, y: 834 },
 ];
 
-/** Controle de Campo — capture 6 zones, generate sinais_controle.
- *  Port of src/scenes/runs/FieldControlMain.gd. */
+// ============================================================================
+// CONTROLE DE CAMPO — DOMINE 6 ZONAS DE UMA PRACA PARA GERAR SINAIS
+// ----------------------------------------------------------------------------
+// Ideia da fase, em palavras simples:
+//   - O mapa e uma praca com 6 "zonas" (circulos). Voce arrasta o dedo para
+//     mover seu esquadrao. Ficar dentro de uma zona vai enchendo a barra dela
+//     ate captura-la; zona capturada gera "sinais de controle" (a recompensa).
+//   - A IA manda "recapturadores": inimigos que vao ate as zonas suas e comecam
+//     a baixar a barra (retomar). Se voce estiver na zona junto com eles, ha uma
+//     disputa: o esquadrao luta contra eles e a barra cai mais devagar.
+//   - Quanto mais zonas voce segura ao mesmo tempo, maior o multiplicador de
+//     "dominancia" — segurar 3, 4 ou 6 zonas rende muito mais sinais por segundo.
+//   - A run termina quando o tempo acaba (sucesso: deposita os sinais juntados).
+//     Se a vida do esquadrao zera por causa dos recapturadores, a run falha.
+//
+// Porte (traducao) de src/scenes/runs/FieldControlMain.gd (versao original em Godot).
+// ============================================================================
+
+/** Cena da zona Controle de Campo — capture 6 zonas e gere sinais_controle. */
 export class FieldControlScene extends Scene {
   private content = new Container();
   private bg = new Graphics();
@@ -110,6 +129,8 @@ export class FieldControlScene extends Scene {
     this.juice.destroy();
   }
 
+  // Coracao da fase: roda uma vez por frame. "dt" e o delta time (segundos desde
+  // o frame anterior), limitado a 1/30 para a fisica nao "saltar" num travamento.
   override update(dt: number): void {
     const capped = Math.min(dt, 1 / 30);
     this.juice.update(capped);
@@ -117,6 +138,7 @@ export class FieldControlScene extends Scene {
     if (GameState.current_state !== RunState.PLAYING) return;
     this.pulse += capped;
     this.damageFlash = Math.max(0, this.damageFlash - capped * 3);
+    // Cronometro chegou a zero -> a run termina como sucesso (deposita os sinais).
     this.runTimer -= capped;
     if (this.runTimer <= 0) {
       this.runTimer = 0;
@@ -124,6 +146,7 @@ export class FieldControlScene extends Scene {
       return;
     }
 
+    // Gera recapturadores em intervalos que vao encurtando conforme o tempo passa.
     this.spawnTimer -= capped;
     if (this.spawnTimer <= 0) {
       this.spawnRecapturer();
@@ -254,17 +277,21 @@ export class FieldControlScene extends Scene {
     this.recapturers.push(rec);
   }
 
+  // Escolhe a zona "mais valiosa" como alvo de um recapturador: ele prioriza
+  // zonas que rendem mais sinais e que ja estao capturadas (vale o dobro retomar).
   private findTarget(rec: Recapturer): void {
     let bestScore = -1, bestIdx = -1;
     for (let i = 0; i < this.zones.length; i++) {
       const z = this.zones[i]!;
-      if (z.bar <= 0) continue;
+      if (z.bar <= 0) continue; // zonas zeradas nao interessam (nada a retomar)
       const score = z.signalRate * (z.state === 'captured' ? 2 : 1) + z.bar;
       if (score > bestScore) { bestScore = score; bestIdx = i; }
     }
     rec.targetZone = bestIdx;
   }
 
+  // Move cada recapturador rumo a zona-alvo. Ao chegar, escolhe um novo alvo.
+  // Recapturadores mortos sao removidos e dao sinais de recompensa.
   private updateRecapturers(dt: number): void {
     const toRemove: number[] = [];
     for (let i = 0; i < this.recapturers.length; i++) {
@@ -296,24 +323,30 @@ export class FieldControlScene extends Scene {
     }
   }
 
+  // Esquadroes maiores "cobrem" um raio um pouco maior ao capturar zonas.
   private squadCoverage(): number {
     return (this.squadSize - 1) * 10;
   }
 
+  // Nucleo da fase: para cada zona, decide o que acontece com a barra de captura
+  // de acordo com quem esta dentro (so voce, so inimigos, os dois, ou ninguem),
+  // resolve a luta na disputa e soma os sinais gerados pelas zonas que voce segura.
   private updateZones(dt: number): void {
     let totalRecapturerDps = 0;
     let zonesCaptured = 0;
     for (const z of this.zones) {
-      const wasCaptured = z.bar >= 1;
+      const wasCaptured = z.bar >= 1; // estava capturada antes deste frame?
       const dx = this.playerPos.x - z.center.x;
       const dy = this.playerPos.y - z.center.y;
       const playerIn = Math.hypot(dx, dy) < z.radius + this.squadCoverage();
+      // Conta quantos recapturadores vivos estao dentro desta zona.
       let recapsIn = 0;
       for (const rec of this.recapturers) {
         if (!rec.alive) continue;
         if (Math.hypot(rec.pos.x - z.center.x, rec.pos.y - z.center.y) < z.radius) recapsIn++;
       }
       if (playerIn && recapsIn === 0) {
+        // So voce na zona: a barra sobe ate capturar.
         if (z.bar < 1) {
           z.state = 'capturing';
           z.bar = Math.min(1, z.bar + z.captureRate * dt);
@@ -321,6 +354,8 @@ export class FieldControlScene extends Scene {
           z.state = 'captured';
         }
       } else if (playerIn && recapsIn > 0) {
+        // Disputa: voce e inimigos juntos. A barra cai devagar e rola a luta —
+        // o dano do esquadrao e dividido igualmente entre os inimigos presentes.
         z.state = 'contested';
         z.bar = Math.max(0, z.bar - z.captureRate * CONTEST_DECAY * dt);
         const squadDps = this.squadSize * SQUAD_DPS;
@@ -333,12 +368,15 @@ export class FieldControlScene extends Scene {
         }
         totalRecapturerDps += recapsIn * RECAPTURER_DPS;
       } else if (!playerIn && recapsIn > 0) {
+        // So inimigos na zona: eles retomam (a barra cai); se zera, vira neutra.
         z.state = 'losing';
         z.bar = Math.max(0, z.bar - z.captureRate * DECAY_MULT * dt);
         if (z.bar <= 0) z.state = 'neutral';
       } else {
+        // Ninguem na zona: ela so fica como esta (capturada ou neutra).
         z.state = z.bar >= 1 ? 'captured' : 'neutral';
       }
+      // Acabou de capturar agora? Toca o efeito comemorativo (uma vez so).
       if (z.bar >= 1 && !wasCaptured) {
         this.juice.pop(z.center.x, z.center.y);
         this.juice.flash(undefined, 0.10, 0.2);
@@ -366,6 +404,8 @@ export class FieldControlScene extends Scene {
     }
   }
 
+  // Multiplicador de "dominancia": segurar mais zonas ao mesmo tempo rende mais
+  // sinais por segundo (recompensa por dominar boa parte da praca).
   private dominanceMul(held: number): number {
     if (held >= 6) return 3;
     if (held >= 4) return 2;
@@ -389,6 +429,8 @@ export class FieldControlScene extends Scene {
     }
   }
 
+  // Redesenha a fase a cada frame: as zonas (com barra de captura, antena de
+  // rele e taxa de sinais), os recapturadores com sua vida, e o esquadrao.
   private redraw(): void {
     this.zoneG.clear();
     this.warningLabels.removeChildren();
@@ -463,6 +505,8 @@ export class FieldControlScene extends Scene {
     }
   }
 
+  // Encerra a run: toca o efeito de vitoria/derrota, deposita os sinais se venceu,
+  // mostra o overlay final e volta ao bunker depois de uns instantes.
   private endRun(victory: boolean): void {
     if (this.runEnded) return;
     this.runEnded = true;

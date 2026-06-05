@@ -28,19 +28,39 @@ import { AudioButton } from '../../ui/hub/AudioButton';
 import { AudioSettingsModal } from '../../ui/AudioSettingsModal';
 import { Modal } from '../../ui/Modal';
 
-/** Mirrors src/scenes/hub/HubScene.gd. Root scene of the bunker view. */
+/**
+ * HubScene — a cena-raiz do hub (a visao do bunker, "base" do jogo).
+ *
+ * Esta classe e o maestro: ela junta as pecas e decide o que acontece quando o
+ * jogador interage. Ela NAO desenha o bunker em si — isso e o HubRenderer. O
+ * papel dela e:
+ *   - Montar as camadas da tela, na ordem certa de empilhamento:
+ *       background (fundo) -> worldLayer (bunker + NPCs) -> uiLayer (HUD) ->
+ *       modalLayer (paineis que abrem por cima de tudo).
+ *   - Ouvir os "signals" (avisos) de clique do renderer e abrir o painel certo
+ *     (uma run, o foguete, a ficha de um NPC).
+ *   - Repassar o pulso de cada quadro (update) para o renderer e os NPCs.
+ *   - Limpar tudo ao sair (remover listeners, parar audio) para nao vazar.
+ *
+ * Observacao de desempenho: o renderer e o gerenciador de NPCs ja fazem um
+ * throttle de redraw para ~20fps internamente — esta cena nao interfere nisso.
+ */
 export class HubScene extends Scene {
   private background = new Graphics();
+  // Camadas empilhadas (a ordem de adicao define o que fica na frente).
   private worldLayer = new Container();
   private uiLayer = new Container();
   private modalLayer = new Container();
   private renderer = new HubRenderer();
   private npcManager = new HubNPCManager();
   private hubAudio = new HubAudio();
+  // O painel/modal aberto no momento (so um por vez).
   private activeModal: Modal | null = null;
+  // Funcoes de desinscricao de signals; chamadas no exit() para evitar leaks.
   private disposers: Array<() => void> = [];
   private keyHandler!: (e: KeyboardEvent) => void;
 
+  /** Monta as camadas, liga as reacoes aos cliques e inicia o audio. */
   override async enter(): Promise<void> {
     this.root.addChild(this.background);
     this.root.addChild(this.worldLayer);
@@ -61,6 +81,7 @@ export class HubScene extends Scene {
     this.disposers.push(
       this.renderer.surfaceZoneClicked.connect((zoneId) => this.onSurfaceZoneClicked(zoneId)),
     );
+    // Clicou no poco do foguete -> abre o painel de construcao do foguete.
     this.disposers.push(
       this.renderer.rocketShaftClicked.connect(() => {
         this.hubAudio.playOpenPanelSfx();
@@ -80,6 +101,7 @@ export class HubScene extends Scene {
       HubState.rocketPieceBuilt.connect(() => this.hubAudio.playRocketProgressSfx()),
     );
 
+    // Esc fecha o painel aberto (se houver algum).
     this.keyHandler = (e: KeyboardEvent): void => {
       if (e.key === 'Escape' && this.activeModal) {
         void this.activeModal.requestClose();
@@ -90,23 +112,29 @@ export class HubScene extends Scene {
     this.hubAudio.start();
   }
 
+  /** A cada quadro: repassa o delta time para o renderer e os NPCs animarem. */
   override update(dt: number): void {
     this.renderer.tick(dt);
     this.npcManager.tick(dt);
   }
 
+  /** Limpeza ao sair: remove o teclado, para o audio, desconecta os signals e
+   *  destroi o renderer (que mantem listeners de longa duracao). */
   override async exit(): Promise<void> {
     window.removeEventListener('keydown', this.keyHandler);
     this.hubAudio.stop();
     for (const d of this.disposers) d();
     this.disposers = [];
-    // The renderer subscribes to long-lived HubState signals in its constructor;
-    // without this, every hub re-entry leaks 2 more dead listeners (and fires
-    // work on destroyed renderers). destroyRenderer() disconnects + tears down.
+    // O renderer assina signals de longa duracao do HubState no construtor dele;
+    // sem isto, cada re-entrada no hub deixaria 2 listeners mortos a mais (e
+    // dispararia trabalho em renderers ja destruidos). destroyRenderer()
+    // desconecta tudo e libera os recursos.
     this.renderer.destroyRenderer();
   }
 
-  // ── Modal management ─────────────────────────────────────────────────────
+  // ── Gerenciamento de modais (paineis sobrepostos) ──────────────────────────
+
+  /** Abre um modal, fechando o anterior se ja houver um aberto. */
   private openModal(modal: Modal): void {
     if (this.activeModal) {
       void this.activeModal.requestClose();
@@ -118,7 +146,10 @@ export class HubScene extends Scene {
     });
   }
 
-  // ── Interactions ─────────────────────────────────────────────────────────
+  // ── Interacoes (o que cada clique faz) ─────────────────────────────────────
+
+  /** Clique numa sala: se ela leva a uma zona, abre a visao de zoom; se tem um
+   *  NPC, abre a ficha do personagem. */
   private onRoomClicked(roomId: string): void {
     this.hubAudio.playClickSfx();
     const room = HubState.getRoomById(roomId) ?? HubData.getRoom(roomId);
@@ -132,6 +163,7 @@ export class HubScene extends Scene {
     HubState.hubRoomSelected.emit(roomId);
   }
 
+  /** Abre o painel de zoom de uma zona (de onde o jogador inicia uma run). */
   private openZoomView(roomId: string, zoneId: string): void {
     this.hubAudio.playOpenPanelSfx();
     const panel = new HubZoomPanel(roomId, zoneId);
@@ -144,6 +176,7 @@ export class HubScene extends Scene {
     HubState.hubZoomOpened.emit(roomId, zoneId);
   }
 
+  /** Abre a ficha (card) de um personagem do bunker. */
   private showNpcPopover(npcId: string): void {
     const npc = HubData.getNpc(npcId);
     if (!npc) return;
@@ -154,8 +187,10 @@ export class HubScene extends Scene {
     HubState.hubNpcSelected.emit(npcId);
   }
 
+  /** O jogador pediu para iniciar uma run numa zona: descobrimos qual cena de
+   *  run corresponde aquela zona e trocamos para ela. */
   private onStartRunRequested(zoneId: string): void {
-    // Map the hub's string zone id to the WorldMap zone index.
+    // Traduz o id de zona (texto) do hub para o indice da zona no WorldMap.
     const zoneIndex = (
       {
         hordas: 0, stealth: 1, circuito: 2, extracao: 3, campo: 4,
@@ -169,6 +204,7 @@ export class HubScene extends Scene {
     }
     const zd = ZONES[zoneIndex];
     if (!zd) return;
+    // Cada zona aponta para o tipo de cena de run dela; o default e um stub.
     switch (zd.scene) {
       case 'main':        void sceneManager.replace(new HordasScene()); break;
       case 'field':       void sceneManager.replace(new FieldControlScene()); break;
@@ -185,7 +221,9 @@ export class HubScene extends Scene {
     }
   }
 
-  // ── Audio settings button (top-right) ─────────────────────────────────────
+  // ── Botao de configuracoes de audio (canto superior-direito) ───────────────
+
+  /** Cria o botao que abre o modal de configuracoes de audio. */
   private buildAudioButton(): void {
     const btn = new AudioButton();
     btn.x = GameConfig.VIEWPORT_WIDTH - 26;
@@ -199,9 +237,11 @@ export class HubScene extends Scene {
     );
   }
 
-  // ── Resource strip (folds the old World Map stock readout into the hub) ────
+  // ── Faixa de recursos (o "placar" de estoque, antes no World Map) ───────────
   private resourceText: Text | null = null;
 
+  /** Monta a barra inferior que mostra a proxima peca do foguete, o estoque de
+   *  recursos e o numero de sobreviventes. */
   private buildResourceStrip(): void {
     const VW = GameConfig.VIEWPORT_WIDTH;
     const VH = GameConfig.VIEWPORT_HEIGHT;
@@ -233,26 +273,31 @@ export class HubScene extends Scene {
     this.uiLayer.addChild(bar);
 
     this.refreshResourceStrip();
+    // Re-renderiza a faixa sempre que o estoque mudar ou uma peca for construida.
     this.disposers.push(HubState.stockChanged.connect(() => this.refreshResourceStrip()));
     this.disposers.push(HubState.rocketPieceBuilt.connect(() => this.refreshResourceStrip()));
   }
 
+  /** Atualiza o texto da faixa de recursos com os numeros atuais. */
   private refreshResourceStrip(): void {
     if (!this.resourceText) return;
     const idx = HubState.rocket_pieces_built;
     const nextName = idx >= ROCKET_RECIPE.length ? 'FOGUETE COMPLETO' : ROCKET_RECIPE[idx]!.name;
     const s = HubState.stock;
+    // +1 conta o proprio jogador alem dos personagens resgatados.
     const survivors = HubState.rescued_characters.length + 1;
     this.resourceText.text =
       `▲ ${nextName}  ·  Suc ${s.scrap} IA ${s.ai_components} Bio ${s.biomassa_adaptativa}  ·  Sobrev ${survivors}/10`;
   }
 
+  /** Clique numa ruina da superficie: abre o zoom da zona correspondente. */
   private onSurfaceZoneClicked(zoneId: string): void {
     this.hubAudio.playClickSfx();
     this.openZoomView(`surface_${zoneId}`, zoneId);
     HubState.hubRoomSelected.emit(`surface_${zoneId}`);
   }
 
+  /** Pinta o fundo solido da cena com a cor da variante atual do hub. */
   private updateBackground(): void {
     const variant = HubState.getVariantData();
     this.background.clear();

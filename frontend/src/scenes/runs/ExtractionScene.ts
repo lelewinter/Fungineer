@@ -1,3 +1,23 @@
+// ============================================================================
+// EXTRACAO — A FASE DE ESCAVACAO COM PEDRAS QUE CAEM (estilo Boulder Dash)
+// ----------------------------------------------------------------------------
+// O que e esta fase, em palavras simples:
+//   - A caverna e uma grade cheia de terra compacta. Voce arrasta numa direcao
+//     para cavar e andar um quadradinho por vez naquele sentido.
+//   - Espalhados pela terra ha tanques de combustivel; pisar neles coleta.
+//   - Existem pedras: quando o quadrado embaixo de uma pedra fica vazio, ela CAI.
+//     Se cair em cima de voce, voce e soterrado e perde a run. Da para empurrar
+//     pedras de lado para um espaco vazio.
+//   - Coletar a meta de combustivel antes do tempo vence a fase.
+//
+// Como se encaixa no jogo:
+//   - E uma fase de raid. Usa a moldura compartilhada do RunFrame (HUD, tela de
+//     fim). Ao vencer, deposita "combustivel_volatil" no bunker.
+//
+// A classe ExtractionScene continua exportada deste mesmo arquivo, entao nada
+// quebra para quem usa esta fase.
+// ============================================================================
+
 import { Container, Graphics, Text } from 'pixi.js';
 import { Scene } from '../../core/Scene';
 import { audioManager } from '../../core/AudioManager';
@@ -12,23 +32,25 @@ const VW = GameConfig.VIEWPORT_WIDTH;
 const VH = GameConfig.VIEWPORT_HEIGHT;
 const ZONE = ZONES[3]!;
 
-const COLS = 12;
-const TOP = 50;
-const FOOT = 90;
-const TILE = Math.floor(VW / COLS);
-const ROWS = Math.floor((VH - TOP - FOOT) / TILE);
-const STEP_TIME = 0.18; // seconds per grid step (driven by drag direction)
-const ROCK_FALL_TIME = 0.22;
-const TIMER = 60;
-const FUEL_GOAL = 8;
+// ── Tamanhos e tempos ────────────────────────────────────────────────────────
+const COLS = 12;                                       // colunas da grade
+const TOP = 50;                                        // margem superior (HUD)
+const FOOT = 90;                                       // margem inferior
+const TILE = Math.floor(VW / COLS);                    // lado de cada quadrado, em pixels
+const ROWS = Math.floor((VH - TOP - FOOT) / TILE);     // quantas linhas cabem
+const STEP_TIME = 0.18;     // intervalo entre passos ao cavar (segundos)
+const ROCK_FALL_TIME = 0.22; // tempo para uma pedra completar um passo de queda
+const TIMER = 60;           // duracao da fase em segundos
+const FUEL_GOAL = 8;        // tanques de combustivel para vencer
 
+// O conteudo de um quadrado da grade.
 type Cell = 'dirt' | 'empty' | 'rock' | 'fuel' | 'wall';
 
+// Uma pedra em queda: sua coluna/linha atual e quanto tempo passou no passo.
 interface FallState { col: number; row: number; t: number }
 
-/** EXTRAÇÃO — Boulder Dash. The cavern is packed dirt; drag a direction to
- *  dig in that direction one tile at a time. Fuel tanks (Comb. Volátil)
- *  bank when stepped on. Rocks above empty tiles fall and crush you. */
+/** Fase de escavacao: cave pela terra coletando combustivel sem ser esmagado
+ *  pelas pedras que caem. Veja o bloco no topo do arquivo. */
 export class ExtractionScene extends Scene {
   private content = new Container();
   private bg = new Graphics();
@@ -37,21 +59,22 @@ export class ExtractionScene extends Scene {
   private hud!: RunHud;
   private juice!: RunJuice;
 
-  private grid: Cell[][] = [];
-  private px = 1;
-  private py = 1;
-  private moveCooldown = 0;
-  private dragVec = { x: 0, y: 0 };
+  private grid: Cell[][] = [];      // a grade da caverna [linha][coluna]
+  private px = 1;                    // coluna do jogador
+  private py = 1;                    // linha do jogador
+  private moveCooldown = 0;          // espera ate poder dar o proximo passo
+  private dragVec = { x: 0, y: 0 };  // direcao/forca do arraste atual
   private dragging = false;
-  private pointerStart = { x: 0, y: 0 };
-  private banked = 0;
+  private pointerStart = { x: 0, y: 0 };  // onde o arraste comecou
+  private banked = 0;                // combustivel coletado
   private elapsed = 0;
   private timeLeft = TIMER;
   private ended = false;
-  private falling: FallState[] = [];
+  private falling: FallState[] = []; // pedras atualmente caindo
 
   private cleanup: (() => void) | null = null;
 
+  /** Monta a grade, o HUD e os toques, e toca a musica. */
   override async enter(): Promise<void> {
     const accent = Color.hex(ZONE.accent_color);
     this.bg.rect(0, 0, VW, VH).fill({ color: 0x080604 });
@@ -69,7 +92,7 @@ export class ExtractionScene extends Scene {
     this.root.addChild(this.hud.container);
     this.hud.setStatus('escavação profunda');
 
-    // Depth legend down the left margin — the excavation feels stratified.
+    // Enfeite de lore: legenda de profundidade na margem esquerda (so visual).
     const legendStyle = { fontFamily: '"IBM Plex Mono", ui-monospace, monospace', fontSize: 7, fill: 0x6a5a44, letterSpacing: 1 };
     const top = new Text({ text: 'SUBNÍVEL −40m', style: legendStyle });
     top.x = 3; top.y = TOP + 4;
@@ -84,21 +107,25 @@ export class ExtractionScene extends Scene {
     }
   }
 
+  /** Limpa musica, listeners de toque e efeitos ao sair da fase. */
   override exit(): void {
     audioManager.stopMusic(300);
     this.cleanup?.();
     this.juice.destroy();
   }
 
+  /** Quadro a quadro: cava conforme o arraste e atualiza as pedras que caem. */
   override update(dt: number): void {
-    const d = Math.min(dt, 1 / 30);
+    const d = Math.min(dt, 1 / 30); // limita o delta time contra travadas
     this.juice.update(d);
     if (this.ended) return;
     this.elapsed += d;
     this.timeLeft -= d;
+    // Acabou o tempo: vence se ja coletou metade da meta.
     if (this.timeLeft <= 0) { this.end(this.banked >= FUEL_GOAL / 2); return; }
 
-    // Player digging step driven by drag direction.
+    // Passo de escavacao no ritmo de STEP_TIME, na direcao predominante do arraste
+    // (so horizontal OU so vertical, o eixo de maior deslocamento).
     this.moveCooldown -= d;
     if (this.moveCooldown <= 0 && this.dragging) {
       const dx = this.dragVec.x;
@@ -115,15 +142,17 @@ export class ExtractionScene extends Scene {
 
     this.updateRocks(d);
 
-    if (this.banked >= FUEL_GOAL) { this.end(true); return; }
+    if (this.banked >= FUEL_GOAL) { this.end(true); return; } // bateu a meta: venceu
     this.draw();
     this.hud.setTimer(this.timeLeft);
     this.hud.setScore(`comb ${this.banked}/${FUEL_GOAL}`);
     this.hud.setHealth(1 - this.banked / FUEL_GOAL);
   }
 
+  /** Liga o arraste: guarda a direcao do gesto, lida no update para cavar. */
   private bindPointer(): void {
     const canvas = this.app.pixi.canvas;
+    // Converte a coordenada do clique do navegador para coordenadas do jogo.
     const toLocal = (e: PointerEvent): { x: number; y: number } => {
       const rect = canvas.getBoundingClientRect();
       const scale = this.app.world.scale.x || 1;
@@ -140,6 +169,7 @@ export class ExtractionScene extends Scene {
     const onMove = (e: PointerEvent): void => {
       if (!this.dragging) return;
       const p = toLocal(e);
+      // dragVec = quanto o dedo se afastou do ponto inicial (direcao de escavacao).
       this.dragVec = { x: p.x - this.pointerStart.x, y: p.y - this.pointerStart.y };
     };
     const onUp = (): void => { this.dragging = false; this.dragVec = { x: 0, y: 0 }; };
@@ -155,6 +185,8 @@ export class ExtractionScene extends Scene {
     };
   }
 
+  /** Cria a grade: bordas de "wall", interior de "dirt", uma entrada vazia e
+   *  espalha pedras e tanques de combustivel aleatoriamente. */
   private buildGrid(): void {
     this.grid = [];
     for (let r = 0; r < ROWS; r++) {
@@ -165,17 +197,17 @@ export class ExtractionScene extends Scene {
       }
       this.grid.push(row);
     }
-    // Carve an entry pocket so the player isn't trapped on tile 0.
+    // Abre um espaco de entrada para o jogador nao comecar preso.
     this.setCell(1, 1, 'empty');
 
-    // Sprinkle rocks (will fall through empty tiles).
+    // Espalha pedras (vao cair quando o quadrado abaixo ficar vazio).
     const rockCount = Math.floor(ROWS * COLS * 0.07);
     for (let i = 0; i < rockCount; i++) {
       const c = 1 + Math.floor(Math.random() * (COLS - 2));
       const r = 2 + Math.floor(Math.random() * (ROWS - 3));
       if (this.cell(c, r) === 'dirt') this.setCell(c, r, 'rock');
     }
-    // Place fuel chunks.
+    // Espalha os tanques de combustivel (alguns a mais que a meta, para folga).
     let placed = 0;
     while (placed < FUEL_GOAL + 3) {
       const c = 1 + Math.floor(Math.random() * (COLS - 2));
@@ -184,32 +216,36 @@ export class ExtractionScene extends Scene {
     }
   }
 
+  /** Tenta mover o jogador um quadrado na direcao (mx, my), tratando paredes,
+   *  pedras empurraveis e a coleta de combustivel. */
   private stepPlayer(mx: number, my: number): void {
     const nx = this.px + mx;
     const ny = this.py + my;
     const target = this.cell(nx, ny);
-    if (target === 'wall') return;
+    if (target === 'wall') return; // parede: nao anda
     if (target === 'rock') {
-      // Can only push horizontally into empty space.
+      // So da para empurrar pedra na horizontal, e so para um espaco livre/terra.
       if (my !== 0) return;
       const beyond = this.cell(nx + mx, ny);
       if (beyond !== 'empty' && beyond !== 'dirt') return;
-      if (beyond === 'dirt' || beyond === 'empty') {
-        this.setCell(nx + mx, ny, 'rock');
-        this.setCell(nx, ny, 'empty');
-      } else return;
+      // Move a pedra um quadrado adiante e deixa o lugar dela vazio.
+      this.setCell(nx + mx, ny, 'rock');
+      this.setCell(nx, ny, 'empty');
     }
     if (target === 'fuel') {
       this.banked += 1;
       this.juice.pop(nx * TILE + TILE / 2, TOP + ny * TILE + TILE / 2);
     }
+    // Esvazia o quadrado antigo, anda, e garante que o novo fica vazio (cavou).
     this.setCell(this.px, this.py, 'empty');
     this.px = nx; this.py = ny;
     this.setCell(this.px, this.py, 'empty');
   }
 
+  /** Detecta e avanca as pedras que caem; uma pedra cai se o quadrado logo
+   *  abaixo dela estiver vazio. Se cair no jogador, a run acaba. */
   private updateRocks(dt: number): void {
-    // Detect rocks that should start falling (rock with empty directly below).
+    // De baixo para cima: marca pedras com vazio embaixo para comecar a cair.
     for (let r = ROWS - 2; r >= 1; r--) {
       for (let c = 1; c < COLS - 1; c++) {
         if (this.cell(c, r) === 'rock' && this.cell(c, r + 1) === 'empty') {
@@ -219,12 +255,13 @@ export class ExtractionScene extends Scene {
         }
       }
     }
-    // Tick falling rocks.
+    // Avanca cada pedra que esta caindo, um passo por ROCK_FALL_TIME.
     const stillFalling: FallState[] = [];
     for (const f of this.falling) {
       f.t += dt;
       if (f.t >= ROCK_FALL_TIME) {
         const nr = f.row + 1;
+        // Caiu no jogador? Soterrado, perdeu.
         if (nr === this.py && f.col === this.px) {
           this.juice.hurt(this.px * TILE + TILE / 2, TOP + this.py * TILE + TILE / 2);
           this.end(false);
@@ -233,27 +270,30 @@ export class ExtractionScene extends Scene {
         if (this.cell(f.col, nr) === 'empty') {
           this.setCell(f.col, f.row, 'empty');
           this.setCell(f.col, nr, 'rock');
-          // Continue falling next tick.
+          // Se ainda ha vazio embaixo, continua caindo no proximo tick.
           if (this.cell(f.col, nr + 1) === 'empty') {
             stillFalling.push({ col: f.col, row: nr, t: 0 });
           }
         }
       } else {
-        stillFalling.push(f);
+        stillFalling.push(f); // ainda nao completou o passo de queda
       }
     }
     this.falling = stillFalling;
   }
 
+  /** Le um quadrado da grade (fora dos limites conta como parede). */
   private cell(c: number, r: number): Cell {
     if (r < 0 || r >= ROWS || c < 0 || c >= COLS) return 'wall';
     return this.grid[r]![c]!;
   }
+  /** Escreve um quadrado da grade (ignora se estiver fora dos limites). */
   private setCell(c: number, r: number, v: Cell): void {
     if (r < 0 || r >= ROWS || c < 0 || c >= COLS) return;
     this.grid[r]![c] = v;
   }
 
+  /** Redesenha toda a grade e o jogador (chamado todo quadro). */
   private draw(): void {
     const accent = Color.hex(ZONE.accent_color);
     this.gridG.clear();
@@ -265,7 +305,7 @@ export class ExtractionScene extends Scene {
         if (v === 'wall') {
           this.gridG.rect(x, y, TILE, TILE).fill({ color: 0x1a1410 });
         } else if (v === 'dirt') {
-          // Stratigraphy: modern fill (grey) → packed earth → pre-Olímpio debris.
+          // Estratigrafia (so visual): a cor da terra muda conforme a profundidade.
           const strat = r < ROWS * 0.25 ? 0x2b2b30 : r < ROWS * 0.6 ? 0x3a2615 : 0x2e1d12;
           this.gridG.rect(x, y, TILE, TILE).fill({ color: strat });
           this.gridG.rect(x + 1, y + 1, TILE - 2, TILE - 2).fill({ color: 0x4a2f1a, alpha: 0.35 });
@@ -277,8 +317,8 @@ export class ExtractionScene extends Scene {
           this.gridG.circle(x + TILE / 2 - 2, y + TILE / 2 - 2, TILE * 0.18).fill({ color: 0x8e7d70, alpha: 0.6 });
         } else if (v === 'fuel') {
           this.gridG.rect(x, y, TILE, TILE).fill({ color: 0x2e1d12 });
-          const pulse = 0.5 + 0.5 * Math.sin(this.elapsed * 4 + c + r);
-          // Sealed volatile-compound canister: a cylinder with an amber band.
+          const pulse = 0.5 + 0.5 * Math.sin(this.elapsed * 4 + c + r); // brilho pulsante
+          // Canister de composto volatil: um cilindro com uma faixa ambar.
           const cw = TILE * 0.42;
           const ch = TILE * 0.62;
           this.gridG.roundRect(x + TILE / 2 - cw / 2, y + TILE / 2 - ch / 2, cw, ch, 3).fill({ color: 0xc8821e, alpha: 0.95 });
@@ -294,6 +334,8 @@ export class ExtractionScene extends Scene {
     this.playerG.circle(px, py, TILE * 0.18).fill({ color: 0xffffff });
   }
 
+  /** Encerra a fase (uma vez so): efeito de fim, recompensa se venceu, avisa o
+   *  HubState e mostra a tela de fim. */
   private end(victory: boolean): void {
     if (this.ended) return;
     this.ended = true;

@@ -1,39 +1,52 @@
+/*
+ * PowerManager — o gerenciador do "poder" ativo do jogador.
+ *
+ * Cada run tem UM poder equipado (definidos em Powers.ts). Este arquivo traz:
+ *   - PowerResource: a classe-base de todo poder, com os "ganchos" que as
+ *     subclasses redefinem (ao ativar, ao desativar, a cada frame, ao tomar dano).
+ *   - PowerManager: guarda o poder atual, encaminha ativação/desativação e roda
+ *     o tick por frame; também aplica o efeito de "imã" (Magnet Pulse).
+ *
+ * Os poderes funcionam mexendo em multiplicadores globais do GameState (dano,
+ * velocidade de ataque, dano recebido), que o resto do jogo consulta.
+ */
 import type { BaseCharacter } from '../BaseCharacter';
 import type { RunWorld } from '../RunWorld';
 import { GameState } from '../../state/GameState';
 import { GameConfig } from '../../state/GameConfig';
 import { Signal } from '../../core/Signal';
 
-/** Base class for all transformative powers. Subclasses override the virtuals. */
+/** Classe-base de todo poder. As subclasses redefinem os ganchos abaixo. */
 export class PowerResource {
   power_name = 'Power';
   description = '';
-  cooldown = 0.0;
-  duration = 0.0;
+  cooldown = 0.0;            // tempo de recarga após usar (segundos)
+  duration = 0.0;            // quanto o efeito dura (segundos)
   icon_color = 0xffffff;
   is_active = false;
-  cooldown_remaining = 0.0;
-  duration_remaining = 0.0;
-  hasMagnetPull = false;
+  cooldown_remaining = 0.0;  // recarga restante
+  duration_remaining = 0.0;  // duração restante
+  hasMagnetPull = false;     // se true, o manager puxa inimigos enquanto ativo
 
-  /** Called when the player activates this power. */
+  /** Chamado quando o jogador ATIVA o poder. */
   onActivate(_party: BaseCharacter[], _world: RunWorld): void {}
 
-  /** Called when the power deactivates (duration end or toggle off). */
+  /** Chamado quando o poder DESATIVA (fim da duração ou desligado manualmente). */
   onDeactivate(_party: BaseCharacter[], _world: RunWorld): void {}
 
-  /** Per-frame tick while active or cooling down. */
+  /** Roda a cada frame, enquanto ativo ou em recarga. */
   process(_dt: number, _party: BaseCharacter[], _world: RunWorld): void {}
 
-  /** Called when the party takes damage (Reflective Shell hook). */
+  /** Chamado quando a party toma dano (usado pelo Reflective Shell). */
   onDamageReceived(_amount: number, _source: { take_damage?: (amount: number, src: unknown) => void } | null): void {}
 
+  /** Pode ativar? Só se não estiver em recarga nem já ativo. */
   canActivate(): boolean {
     return this.cooldown_remaining <= 0 && !this.is_active;
   }
 }
 
-/** Holds the active power. Routes activation and process ticks. */
+/** Guarda o poder ativo e encaminha ativação e os ticks por frame. */
 export class PowerManager {
   readonly powerActivated = new Signal<[PowerResource]>();
   readonly powerDeactivated = new Signal<[PowerResource]>();
@@ -45,6 +58,8 @@ export class PowerManager {
     this.world = world;
   }
 
+  /** Equipa um poder. Desativa o anterior e zera os multiplicadores globais
+   *  para o novo começar "limpo". */
   setPower(power: PowerResource): void {
     if (this.active_power) this.deactivateCurrent();
     this.active_power = power;
@@ -54,12 +69,14 @@ export class PowerManager {
     GameState.power_damage_taken_multiplier = 1;
   }
 
+  /** Ativa o poder atual, se for possível agora. */
   activate(): void {
     if (!this.active_power || !this.active_power.canActivate()) return;
     this.active_power.onActivate(this.world.characters, this.world);
     this.powerActivated.emit(this.active_power);
   }
 
+  /** Liga/desliga o poder (para poderes do tipo alternável). */
   toggle(): void {
     if (!this.active_power) return;
     if (this.active_power.is_active) this.deactivateCurrent();
@@ -72,6 +89,7 @@ export class PowerManager {
     this.powerDeactivated.emit(this.active_power);
   }
 
+  /** Roda todo frame: só processa o poder durante o jogo de fato. */
   update(dt: number): void {
     const p = this.active_power;
     if (!p) return;
@@ -82,6 +100,8 @@ export class PowerManager {
     if (p.hasMagnetPull && p.is_active) this.processMagnetPull(dt);
   }
 
+  /** Efeito "imã": puxa os inimigos comuns (não-elites) em direção ao centro
+   *  da party enquanto o poder estiver ativo. */
   private processMagnetPull(dt: number): void {
     const centroid = this.world.partyCentroid();
     for (const enemy of this.world.enemies) {

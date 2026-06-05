@@ -1,12 +1,31 @@
+/**
+ * SaveService — O "ponto de salvamento" do progresso.
+ * ---------------------------------------------------
+ * Em linguagem simples: e quem guarda e recupera o progresso do jogador. Salva
+ * em DOIS lugares:
+ *   1. localStorage (sempre): a memoria do proprio navegador — funciona ate
+ *      sem internet.
+ *   2. servidor (backend), quando configurado: o "save na nuvem".
+ *
+ * Ao iniciar, ele tenta carregar primeiro da nuvem, depois do navegador e, se
+ * nao houver nada, usa os valores padrao. Durante o jogo, salva sozinho sempre
+ * que o HubState muda — mas com "debounce": em vez de salvar a cada micro-
+ * mudanca, espera 1,5s de calmaria e salva uma vez so, evitando excesso de
+ * gravacoes.
+ *
+ * O `slotId` e um identificador secreto por dispositivo (vem do ApiClient),
+ * para que o save na nuvem de um aparelho nao seja lido nem sobrescrito por
+ * outro.
+ *
+ * E um singleton: existe UMA instancia (`saveService`), exportada no fim.
+ */
+
 import { apiClient } from '../core/ApiClient';
 import { HubState, type HubStateSnapshot } from './HubState';
 
-/** Persists HubState to localStorage (always) + the backend API (when
- *  VITE_API_URL is set). Loads on bootstrap, debounce-saves on changes.
- *
- *  Slot id defaults to 'default' — single save slot is enough for now. */
-
+// Chave do save no navegador. O "v1" e a versao do formato deste save local.
 const STORAGE_KEY = 'fungineer.save.v1';
+// Quanto tempo esperar de calmaria antes de gravar (o "debounce").
 const SAVE_DEBOUNCE_MS = 1500;
 
 class SaveServiceClass {
@@ -51,7 +70,9 @@ class SaveServiceClass {
     await this.saveNow();
   }
 
-  // ── Internals ──────────────────────────────────────────────────────────
+  // ── Detalhes internos ────────────────────────────────────────────────────
+  // Reagenda o salvamento: cada nova mudanca "reseta o cronometro", de modo que
+  // so salvamos depois que as mudancas pararem por SAVE_DEBOUNCE_MS.
   private scheduleSave(): void {
     if (this.debounceTimer !== null) clearTimeout(this.debounceTimer);
     this.debounceTimer = setTimeout(() => {

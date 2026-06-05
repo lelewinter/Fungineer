@@ -1,3 +1,18 @@
+/**
+ * LoreFragments — Os "documentos perdidos" que contam a historia do mundo.
+ * -----------------------------------------------------------------------
+ * Em linguagem simples: ao explorar as zonas, o jogador encontra fragmentos de
+ * lore — tickets de suporte, relatorios, ordens de servico, fotos. Lidos em
+ * conjunto, eles revelam como as IAs da cidade (ARGOS, CLEAN, NERVE, FLOW, CORE)
+ * passaram a tratar pessoas como "materia nao categorizada". E texto de
+ * ambientacao; nao afeta as regras do jogo.
+ *
+ * Cada fragmento pertence a uma `zone` (zona onde pode ser encontrado). No fim,
+ * exportamos `LoreFragments` com funcoes para listar tudo, filtrar por zona ou
+ * buscar um fragmento especifico pelo id.
+ */
+
+/** Um documento de lore: id unico, zona de origem, titulo e o texto em si. */
 export interface LoreFragment {
   id: string;
   zone: string;
@@ -5,6 +20,7 @@ export interface LoreFragment {
   text: string;
 }
 
+// Lista mestra de todos os fragmentos, agrupada por IA/zona nos comentarios.
 const ALL: LoreFragment[] = [
   // ── ARGOS / Zona Stealth ──
   {
@@ -85,14 +101,17 @@ const ALL: LoreFragment[] = [
 ];
 
 export const LoreFragments = {
+  // Devolve uma COPIA da lista (slice) para ninguem alterar a original sem querer.
   getAll(): LoreFragment[] {
     return ALL.slice();
   },
 
+  // So os fragmentos de uma zona — usado para mostrar o que ha para achar nela.
   getZoneFragments(zone: string): LoreFragment[] {
     return ALL.filter((f) => f.zone === zone);
   },
 
+  // Busca um fragmento pelo id (ex.: para exibir quando o jogador o coleta).
   getFragment(id: string): LoreFragment | undefined {
     return ALL.find((f) => f.id === id);
   },

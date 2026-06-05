@@ -1,13 +1,30 @@
-"""Fungineer backend — FastAPI service.
+"""Fungineer backend — o "servidor de saves" do jogo (FastAPI).
 
-Exposes save/load endpoints for HubState (rocket recipe progress, rescued
-characters, lore, deterioration, etc) and a healthcheck. Persists to a local
-SQLite file by default; on Railway, set DATABASE_URL or rely on PORT/HOST env.
+Em linguagem simples: este programa roda num servidor e tem duas funcoes
+principais:
 
-Run locally:
+  1. Guardar o progresso do jogador na nuvem (salvar/carregar/apagar). O
+     progresso e o snapshot do HubState (pecas do foguete, personagens
+     resgatados, lore, deterioracao, etc.). Para o servidor, esse conteudo e
+     uma "caixa-preta" (payload opaco): ele apenas guarda o texto que o jogo
+     manda, sem precisar entender as regras do jogo.
+  2. Responder a um "healthcheck" (/healthz) — um sinal de "estou vivo" que
+     servicos de monitoramento usam para conferir se o servidor esta no ar.
+
+Onde os dados ficam: num arquivo SQLite local (um banco de dados simples num
+unico arquivo). Em producao (estilo Railway), usa as variaveis de ambiente
+(env vars) de PORT/HOST.
+
+Seguranca em duas camadas (NAO ALTERAR a logica, apenas entender):
+  - X-Device-Token: cada pedido precisa trazer um "token" (uma senha secreta do
+    aparelho). Esse token amarra um save a um unico dispositivo, para que o save
+    de um aparelho nao seja lido, sobrescrito ou apagado por outro.
+  - CORS: lista de quais sites (origens) tem permissao de falar com esta API.
+
+Como rodar localmente:
     uvicorn main:app --reload --port 8000
 
-Run in production (Railway-style):
+Como rodar em producao (estilo Railway):
     uvicorn main:app --host 0.0.0.0 --port $PORT
 """
 from __future__ import annotations
@@ -56,6 +73,12 @@ FRONTEND_ORIGIN_REGEX = os.environ.get("FRONTEND_ORIGIN_REGEX", "").strip() or N
 # ── DB helpers ───────────────────────────────────────────────────────────────
 
 def _init_db() -> None:
+    """Cria a tabela de saves se ela ainda nao existir e migra bancos antigos.
+
+    Cada linha da tabela e um "slot" de save: um id, o estado em texto (JSON),
+    quando foi atualizado e o token do dono (owner_token). A migracao adiciona a
+    coluna owner_token em bancos criados antes de existir a posse por aparelho.
+    """
     DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     with sqlite3.connect(DB_PATH) as conn:
         conn.execute(
@@ -76,9 +99,11 @@ def _init_db() -> None:
 
 
 def _require_token(token: str | None) -> str:
-    """Every save/load/delete must carry a device token. It's the secret that
-    ties a slot to a single device — without it the API would let anyone
-    read/overwrite/delete any slot."""
+    """Exige o token do aparelho em todo save/load/delete.
+
+    Todo pedido precisa trazer um device token. Ele e a senha secreta que liga
+    um slot a um unico aparelho — sem ele, a API deixaria qualquer um ler,
+    sobrescrever ou apagar qualquer save. Sem token valido, devolve 401."""
     if not token or not token.strip():
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -89,6 +114,11 @@ def _require_token(token: str | None) -> str:
 
 @contextmanager
 def _db() -> Generator[sqlite3.Connection, None, None]:
+    """Abre uma conexao com o banco e garante que ela seja fechada no fim.
+
+    Usado com 'with _db() as conn:' — ao sair do bloco, a conexao fecha sozinha,
+    mesmo que ocorra um erro no meio. row_factory=Row deixa ler colunas por nome
+    (ex.: row["owner_token"]) em vez de por posicao."""
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     try:
@@ -108,17 +138,20 @@ class SaveStatePayload(BaseModel):
 
 
 class SaveStateResponse(BaseModel):
+    """Resposta de um salvamento: qual slot e quando foi atualizado."""
     slot_id: str
     updated_at: str
 
 
 class LoadStateResponse(BaseModel):
+    """Resposta de um carregamento: o slot, o estado salvo e a data dele."""
     slot_id: str
     state: dict[str, Any]
     updated_at: str
 
 
 class HealthResponse(BaseModel):
+    """Resposta do healthcheck: confirma que o servico esta de pe."""
     status: str
     service: str
     time: str
@@ -132,6 +165,9 @@ app = FastAPI(
     version="0.1.0",
 )
 
+# CORS: define quais sites (origens) o navegador autoriza a chamar esta API.
+# allow_credentials=False porque a autenticacao e por header (X-Device-Token),
+# nao por cookie; e so liberamos os metodos HTTP que realmente usamos.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOWED_ORIGINS,
@@ -173,8 +209,15 @@ def save_state(
     payload: SaveStatePayload,
     x_device_token: str | None = Header(default=None),
 ) -> SaveStateResponse:
+    """Salva (ou atualiza) o progresso de um slot.
+
+    Passos: exige o token; limita o tamanho do payload (anti-abuso); confere a
+    posse do slot (so o dono, ou um slot legado sem dono, pode escrever); e por
+    fim grava — inserindo um slot novo ou atualizando o existente."""
     token = _require_token(x_device_token)
     updated_at = datetime.now(tz=timezone.utc).isoformat()
+    # Transforma o estado em texto JSON e checa o tamanho em bytes (e o tamanho
+    # real gravado que importa, por isso medimos os bytes UTF-8, nao caracteres).
     state_json = json.dumps(payload.state, ensure_ascii=False)
     if len(state_json.encode("utf-8")) > MAX_STATE_BYTES:
         raise HTTPException(
@@ -216,6 +259,10 @@ def load_state(
     slot_id: str,
     x_device_token: str | None = Header(default=None),
 ) -> LoadStateResponse:
+    """Carrega o progresso de um slot, se o token pertencer ao dono dele.
+
+    Importante: quando o token nao bate, devolvemos 404 (e nao 403) de proposito
+    — assim nao revelamos sequer que o slot existe para quem nao e o dono."""
     token = _require_token(x_device_token)
     with _db() as conn:
         row = conn.execute(
@@ -240,6 +287,10 @@ def delete_state(
     slot_id: str,
     x_device_token: str | None = Header(default=None),
 ) -> Response:
+    """Apaga um slot — somente o aparelho dono (ou um slot legado sem dono) pode.
+
+    Responde 204 (sucesso, sem conteudo) mesmo que nada tenha sido apagado, para
+    nao revelar se o slot existia ou pertencia a outro aparelho."""
     token = _require_token(x_device_token)
     with _db() as conn:
         # Only the owning device (or an unclaimed legacy slot) can delete.

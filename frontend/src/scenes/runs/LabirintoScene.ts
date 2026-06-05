@@ -1,3 +1,23 @@
+// ============================================================================
+// LABIRINTO — A FASE DE EMPURRAR CAIXAS NOS LUGARES CERTOS (estilo Sokoban)
+// ----------------------------------------------------------------------------
+// O que e esta fase, em palavras simples:
+//   - Numa sala fechada ha caixas (fragmentos) e marcas no chao (receptores).
+//   - Voce arrasta numa direcao para andar; ao andar contra uma caixa, voce a
+//     EMPURRA um quadrado. So da para empurrar (nunca puxar) e uma caixa por vez.
+//   - O objetivo e colocar cada caixa em cima de um receptor. Resolver a sala
+//     antes do tempo acabar vence a fase.
+//   - Como nao da para puxar, empurrar uma caixa para um canto errado pode
+//     travar o quebra-cabeca (parte do desafio).
+//
+// Como se encaixa no jogo:
+//   - E uma fase de raid. Usa a moldura compartilhada do RunFrame (HUD, tela de
+//     fim). Ao vencer, deposita "fragmentos_estruturais" no bunker.
+//
+// A classe LabirintoScene continua exportada deste mesmo arquivo, entao nada
+// quebra para quem usa esta fase.
+// ============================================================================
+
 import { Container, Graphics, Text } from 'pixi.js';
 import { Scene } from '../../core/Scene';
 import { audioManager } from '../../core/AudioManager';
@@ -13,10 +33,12 @@ const VW = GameConfig.VIEWPORT_WIDTH;
 const VH = GameConfig.VIEWPORT_HEIGHT;
 const ZONE = ZONES[6]!;
 
-const STEP_TIME = 0.16;
-const TIMER = 90;
+const STEP_TIME = 0.16;  // intervalo minimo entre dois passos (segundos)
+const TIMER = 90;        // duracao da fase em segundos
 
-// '#' wall, '.' floor, 'F' fragment box, 'X' slot, '*' fragment-on-slot, '@' player, '+' player-on-slot
+// Cada fase e desenhada como texto. Legenda dos caracteres:
+//   '#' parede, '.' chao, 'F' caixa, 'X' receptor, '*' caixa-sobre-receptor,
+//   '@' jogador, '+' jogador-sobre-receptor.
 const LEVELS: string[][] = [
   [
     '#########',
@@ -33,11 +55,11 @@ const LEVELS: string[][] = [
   ],
 ];
 
-type Tile = '#' | '.' | 'X';
-interface Box { x: number; y: number }
+type Tile = '#' | '.' | 'X';        // o que existe FIXO num quadrado (caixas/jogador sao a parte)
+interface Box { x: number; y: number }  // uma caixa, pela sua posicao na grade
 
-/** LABIRINTO — Sokoban. Push fragmentos estruturais into the receptors.
- *  One push at a time, can't pull. Solve the room to bank fragments. */
+/** Fase de empurrar caixas: leve cada fragmento ate um receptor; so empurra,
+ *  nunca puxa. Veja o bloco no topo do arquivo. */
 export class LabirintoScene extends Scene {
   private content = new Container();
   private bg = new Graphics();
@@ -48,26 +70,27 @@ export class LabirintoScene extends Scene {
   private hud!: RunHud;
   private juice!: RunJuice;
 
-  private tiles: Tile[][] = [];
-  private boxes: Box[] = [];
-  private slots: Array<{ x: number; y: number }> = [];
-  private px = 0;
-  private py = 0;
+  private tiles: Tile[][] = [];        // o cenario fixo (paredes, chao, receptores)
+  private boxes: Box[] = [];           // as caixas que se movem
+  private slots: Array<{ x: number; y: number }> = [];  // posicoes dos receptores
+  private px = 0;                       // coluna do jogador
+  private py = 0;                       // linha do jogador
   private cols = 0;
   private rows = 0;
-  private tile = 28;
-  private offsetX = 0;
+  private tile = 28;                    // lado de um quadrado em pixels (ajustado a tela)
+  private offsetX = 0;                  // deslocamento para centralizar a sala na tela
   private offsetY = 0;
-  private moveCooldown = 0;
-  private dragVec = { x: 0, y: 0 };
+  private moveCooldown = 0;             // espera ate poder dar o proximo passo
+  private dragVec = { x: 0, y: 0 };     // direcao/forca do arraste atual
   private dragging = false;
   private pointerStart = { x: 0, y: 0 };
   private elapsed = 0;
   private timeLeft = TIMER;
-  private banked = 0;
+  private banked = 0;                   // caixas ja posicionadas em receptores
   private ended = false;
   private cleanup: (() => void) | null = null;
 
+  /** Carrega a fase, centraliza na tela, monta o HUD e os toques. */
   override async enter(): Promise<void> {
     this.bg.rect(0, 0, VW, VH).fill({ color: 0x06080a });
     this.content.addChild(this.bg);
@@ -95,7 +118,7 @@ export class LabirintoScene extends Scene {
     this.statusLabel.y = VH - 50;
     this.root.addChild(this.statusLabel);
 
-    // An undelivered manifest, frozen on a hub terminal.
+    // Easter egg de lore: um manifesto de carga nunca entregue, congelado num terminal.
     const manifest = new Text({
       text: 'MANIFESTO #7741 · DESTINATÁRIO NÃO CATEGORIZADO',
       style: { fontFamily: FontFamily.mono, fontSize: 8, fill: 0x6b5a3a, letterSpacing: 1 },
@@ -113,20 +136,23 @@ export class LabirintoScene extends Scene {
     }
   }
 
+  /** Limpa musica, listeners de toque e efeitos ao sair da fase. */
   override exit(): void {
     audioManager.stopMusic(300);
     this.cleanup?.();
     this.juice.destroy();
   }
 
+  /** Quadro a quadro: anda no ritmo do arraste e checa se a sala foi resolvida. */
   override update(dt: number): void {
-    const d = Math.min(dt, 1 / 30);
+    const d = Math.min(dt, 1 / 30); // limita o delta time contra travadas
     this.juice.update(d);
     if (this.ended) return;
     this.elapsed += d;
     this.timeLeft -= d;
-    if (this.timeLeft <= 0) { this.end(false); return; }
+    if (this.timeLeft <= 0) { this.end(false); return; } // tempo esgotado: perdeu
 
+    // Da um passo na direcao predominante do arraste, respeitando o intervalo.
     this.moveCooldown -= d;
     if (this.moveCooldown <= 0 && this.dragging) {
       const dx = this.dragVec.x;
@@ -140,7 +166,7 @@ export class LabirintoScene extends Scene {
       }
     }
 
-    // Check solved.
+    // Conta quantas caixas estao sobre receptores; se todas estiverem, venceu.
     let onSlot = 0;
     for (const b of this.boxes) {
       if (this.slots.some((s) => s.x === b.x && s.y === b.y)) onSlot += 1;
@@ -154,6 +180,7 @@ export class LabirintoScene extends Scene {
     this.hud.setHealth(onSlot / this.slots.length);
   }
 
+  /** Le a fase em texto e preenche cenario, caixas, receptores e o jogador. */
   private parseLevel(rows: string[]): void {
     this.rows = rows.length;
     this.cols = rows[0]!.length;
@@ -176,28 +203,34 @@ export class LabirintoScene extends Scene {
     }
   }
 
+  /** Le um quadrado do cenario (fora dos limites conta como parede). */
   private tile_(c: number, r: number): Tile {
     if (r < 0 || r >= this.rows || c < 0 || c >= this.cols) return '#';
     return this.tiles[r]![c]!;
   }
 
+  /** Devolve a caixa que esta naquela posicao, ou undefined se nao houver. */
   private boxAt(c: number, r: number): Box | undefined {
     return this.boxes.find((b) => b.x === c && b.y === r);
   }
 
+  /** Tenta andar um quadrado na direcao (mx, my). Se houver caixa no caminho,
+   *  so anda se conseguir empurra-la para um quadrado livre adiante. */
   private tryStep(mx: number, my: number): void {
     const nx = this.px + mx;
     const ny = this.py + my;
-    if (this.tile_(nx, ny) === '#') return;
+    if (this.tile_(nx, ny) === '#') return; // parede a frente: nao anda
     const b = this.boxAt(nx, ny);
     if (b) {
       const bx = b.x + mx;
       const by = b.y + my;
+      // So empurra se o quadrado alem da caixa estiver livre (sem parede nem outra caixa).
       if (this.tile_(bx, by) === '#') return;
       if (this.boxAt(bx, by)) return;
       const wasOnSlot = this.slots.some((s) => s.x === b.x && s.y === b.y);
       b.x = bx; b.y = by;
       audioManager.playSfx('res://assets/audio/sfx/game/push.wav', 0.4);
+      // Efeito de "encaixe" so quando a caixa acaba de entrar num receptor.
       const nowOnSlot = this.slots.some((s) => s.x === bx && s.y === by);
       if (nowOnSlot && !wasOnSlot) {
         this.juice.pop(this.offsetX + bx * this.tile + this.tile / 2, this.offsetY + by * this.tile + this.tile / 2);
@@ -206,8 +239,10 @@ export class LabirintoScene extends Scene {
     this.px = nx; this.py = ny;
   }
 
+  /** Liga o arraste: guarda a direcao; um passo final e dado ao soltar o dedo. */
   private bindPointer(): void {
     const canvas = this.app.pixi.canvas;
+    // Converte a coordenada do clique do navegador para coordenadas do jogo.
     const toLocal = (e: PointerEvent): { x: number; y: number } => {
       const rect = canvas.getBoundingClientRect();
       const scale = this.app.world.scale.x || 1;
@@ -227,7 +262,7 @@ export class LabirintoScene extends Scene {
       this.dragVec = { x: p.x - this.pointerStart.x, y: p.y - this.pointerStart.y };
     };
     const onUp = (): void => {
-      // commit one final step on release if the gesture clearly went one way.
+      // Ao soltar, da um ultimo passo se o gesto foi claro num sentido (toques rapidos).
       if (this.dragging && Math.hypot(this.dragVec.x, this.dragVec.y) > 16 && this.moveCooldown <= 0) {
         const dx = this.dragVec.x;
         const dy = this.dragVec.y;
@@ -251,6 +286,8 @@ export class LabirintoScene extends Scene {
     };
   }
 
+  /** Desenha o cenario fixo da sala (paredes, chao e receptores). Chamado
+   *  uma vez na entrada, pois o cenario nao muda durante a partida. */
   private drawMap(): void {
     const accent = Color.hex(ZONE.accent_color);
     this.mapG.clear();
@@ -260,7 +297,7 @@ export class LabirintoScene extends Scene {
         const y = this.offsetY + r * this.tile;
         const t = this.tiles[r]![c]!;
         if (t === '#') {
-          // FLOW cargo-bay door panel with a directional chevron.
+          // Parede: painel de porta de carga com um chevron (so visual).
           this.mapG.rect(x, y, this.tile, this.tile).fill({ color: 0x1f2127 });
           this.mapG.rect(x + 2, y + 2, this.tile - 4, this.tile - 4).fill({ color: 0x2c3038 });
           this.mapG.poly([x + this.tile * 0.34, y + this.tile * 0.34, x + this.tile * 0.52, y + this.tile * 0.5, x + this.tile * 0.34, y + this.tile * 0.66])
@@ -268,7 +305,7 @@ export class LabirintoScene extends Scene {
         } else if (t === '.') {
           this.mapG.rect(x, y, this.tile, this.tile).fill({ color: 0x101418 });
         } else if (t === 'X') {
-          // Cargo deposit station — recessed bay with a hazard-stripe frame.
+          // Receptor: baia de deposito com moldura de faixa de alerta.
           this.mapG.rect(x, y, this.tile, this.tile).fill({ color: 0x101418 });
           this.mapG.rect(x + 4, y + 4, this.tile - 8, this.tile - 8).fill({ color: 0x16191e });
           this.mapG.rect(x + 3, y + 3, this.tile - 6, this.tile - 6).stroke({ color: 0xb8a13a, width: 2, alpha: 0.55 });
@@ -279,6 +316,7 @@ export class LabirintoScene extends Scene {
     }
   }
 
+  /** Redesenha as caixas (mudam de cor sobre receptor) e o jogador (todo quadro). */
   private draw(): void {
     const accent = Color.hex(ZONE.accent_color);
     this.boxG.clear();
@@ -286,7 +324,7 @@ export class LabirintoScene extends Scene {
       const x = this.offsetX + b.x * this.tile;
       const y = this.offsetY + b.y * this.tile;
       const onSlot = this.slots.some((s) => s.x === b.x && s.y === b.y);
-      const color = onSlot ? accent : 0x8e7d5a;
+      const color = onSlot ? accent : 0x8e7d5a; // acesa quando esta no lugar certo
       this.boxG.rect(x + 3, y + 3, this.tile - 6, this.tile - 6).fill({ color, alpha: 0.95 });
       this.boxG.rect(x + 6, y + 6, this.tile - 12, this.tile - 12).fill({ color: 0xffffff, alpha: onSlot ? 0.4 : 0.18 });
       // Cargo-container label stripe.
@@ -300,6 +338,8 @@ export class LabirintoScene extends Scene {
     this.playerG.circle(px, py, this.tile * 0.14).fill({ color: 0xffffff });
   }
 
+  /** Encerra a fase (uma vez so): efeito de fim, recompensa se venceu, avisa o
+   *  HubState e mostra a tela de fim. */
   private end(victory: boolean): void {
     if (this.ended) return;
     this.ended = true;

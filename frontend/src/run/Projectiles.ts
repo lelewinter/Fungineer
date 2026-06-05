@@ -1,3 +1,17 @@
+/*
+ * Projectiles — os projéteis disparados na arena.
+ *
+ * Todo projétil segue o mesmo "contrato" (a interface Projectile): tem um node
+ * visual, uma posição, e um update(dt) que devolve true (continuo voando) ou
+ * false (acabei — me destruam). O RunWorld cuida de chamar esse update e de
+ * limpar os que acabaram.
+ *
+ * Tipos aqui:
+ *   - StrikerBullet: bala reta da party que some no 1º inimigo atingido.
+ *   - ArtificerProjectile: projétil lento teleguiado que explode em área.
+ *   - SpitterProjectile: tiro reto do inimigo Spitter contra a party.
+ *   - SentinelOrb: orbe lento do chefe que persegue um personagem.
+ */
 import { Container, Graphics } from 'pixi.js';
 import { Color } from '../core/Color';
 import { GameConfig } from '../state/GameConfig';
@@ -6,14 +20,17 @@ import type { BaseCharacter } from './BaseCharacter';
 import type { RunWorld } from './RunWorld';
 import type { Vec2 } from '../core/types';
 
-/** Projectile contract used by RunWorld.projectiles. */
+/** Contrato comum a todo projétil (usado por RunWorld.projectiles).
+ *  update() retorna true para "continuo vivo" e false para "fui consumido". */
 export interface Projectile {
   readonly node: Container;
   position: Vec2;
   update(dt: number, world: RunWorld): boolean;
 }
 
-// ── Striker bullet — straight-line, expires on first hit ─────────────────
+// ── Striker bullet — bala reta, some no primeiro acerto ──────────────────
+/** Bala da party: voa em linha reta e desaparece ao atingir um inimigo ou
+ *  quando seu tempo de vida acaba. */
 export class StrikerBullet implements Projectile {
   static readonly SPEED = 350;
   readonly node = new Container();
@@ -36,14 +53,18 @@ export class StrikerBullet implements Projectile {
   }
 
   update(dt: number, world: RunWorld): boolean {
+    // Conta o tempo de vida; ao acabar, o projétil se encerra.
     this.lifetime -= dt;
     if (this.lifetime <= 0) return false;
 
+    // Avança em linha reta na direção já normalizada.
     this.position.x += this.dir.x * StrikerBullet.SPEED * dt;
     this.position.y += this.dir.y * StrikerBullet.SPEED * dt;
     this.node.x = this.position.x;
     this.node.y = this.position.y;
 
+    // Checa colisão com qualquer inimigo (raio de 18px). Acertou um, causa dano
+    // e se encerra (atinge só um alvo).
     for (const e of world.enemies) {
       if (e.is_dead) continue;
       const dx = e.position.x - this.position.x;
@@ -57,7 +78,9 @@ export class StrikerBullet implements Projectile {
   }
 }
 
-// ── Artificer projectile — slow homing, AoE on impact ─────────────────────
+// ── Artificer projectile — teleguiado lento, explode em área ──────────────
+/** Projétil da party que persegue um inimigo específico e, ao chegar perto,
+ *  explode causando dano em todos os inimigos dentro do raio. */
 export class ArtificerProjectile implements Projectile {
   static readonly SPEED = 90;
   readonly node = new Container();
@@ -84,16 +107,17 @@ export class ArtificerProjectile implements Projectile {
   update(dt: number, world: RunWorld): boolean {
     this.lifetime -= dt;
     if (this.lifetime <= 0) return false;
-    if (this.target.is_dead) return false;
+    if (this.target.is_dead) return false; // alvo já morreu: projétil some
 
     const dx = this.target.position.x - this.position.x;
     const dy = this.target.position.y - this.position.y;
     const dist = Math.hypot(dx, dy);
     if (dist < 20) {
-      this.explode(world);
+      this.explode(world); // chegou perto o bastante: detona
       return false;
     }
     if (dist > 0.001) {
+      // Persegue o alvo em velocidade fixa (direção normalizada × velocidade).
       const inv = 1 / dist;
       this.position.x += dx * inv * ArtificerProjectile.SPEED * dt;
       this.position.y += dy * inv * ArtificerProjectile.SPEED * dt;
@@ -103,6 +127,8 @@ export class ArtificerProjectile implements Projectile {
     return true;
   }
 
+  /** Explosão em área: atinge todos os inimigos no raio. Se pegar 3 ou mais de
+   *  uma vez, ganha um bônus de dano (recompensa acertar aglomerados). */
   private explode(world: RunWorld): void {
     const r = GameConfig.ARTIFICER_EXPLOSION_RADIUS;
     const hit: BaseEnemy[] = [];
@@ -115,15 +141,17 @@ export class ArtificerProjectile implements Projectile {
     const cluster = hit.length >= 3 ? 1 + GameConfig.ARTIFICER_CLUSTER_BONUS : 1;
     for (const e of hit) e.takeDamage(this.damage * cluster, null);
 
-    // Flash visual handled by fx layer
+    // Efeito visual da explosão: um círculo que aparece e some em ~300ms.
+    // Como é "fogo e esquece", animamos via requestAnimationFrame próprio em vez
+    // do loop principal do jogo, e ao terminar removemos/destruímos o gráfico.
     const flash = new Graphics()
       .circle(this.position.x, this.position.y, r)
       .fill({ color: Color.hex(Color.rgb(0.9, 0.5, 1.0)), alpha: 0.6 });
     world.fxLayer.addChild(flash);
     const start = performance.now();
     const tick = (): void => {
-      const t = Math.min(1, (performance.now() - start) / 300);
-      flash.alpha = 0.6 * (1 - t);
+      const t = Math.min(1, (performance.now() - start) / 300); // 0 → 1 ao longo de 300ms
+      flash.alpha = 0.6 * (1 - t); // vai desaparecendo
       if (t < 1) {
         requestAnimationFrame(tick);
       } else {
@@ -135,7 +163,8 @@ export class ArtificerProjectile implements Projectile {
   }
 }
 
-// ── Spitter projectile — straight line, hits party ───────────────────────
+// ── Spitter projectile — tiro reto do inimigo contra a party ──────────────
+/** Projétil inimigo: voa reto e dá dano no primeiro personagem que atingir. */
 export class SpitterProjectile implements Projectile {
   readonly node = new Container();
   position: Vec2 = { x: 0, y: 0 };
@@ -176,7 +205,9 @@ export class SpitterProjectile implements Projectile {
   }
 }
 
-// ── Sentinel orb — slow homing toward party ──────────────────────────────
+// ── Sentinel orb — orbe lento teleguiado do chefe ────────────────────────
+/** Orbe do chefe que persegue um personagem; se o alvo morre, troca para outro
+ *  ainda vivo. Some ao atingir o alvo ou quando o tempo de vida acaba. */
 export class SentinelOrb implements Projectile {
   readonly node = new Container();
   position: Vec2 = { x: 0, y: 0 };
@@ -201,12 +232,13 @@ export class SentinelOrb implements Projectile {
     this.lifetime -= dt;
     if (this.lifetime <= 0) return false;
 
+    // Se o alvo morreu, procura outro personagem vivo para perseguir.
     if (this.target.is_dead) {
       let next: BaseCharacter | null = null;
       for (const m of world.characters) {
         if (!m.is_dead) { next = m; break; }
       }
-      if (!next) return false;
+      if (!next) return false; // ninguém vivo: o orbe se encerra
       this.target = next;
     }
 

@@ -1,9 +1,19 @@
+// ============================================================================
+// AudioButton — o ícone redondo de alto-falante no hub.
+//
+// O que faz: desenha um botãozinho redondo com o desenho de uma caixa de som.
+// Se o som estiver ligado, mostra ondas sonoras; se estiver mudo, mostra um
+// risco vermelho por cima. Ao ser clicado, emite o sinal `clicked` — a cena do
+// hub usa isso para abrir a janela de configurações de áudio.
+//
+// Onde encaixa: fica num canto do hub (a base do jogo).
+// ============================================================================
 import { Container, FederatedPointerEvent, Graphics, Rectangle } from 'pixi.js';
 import { Signal } from '../../core/Signal';
 import { TextColor } from '../../core/typography';
 import { audioSettings } from '../../state/AudioSettings';
 
-const R = 16;
+const R = 16; // raio do disco (em pixels)
 
 /** Small round speaker button for the hub. Reflects the mute state and emits
  *  `clicked` (the HubScene opens the audio settings modal on tap). */
@@ -12,6 +22,7 @@ export class AudioButton extends Container {
 
   private g = new Graphics();
   private hovering = false;
+  // Função para desconectar do sinal de mudança de áudio ao destruir o botão.
   private changedDispose: (() => void) | null;
 
   constructor() {
@@ -26,10 +37,14 @@ export class AudioButton extends Container {
     this.on('pointerover', () => { this.hovering = true; this.draw(); });
     this.on('pointerout', () => { this.hovering = false; this.draw(); });
 
+    // Redesenha sempre que o estado de áudio mudar (ex.: ficou mudo em outro
+    // lugar), para o ícone sempre mostrar a situação atual.
     this.changedDispose = audioSettings.changed.connect(() => this.draw());
     this.draw();
   }
 
+  /** Desenha o ícone conforme o estado: ondas sonoras quando há som, ou um
+   *  risco vermelho quando está mudo. */
   private draw(): void {
     const muted = audioSettings.muted;
     const accent = TextColor.accent;

@@ -1,4 +1,16 @@
 /**
+ * UpdateBanner — O "avisinho de atualizacao" na tela.
+ * --------------------------------------------------
+ * Em linguagem simples: e uma faixa (banner) que aparece sobre o jogo para
+ * avisar que ha uma versao nova. Hoje as atualizacoes se aplicam sozinhas, entao
+ * este banner serve principalmente para mostrar o breve aviso "Aplicando
+ * atualizacao..." pouco antes de recarregar.
+ *
+ * Por que ele e feito com HTML/CSS comum (DOM) e nao dentro do PixiJS? Porque
+ * durante as trocas de cena o "palco" do Pixi pode estar sendo reconstruido,
+ * e este aviso precisa ficar acima de tudo, de forma simples e confiavel.
+ *
+ * ------------------------------------------------------------------
  * UpdateBanner — DOM overlay shown when a new SW is waiting.
  *
  * Why a DOM banner and not a Pixi widget?

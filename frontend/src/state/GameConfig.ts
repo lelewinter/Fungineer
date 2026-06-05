@@ -1,5 +1,20 @@
-/** GameConfig — Central numeric tuning. Mirrors `src/autoload/GameConfig.gd`.
- *  Edit values here; never hardcode in logic. */
+/**
+ * GameConfig — O "painel de ajustes" central do jogo.
+ * ---------------------------------------------------
+ * Em linguagem simples: este arquivo guarda TODOS os numeros que decidem como
+ * o jogo se comporta — quanta vida cada personagem tem, quanto dano causa, quao
+ * rapido os inimigos andam, quantos inimigos aparecem em cada onda (wave), etc.
+ *
+ * A ideia e ter um unico lugar para "afinar" (balancear) o jogo. Se voce quer
+ * deixar um chefe mais facil, muda o numero AQUI — nunca espalhado pelo codigo.
+ * Os outros arquivos do jogo apenas LEEM estes valores; eles nao os inventam.
+ *
+ * `as const` no final trava estes valores como somente-leitura: ninguem
+ * consegue altera-los enquanto o jogo roda, evitando bugs acidentais.
+ *
+ * Observacao tecnica: espelha os mesmos valores de `src/autoload/GameConfig.gd`
+ * (a versao original em Godot). Edite os valores aqui; nunca cole numeros soltos
+ * ("magic numbers") diretamente na logica do jogo. */
 export const GameConfig = {
   // ── Viewport / UI ──────────────────────────────────────────────
   VIEWPORT_WIDTH: 480,

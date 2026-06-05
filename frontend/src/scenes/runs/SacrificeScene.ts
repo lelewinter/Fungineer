@@ -17,28 +17,29 @@ const VW = GameConfig.VIEWPORT_WIDTH;
 const VH = GameConfig.VIEWPORT_HEIGHT;
 const ZONE = ZONES[7]!;
 
-const SQUAD_DPS = 15;
-const ENEMY_HP_EACH = 30;
-const ENEMY_DPS = 3;
-const SQUAD_HP_PER = 80;
-const COLLECT_TIME = 1.5;
-const COLLECT_DIST = 26;
-const PICKUP_R = 8;
-const PLAYER_SPEED = 200;
-const PLAYER_R = 14;
-const CHAMBER_RADIUS = 170;
-const CHAMBER_W = 130;
-const CHAMBER_H = 100;
-const N_CHAMBERS = 5;
-const CORRIDOR_W = 38;
-const SEAL_TIME = 8;
-const HUB_SPAWN_INTERVAL = 12;
-const HUB_ENEMY_HP = 22;
-const HUB_ENEMY_SPEED = 110;
-const HUB_ENEMY_DPS = 8;
-const HUB_ENEMY_DAMAGE_DIST = 48;
-const BONUS_INTERVAL = 12;
-const BONUS_COLLECT_TIME = 0.35;
+// ── Numeros de balanceamento (a "receita" da fase; nada aqui foi alterado) ──
+const SQUAD_DPS = 15;          // dano por segundo de CADA membro do esquadrao
+const ENEMY_HP_EACH = 30;      // vida de cada inimigo de camara
+const ENEMY_DPS = 3;           // dano por segundo de cada inimigo de camara
+const SQUAD_HP_PER = 80;       // vida que cada membro do esquadrao soma ao total
+const COLLECT_TIME = 1.5;      // segundos parado perto de um item para coleta-lo
+const COLLECT_DIST = 26;       // distancia para comecar a coletar um item
+const PICKUP_R = 8;            // raio visual do item
+const PLAYER_SPEED = 200;      // velocidade do esquadrao (pixels por segundo)
+const PLAYER_R = 14;           // raio do esquadrao (hitbox)
+const CHAMBER_RADIUS = 170;    // distancia das camaras ate o centro do hub
+const CHAMBER_W = 130;         // largura de cada camara
+const CHAMBER_H = 100;         // altura de cada camara
+const N_CHAMBERS = 5;          // quantidade de camaras
+const CORRIDOR_W = 38;         // largura dos corredores que ligam hub e camaras
+const SEAL_TIME = 8;           // segundos ate uma camara entrada se selar sozinha
+const HUB_SPAWN_INTERVAL = 12; // de quanto em quanto tempo nascem invasores no hub
+const HUB_ENEMY_HP = 22;       // vida de cada invasor
+const HUB_ENEMY_SPEED = 110;   // velocidade dos invasores
+const HUB_ENEMY_DPS = 8;       // dano por segundo de cada invasor
+const HUB_ENEMY_DAMAGE_DIST = 48; // distancia em que o invasor comeca a ferir o esquadrao
+const BONUS_INTERVAL = 12;     // de quanto em quanto tempo a marca "RAPIDO!" troca de camara
+const BONUS_COLLECT_TIME = 0.35;  // tempo de coleta na camara em bonus (bem mais rapido)
 
 const HUB_CENTER: Vec2 = { x: 240, y: 427 };
 const HUB_RECT = { x: 155, y: 352, w: 170, h: 150 };
@@ -76,12 +77,37 @@ interface HubEnemy {
   hp: number;
 }
 
+// Diz se um ponto (p) esta dentro de um retangulo (r). E o teste de colisao
+// mais simples que existe — um "ponto dentro de caixa" (point-in-AABB).
 function rectHasPoint(r: { x: number; y: number; w: number; h: number }, p: Vec2): boolean {
   return p.x >= r.x && p.x <= r.x + r.w && p.y >= r.y && p.y <= r.y + r.h;
 }
 
-/** Sacrifício zone — 5 chambers around a hub, each with a cost. Port of
- *  src/scenes/runs/SacrificeMain.gd. */
+// ============================================================================
+// SACRIFICIO — CINCO CAMARAS AO REDOR DE UM HUB, CADA UMA COM UM PRECO
+// ----------------------------------------------------------------------------
+// Ideia da fase, em palavras simples:
+//   - No centro ha um HUB (sala segura) com uma SAIDA (EXIT). Ao redor, 5
+//     camaras cheias de recursos (sucata e componentes de IA) para coletar.
+//   - A IA "negocia": cada camara tem um CUSTO que voce paga ao ENTRAR nela:
+//       * none  -> sem custo;
+//       * timer -> perde alguns segundos do cronometro;
+//       * enemy -> aparecem inimigos que seu esquadrao precisa derrotar antes de coletar;
+//       * slot  -> perde um espaco da mochila (pode ate jogar fora itens ja pegos);
+//       * chain -> ativa de tabela o custo de OUTRA camara (efeito em cadeia).
+//   - Voce arrasta o dedo para mover o esquadrao. Ficar perto de um item por um
+//     tempinho o coleta (vai para a mochila, que tem capacidade limitada).
+//   - Cada camara "sela" sozinha alguns segundos depois de entrada: quando isso
+//     acontece, ela some e cospe invasores no hub. Invasores tambem surgem de
+//     tempos em tempos e perseguem voce, ferindo o esquadrao.
+//   - Uma camara fica marcada como "RAPIDO!" (bonus): coletar nela e quase instantaneo.
+//   - A run termina ao tocar na SAIDA ou quando o tempo acaba (ambos contam como
+//     sucesso, depositando o que estiver na mochila). Se a vida do esquadrao zera, falha.
+//
+// Porte (traducao) de src/scenes/runs/SacrificeMain.gd (versao original em Godot).
+// ============================================================================
+
+/** Cena da zona Sacrificio — 5 camaras ao redor de um hub, cada uma com um custo. */
 export class SacrificeScene extends Scene {
   private bg = new Graphics();
   private corridorG = new Graphics();
@@ -147,6 +173,8 @@ export class SacrificeScene extends Scene {
     this.juice.destroy();
   }
 
+  // Coracao da fase: roda uma vez por frame. "dt" e o delta time (segundos desde
+  // o frame anterior), limitado a 1/30 para a fisica nao "saltar" num travamento.
   override update(dt: number): void {
     const capped = Math.min(dt, 1 / 30);
     this.juice.update(capped);
@@ -155,6 +183,7 @@ export class SacrificeScene extends Scene {
     this.pulse += capped;
     this.damageFlash = Math.max(0, this.damageFlash - capped * 3);
 
+    // Cronometro chegou a zero -> a run termina como sucesso (deposita a mochila).
     this.runTimer -= capped;
     if (this.runTimer <= 0) {
       this.runTimer = 0;
@@ -162,11 +191,13 @@ export class SacrificeScene extends Scene {
       return;
     }
 
+    // Descobre em qual camara o esquadrao esta agora (ou -1 se nenhuma).
     this.currentChamberIdx = -1;
     for (let i = 0; i < this.chambers.length; i++) {
       if (rectHasPoint(this.chambers[i]!.rect, this.playerPos)) { this.currentChamberIdx = i; break; }
     }
 
+    // Camaras ja entradas vao "selando" com o tempo; ao selar, cospem invasores.
     for (const ch of this.chambers) {
       if (ch.entered && !ch.sealed && ch.sealTimer >= 0) {
         ch.sealTimer += capped;
@@ -200,13 +231,16 @@ export class SacrificeScene extends Scene {
     this.updateHubEnemies(capped);
     if (this.runEnded) return;
 
+    // Logica da camara atual: cobra o custo ao entrar, depois deixa coletar.
     if (this.currentChamberIdx >= 0) {
       const ch = this.chambers[this.currentChamberIdx]!;
       if (!ch.entered) {
+        // Primeira vez nesta camara: marca como entrada e cobra o preco.
         ch.entered = true;
         ch.sealTimer = 0;
         this.activateCost(ch);
       }
+      // Se a camara tem inimigos vivos, o esquadrao luta antes de poder coletar.
       if (this.enemiesAlive(ch)) {
         const squadDps = this.squadSize * SQUAD_DPS;
         ch.enemyHp = Math.max(0, ch.enemyHp - squadDps * capped);
@@ -242,9 +276,12 @@ export class SacrificeScene extends Scene {
     this.root.addChild(this.content);
   }
 
+  // Cria as 5 camaras em circulo ao redor do hub e sorteia qual recebe cada
+  // "molde" de recursos/custo (embaralhando os templates a cada partida).
   private buildChambers(): void {
     const positions: Array<{ x: number; y: number; w: number; h: number }> = [];
     for (let i = 0; i < N_CHAMBERS; i++) {
+      // Distribui as camaras igualmente em volta do circulo (comecando do topo).
       const angle = -Math.PI * 0.5 + (i * Math.PI * 2) / N_CHAMBERS;
       const cx = HUB_CENTER.x + CHAMBER_RADIUS * Math.cos(angle);
       const cy = HUB_CENTER.y + CHAMBER_RADIUS * Math.sin(angle);
@@ -274,6 +311,7 @@ export class SacrificeScene extends Scene {
       this.chambers.push(ch);
     }
 
+    // A camara "chain" (cadeia) dispara o custo da camara "timer": liga uma a outra.
     let timerIdx = 0;
     for (let i = 0; i < this.chambers.length; i++) {
       if (this.chambers[i]!.cost === 'timer') { timerIdx = i; break; }
@@ -283,6 +321,8 @@ export class SacrificeScene extends Scene {
     }
   }
 
+  // Espalha os itens de uma camara numa gradinha bem distribuida (quase quadrada),
+  // colocando primeiro as sucatas e depois os componentes de IA.
   private buildPickups(ch: Chamber): void {
     const total = ch.scrap + ch.ai;
     if (total === 0) return;
@@ -369,20 +409,22 @@ export class SacrificeScene extends Scene {
       y: (e.clientY - rect.top - this.app.world.y) / scale,
     };
   }
+  // Move o esquadrao em direcao ao ponto onde o dedo esta, sem deixar sair da tela.
   private movePlayer(dt: number): void {
     if (!this.dragging) return;
     const dx = this.dragTarget.x - this.playerPos.x;
     const dy = this.dragTarget.y - this.playerPos.y;
     const dist = Math.hypot(dx, dy);
-    if (dist < 4) return;
+    if (dist < 4) return; // ja chegou perto o suficiente; evita tremer no lugar
     const inv = 1 / dist;
     this.playerPos.x += dx * inv * PLAYER_SPEED * dt;
     this.playerPos.y += dy * inv * PLAYER_SPEED * dt;
     this.playerPos.x = Math.max(0, Math.min(VW, this.playerPos.x));
-    this.playerPos.y = Math.max(48, Math.min(VH, this.playerPos.y));
+    this.playerPos.y = Math.max(48, Math.min(VH, this.playerPos.y)); // 48 = abaixo da barra de HUD
   }
 
-  // ── Chamber logic ──────────────────────────────────────────────────────
+  // ── Logica das camaras ──────────────────────────────────────────────────
+  // Converte a vida restante dos inimigos da camara em "quantos inimigos sobraram".
   private enemyCount(ch: Chamber): number {
     return Math.ceil(ch.enemyHp / ENEMY_HP_EACH);
   }
@@ -390,19 +432,24 @@ export class SacrificeScene extends Scene {
     return ch.cost === 'enemy' && ch.entered && ch.enemyHp > 0;
   }
 
+  // Cobra o preco de entrar numa camara, conforme o tipo de custo dela.
   private activateCost(ch: Chamber): void {
     switch (ch.cost) {
       case 'timer':
+        // Desconta segundos do cronometro da run.
         this.runTimer = Math.max(0, this.runTimer - ch.costTimerS);
         break;
       case 'enemy':
+        // Enche a camara de inimigos (a vida total vira "n inimigos x vida de cada").
         ch.enemyHp = ch.costEnemyN * ENEMY_HP_EACH;
         break;
       case 'slot':
+        // Reduz a mochila em 1 espaco; se passar a capacidade, descarta itens ja pegos.
         this.bagCap = Math.max(0, this.bagCap - 1);
         while (this.backpack.length > this.bagCap) this.backpack.pop();
         break;
       case 'chain':
+        // Efeito em cadeia: ativa o custo de OUTRA camara (a "timer"), de tabela.
         if (ch.chainTo >= 0 && ch.chainTo < this.chambers.length) {
           const target = this.chambers[ch.chainTo]!;
           if (!target.entered) {
@@ -414,6 +461,8 @@ export class SacrificeScene extends Scene {
     }
   }
 
+  // Coleta de itens: ficar perto de um item por COLLECT_TIME segundos o leva para
+  // a mochila. Sair de perto (ou da camara) cancela a coleta em andamento.
   private updateCollection(ch: Chamber, chIdx: number, dt: number): void {
     if (ch.sealed) return;
     const collectTime = chIdx === this.bonusIdx ? BONUS_COLLECT_TIME : COLLECT_TIME;
@@ -449,6 +498,8 @@ export class SacrificeScene extends Scene {
     }
   }
 
+  // Sorteia uma nova camara para receber a marca "RAPIDO!" (coleta acelerada),
+  // entre as que ainda tem itens e nao foram seladas.
   private rotateBonus(): void {
     const candidates: number[] = [];
     for (let i = 0; i < this.chambers.length; i++) {
@@ -460,6 +511,7 @@ export class SacrificeScene extends Scene {
     this.bonusIdx = candidates[Math.floor(Math.random() * candidates.length)]!;
   }
 
+  // Gera invasores no hub de tempos em tempos (no maximo 4 vivos ao mesmo tempo).
   private spawnHubEnemies(): void {
     const count = Math.min(2, 4 - this.hubEnemies.length);
     for (let i = 0; i < count; i++) {
@@ -472,6 +524,8 @@ export class SacrificeScene extends Scene {
     }
   }
 
+  // Move os invasores em direcao ao esquadrao. Quando perto, eles ferem o
+  // esquadrao e, ao mesmo tempo, o esquadrao revida (dividindo seu dano entre eles).
   private updateHubEnemies(dt: number): void {
     let totalDps = 0;
     const toRemove: number[] = [];
@@ -509,7 +563,8 @@ export class SacrificeScene extends Scene {
     }
   }
 
-  // ── Drawing ────────────────────────────────────────────────────────────
+  // ── Desenho ──────────────────────────────────────────────────────────────
+  // Atualiza os textos do HUD (cronometro, mochila, vida e aviso de invasores).
   private refreshHud(): void {
     this.timerLabel.text = `Timer: ${Math.ceil(this.runTimer)}s`;
     this.bagLabel.text = `Bag: ${this.backpack.length}/${this.bagCap}`;
@@ -517,8 +572,10 @@ export class SacrificeScene extends Scene {
     this.hpLabel.text = `Vida: ${Math.ceil(this.squadHp)}${inv > 0 ? `  ⚠ ×${inv}` : ''}`;
   }
 
+  // Redesenha a fase inteira a cada frame: corredores, hub, camaras (com seus
+  // rotulos de custo/recurso, anel de selagem e itens), invasores e o esquadrao.
   private redraw(): void {
-    // Corridors
+    // Corredores ligando o hub a cada camara.
     this.corridorG.clear();
     for (const ch of this.chambers) {
       this.corridorG.moveTo(HUB_CENTER.x, HUB_CENTER.y).lineTo(ch.center.x, ch.center.y)
@@ -719,6 +776,8 @@ export class SacrificeScene extends Scene {
     return parts.length ? parts.join('\n') : 'Vazio';
   }
 
+  // Encerra a run: toca o efeito de vitoria/derrota, deposita a mochila se venceu,
+  // mostra o overlay final e volta ao bunker depois de uns instantes.
   private endRun(victory: boolean): void {
     if (this.runEnded) return;
     this.runEnded = true;

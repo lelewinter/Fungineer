@@ -1,3 +1,17 @@
+/*
+ * Enemies — o "catálogo" de inimigos concretos da arena.
+ *
+ * Cada classe aqui herda de BaseEnemy e ajusta números (vida, dano, velocidade)
+ * e, às vezes, comportamentos especiais:
+ *   - Runner: o básico, corre reto até a party.
+ *   - Bruiser: tanque que prioriza o Guardian (ou o aliado com mais vida).
+ *   - Spitter: atira de longe e tenta manter distância (kiting).
+ *   - SentinelCore: o chefe, com duas fases, investida (dash), invocação de
+ *     reforços, orbe teleguiado e janelas de vulnerabilidade.
+ *
+ * Como se encaixa: o WaveSpawner instancia esses inimigos a cada onda e o
+ * RunWorld os simula. Os números vêm sempre do GameConfig (balanceamento).
+ */
 import { Color } from '../core/Color';
 import { Signal } from '../core/Signal';
 import { GameConfig } from '../state/GameConfig';
@@ -9,6 +23,7 @@ import { Guardian } from './Characters';
 import { SpitterProjectile, SentinelOrb } from './Projectiles';
 
 // ── Runner — Rastreador MK-I ─────────────────────────────────────────────────
+/** Inimigo básico: simplesmente corre em linha reta até o aliado mais próximo. */
 export class Runner extends BaseEnemy {
   constructor() {
     const stats: EnemyStats = {
@@ -25,7 +40,9 @@ export class Runner extends BaseEnemy {
   }
 }
 
-// ── Bruiser — Enforcer-7 (prioritizes Guardian, else highest HP) ─────────────
+// ── Bruiser — Enforcer-7 ─────────────────────────────────────────────────────
+/** Tanque elite que mira preferencialmente no Guardian; sem Guardian vivo,
+ *  vai atrás do aliado com mais vida (o mais "durão"). */
 export class Bruiser extends BaseEnemy {
   constructor() {
     const stats: EnemyStats = {
@@ -46,22 +63,20 @@ export class Bruiser extends BaseEnemy {
     let bestHp = -1;
     for (const m of world.characters) {
       if (m.is_dead) continue;
+      // Guardian tem prioridade máxima: achou um vivo, para a busca.
       if (m instanceof Guardian) { best = m; break; }
       if (m.current_hp > bestHp) {
         bestHp = m.current_hp;
         best = m;
       }
     }
-    this.setTarget(best);
-  }
-
-  /** Tiny helper so the protected setter doesn't leak to subclasses outside. */
-  private setTarget(t: BaseCharacter | null): void {
-    (this as unknown as { current_target: BaseCharacter | null }).current_target = t;
+    this.current_target = best;
   }
 }
 
-// ── Spitter — Canhão Orbital (kites at preferred distance, fires projectiles)
+// ── Spitter — Canhão Orbital ─────────────────────────────────────────────────
+/** Atirador elite: mantém uma distância preferida do alvo (recua se chega perto
+ *  demais, avança devagar se está longe demais) e dispara projéteis. */
 export class Spitter extends BaseEnemy {
   constructor() {
     const stats: EnemyStats = {
@@ -78,7 +93,7 @@ export class Spitter extends BaseEnemy {
   }
 
   protected override move(dt: number): void {
-    const t = (this as unknown as { current_target: BaseCharacter | null }).current_target;
+    const t = this.current_target;
     if (!t) return;
     const dx = t.position.x - this.position.x;
     const dy = t.position.y - this.position.y;
@@ -86,10 +101,12 @@ export class Spitter extends BaseEnemy {
     if (dist < 0.001) return;
     const inv = 1 / dist;
     const pref = GameConfig.SPITTER_PREFERRED_DISTANCE;
+    // sign = +1 avança em direção ao alvo, -1 recua. Dentro de uma "zona morta"
+    // ao redor da distância preferida ele fica parado (speed = 0).
     let speed = 0;
     let sign = 1;
-    if (dist < pref * 0.8) { speed = this.move_speed; sign = -1; }
-    else if (dist > pref * 1.3) { speed = this.move_speed * 0.5; sign = 1; }
+    if (dist < pref * 0.8) { speed = this.move_speed; sign = -1; }        // perto demais: recua na velocidade cheia
+    else if (dist > pref * 1.3) { speed = this.move_speed * 0.5; sign = 1; } // longe demais: aproxima devagar
     this.position.x += dx * inv * speed * sign * dt;
     this.position.y += dy * inv * speed * sign * dt;
   }
@@ -105,8 +122,16 @@ export class Spitter extends BaseEnemy {
   }
 }
 
-// ── Sentinel Core (boss) — two phases, dash + adds + orb + vulnerability ─────
+// ── Sentinel Core (chefe) ────────────────────────────────────────────────────
+/**
+ * O chefe da run. Ideia central: ele só pode ser ferido quando está
+ * VULNERÁVEL. Ele alterna entre investidas (dash) — durante as quais é
+ * invulnerável — e janelas curtas de vulnerabilidade logo após bater na parede.
+ * Tem duas fases: ao perder vida suficiente, fica mais agressivo (fase 2 com
+ * orbe teleguiado e reforços mais fortes).
+ */
 export class SentinelCore extends BaseEnemy {
+  // Sinais que a HUD/cena escutam para reagir a mudanças de fase e janelas.
   readonly phaseChanged = new Signal<[number]>();
   readonly becameVulnerable = new Signal<[]>();
   readonly becameInvulnerable = new Signal<[]>();
@@ -114,6 +139,8 @@ export class SentinelCore extends BaseEnemy {
   phase: 1 | 2 = 1;
   isDashing = false;
   isVulnerable = false;
+  // Cada timer conta o tempo até a próxima ação (dash, reforços, orbe) ou o
+  // tempo restante da janela de vulnerabilidade.
   private dashTimer = 0;
   private addTimer = 0;
   private orbTimer = 0;
@@ -157,6 +184,8 @@ export class SentinelCore extends BaseEnemy {
       .fill({ color: 0xe6c819 });
   }
 
+  /** O chefe tem um update próprio (não usa o de BaseEnemy): coordena fases,
+   *  dash, reforços, orbe e o fechamento da janela de vulnerabilidade. */
   override update(dt: number, world: RunWorld): void {
     if (this.is_dead) return;
     this.findTarget(world);
@@ -164,6 +193,7 @@ export class SentinelCore extends BaseEnemy {
     this.tickDash(dt);
     this.tickAdds(dt, world);
     if (this.phase === 2) this.tickOrb(dt, world);
+    // Fecha a janela de vulnerabilidade quando o tempo dela acaba.
     if (this.isVulnerable) {
       this.vulnTimer += dt;
       if (this.vulnTimer >= GameConfig.SENTINEL_VULNERABLE_WINDOW) {
@@ -176,6 +206,7 @@ export class SentinelCore extends BaseEnemy {
     this.updateHpBar();
   }
 
+  /** Passa para a fase 2 quando a vida cai abaixo do limiar configurado. */
   private checkPhaseTransition(): void {
     if (this.phase === 1 && this.current_hp / this.max_hp <= GameConfig.SENTINEL_PHASE2_THRESHOLD) {
       this.phase = 2;
@@ -185,18 +216,22 @@ export class SentinelCore extends BaseEnemy {
     }
   }
 
+  /** Lógica da investida (dash). Se já está investindo, desliza em linha reta
+   *  até bater numa parede (aí abre a janela de vulnerabilidade). Senão, conta
+   *  o intervalo até começar a próxima investida. */
   private tickDash(dt: number): void {
     if (this.isDashing) {
       this.position.x += this.dashDir.x * GameConfig.SENTINEL_DASH_SPEED * dt;
       this.position.y += this.dashDir.y * GameConfig.SENTINEL_DASH_SPEED * dt;
+      // Considera "bateu na parede" ao chegar perto de qualquer borda da arena.
       let hitWall = false;
       if (this.position.x <= 40 || this.position.x >= GameConfig.ARENA_WIDTH - 40) hitWall = true;
       if (this.position.y <= 40 || this.position.y >= GameConfig.ARENA_HEIGHT - 40) hitWall = true;
       if (hitWall) {
         this.endDash();
       } else {
-        // Damage party on dash contact
-        const t = (this as unknown as { current_target: BaseCharacter | null }).current_target;
+        // Atropelar: quem encostar no chefe durante a investida toma dano.
+        const t = this.current_target;
         if (t && !t.is_dead) {
           const dx = t.position.x - this.position.x;
           const dy = t.position.y - this.position.y;
@@ -214,8 +249,9 @@ export class SentinelCore extends BaseEnemy {
     }
   }
 
+  /** Começa uma investida na direção do alvo atual; vira invulnerável. */
   private startDash(): void {
-    const t = (this as unknown as { current_target: BaseCharacter | null }).current_target;
+    const t = this.current_target;
     if (!t) return;
     this.isDashing = true;
     this.isVulnerable = false;
@@ -226,6 +262,8 @@ export class SentinelCore extends BaseEnemy {
     this.becameInvulnerable.emit();
   }
 
+  /** Fim da investida (bateu na parede): abre a janela de vulnerabilidade —
+   *  o único momento em que o chefe pode tomar dano. */
   private endDash(): void {
     this.isDashing = false;
     this.isVulnerable = true;
@@ -233,6 +271,7 @@ export class SentinelCore extends BaseEnemy {
     this.becameVulnerable.emit();
   }
 
+  /** Conta o tempo até invocar a próxima leva de reforços (adds). */
   private tickAdds(dt: number, world: RunWorld): void {
     const interval = this.phase === 1 ? GameConfig.SENTINEL_ADD_INTERVAL_P1 : GameConfig.SENTINEL_ADD_INTERVAL_P2;
     this.addTimer += dt;
@@ -242,6 +281,8 @@ export class SentinelCore extends BaseEnemy {
     }
   }
 
+  /** Invoca reforços: alguns Runners ao redor do chefe e, na fase 2, também um
+   *  Bruiser. Os Runners nascem em círculo (ângulo aleatório, raio 80). */
   private spawnAdds(world: RunWorld): void {
     const count = GameConfig.SENTINEL_ADD_COUNT_P1;
     for (let i = 0; i < count; i++) {
@@ -265,6 +306,7 @@ export class SentinelCore extends BaseEnemy {
     }
   }
 
+  /** (Fase 2) Conta o tempo até disparar o próximo orbe teleguiado. */
   private tickOrb(dt: number, world: RunWorld): void {
     this.orbTimer += dt;
     if (this.orbTimer >= GameConfig.SENTINEL_ORB_INTERVAL) {
@@ -273,6 +315,7 @@ export class SentinelCore extends BaseEnemy {
     }
   }
 
+  /** Dispara um orbe que persegue o primeiro personagem vivo encontrado. */
   private fireOrb(world: RunWorld): void {
     let target: BaseCharacter | null = null;
     for (const m of world.characters) {
@@ -282,12 +325,13 @@ export class SentinelCore extends BaseEnemy {
     world.addProjectile(new SentinelOrb({ ...this.position }, target, world));
   }
 
-  /** Only take damage while vulnerable. */
+  /** Só sofre dano quando está vulnerável; fora disso, ignora golpes. */
   override takeDamage(amount: number, source: BaseCharacter | null = null): void {
     if (!this.isVulnerable) return;
     super.takeDamage(amount, source);
   }
 
+  /** Morte do chefe = vitória da run. */
   protected override die(): void {
     this.is_dead = true;
     GameState.boss_defeated = true;

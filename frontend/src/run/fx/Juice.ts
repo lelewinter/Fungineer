@@ -1,21 +1,26 @@
+/*
+ * Juice — central de "game feel" (a sensação de impacto do jogo): tremor de
+ * tela (screen shake) e vibração do aparelho (haptics).
+ *
+ * Ideia geral: registra-se uma vez a câmera da cena; depois, qualquer parte do
+ * jogo pode chamar shake(intensidade, ms) quando acontece algo impactante. O
+ * tremor é guardado como "trauma" (0 a 1) que vai diminuindo sozinho — assim
+ * um golpe forte balança bastante e depois acalma naturalmente.
+ *
+ * (Este é o Juice global; em fx/RunJuice.ts há uma versão "kit completo" para as
+ * cenas mais leves, com partículas e efeitos de tela embutidos.)
+ */
 import type { Container } from 'pixi.js';
 
-/** Centralised "juice" hooks — screen shake + haptic vibration.
- *
- *  Bind a camera Container once per scene, then call `shake(amount, ms)`
- *  from anywhere when something punchy happens. The shake additively writes
- *  to the camera's `pivot`, which the renderer then folds into the existing
- *  camera transform without disturbing scene-level positioning.
- *
- *  Vibration is a thin wrapper around `navigator.vibrate` that no-ops on
- *  desktop and respects the user's reduced-motion preference. */
+/** Central de tremor de tela + vibração. Veja o bloco no topo do arquivo. */
 class JuiceClass {
   private camera: Container | null = null;
   private baseX = 0;
   private baseY = 0;
+  /** "Trauma" acumulado (0 a 1). Quanto maior, mais forte o tremor. */
   private trauma = 0;
-  private decayPerSec = 1.4;
-  private maxOffset = 18;
+  private decayPerSec = 1.4; // quão rápido o trauma diminui por segundo
+  private maxOffset = 18;     // deslocamento máximo do tremor, em pixels
   private prefersReducedMotion = false;
 
   constructor() {
@@ -24,8 +29,8 @@ class JuiceClass {
     }
   }
 
-  /** Hook the camera that will receive the shake offset. Pass null in
-   *  `unbind()` (or scene.exit) to release the reference. */
+  /** Registra a câmera que receberá o tremor. Passe null ao sair da cena para
+   *  soltar a referência (evita vazamento de memória). */
   bind(camera: Container | null): void {
     this.camera = camera;
     this.trauma = 0;
@@ -35,12 +40,13 @@ class JuiceClass {
     }
   }
 
-  /** Stack a hit. `amount` 0–1 (clamped to 1). Larger = more violent.
-   *  Multiple calls in the same frame stack so big combos punch harder. */
+  /** Adiciona um impacto. `amount` vai de 0 a 1 (limitado a 1); maior = mais
+   *  violento. Várias chamadas no mesmo frame se somam, então combos grandes
+   *  batem mais forte. */
   shake(amount: number, vibrateMs = 0): void {
     if (this.prefersReducedMotion) {
-      // Still vibrate softly so the player gets some feedback, but skip the
-      // visual shake completely.
+      // Acessibilidade: se o usuário pediu "menos movimento", pulamos o tremor
+      // visual mas ainda damos uma vibração suave como feedback.
       if (vibrateMs > 0) this.vibrate(Math.min(20, vibrateMs));
       return;
     }
@@ -48,35 +54,35 @@ class JuiceClass {
     if (vibrateMs > 0) this.vibrate(vibrateMs);
   }
 
-  /** Fire a haptic pulse. Browsers without the API or without permission
-   *  silently no-op. Times longer than 200 ms are clamped to keep us off the
-   *  "pleeease stop" UX list. */
+  /** Dispara uma vibração. Navegadores sem a API (ou sem permissão) simplesmente
+   *  não fazem nada. Tempos acima de 200ms são limitados para não irritar. */
   vibrate(ms: number): void {
     if (typeof navigator === 'undefined' || typeof navigator.vibrate !== 'function') return;
     if (this.prefersReducedMotion) return;
     try {
       navigator.vibrate(Math.min(200, Math.max(5, Math.round(ms))));
     } catch {
-      /* iOS Safari throws on some versions; ignore. */
+      /* algumas versões do iOS Safari lançam erro aqui; ignoramos. */
     }
   }
 
-  /** Per-frame update — decays trauma exponentially and writes the shake
-   *  offset back onto the bound camera. */
+  /** Roda todo frame: diminui o trauma e aplica o deslocamento de tremor na
+   *  câmera registrada. */
   update(dt: number): void {
     if (!this.camera) return;
     if (this.trauma <= 0) {
+      // Sem trauma: garante a câmera na posição-base (sem tremor residual).
       this.camera.pivot.x = this.baseX;
       this.camera.pivot.y = this.baseY;
       return;
     }
-    // trauma² gives the classic GDC "screen shake" curve — most movement
-    // happens at high trauma and tapers off naturally as it decays.
+    // Usar trauma² é a curva clássica de screen shake: tremor forte no auge e
+    // suavizando naturalmente conforme o trauma cai.
     const t2 = this.trauma * this.trauma;
     const ox = (Math.random() * 2 - 1) * this.maxOffset * t2;
     const oy = (Math.random() * 2 - 1) * this.maxOffset * t2;
-    // pivot is subtracted from the container's transform, so we negate to
-    // push the camera *away* from the shake axis, producing the visual jolt.
+    // O "pivot" é subtraído da transformação do container, então negamos para
+    // empurrar a câmera no sentido contrário ao eixo do tremor (o solavanco visual).
     this.camera.pivot.x = this.baseX - ox;
     this.camera.pivot.y = this.baseY - oy;
     this.trauma = Math.max(0, this.trauma - this.decayPerSec * dt);

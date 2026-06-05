@@ -1,3 +1,23 @@
+// ============================================================================
+// CIRCUITO — A FASE "COBRINHA" (estilo Snake / Tron Light-Cycles)
+// ----------------------------------------------------------------------------
+// O que e esta fase, em palavras simples:
+//   - Voce controla uma "cabeca" que segue o seu dedo/mouse pelo tabuleiro.
+//   - Atras dela vem um rastro (trail) que cresce a cada "rele" coletado, igual
+//     ao corpo da cobrinha. Cada coleta tambem deixa voce um pouco mais rapido.
+//   - Encostar no proprio rastro = curto-circuito e voce perde a run. Sair da
+//     moldura do tabuleiro tambem mata.
+//   - Coletar a meta de reles antes do tempo acabar vence a fase.
+//
+// Como se encaixa no jogo:
+//   - E uma das fases de raid. Usa a "moldura" compartilhada do RunFrame (HUD do
+//     topo, tela de fim, e o bindDrag que converte o toque para coordenadas do
+//     jogo). Ao vencer, deposita "nucleo_logico" no bunker via HubState.
+//
+// A classe CircuitoScene continua exportada deste mesmo arquivo (o resto do jogo
+// importa ela daqui), entao nada quebra para quem usa esta fase.
+// ============================================================================
+
 import { Container, Graphics, Text } from 'pixi.js';
 import { Scene } from '../../core/Scene';
 import { audioManager } from '../../core/AudioManager';
@@ -13,19 +33,19 @@ const VW = GameConfig.VIEWPORT_WIDTH;
 const VH = GameConfig.VIEWPORT_HEIGHT;
 const ZONE = ZONES[2]!;
 
-const HEAD_R = 9;
-const BASE_SPEED = 170;
-const SPEED_PER_NODE = 9;
-const TRAIL_SEG_DIST = 14;
-const NODE_R = 9;
-const COLLECT_DIST = 22;
-const TIMER = 60;
-const TRAIL_GRACE_SEGS = 5; // ignore first N tail segments for self-collision
-const GOAL = 14;
+// ── Numeros de balanceamento e tamanhos (em pixels / segundos) ──────────────
+const HEAD_R = 9;            // raio da cabeca da cobrinha
+const BASE_SPEED = 170;      // velocidade inicial (pixels por segundo)
+const SPEED_PER_NODE = 9;    // quanto a velocidade sobe a cada rele coletado
+const TRAIL_SEG_DIST = 14;   // distancia entre dois pontos do rastro
+const NODE_R = 9;            // raio visual do rele a coletar
+const COLLECT_DIST = 22;     // distancia para "encostar" e coletar o rele
+const TIMER = 60;            // duracao da fase em segundos
+const TRAIL_GRACE_SEGS = 5;  // ignora os N segmentos mais novos do rastro na auto-colisao
+const GOAL = 14;             // quantos reles coletar para vencer
 
-/** CIRCUITO — Snake / Tron Light-Cycles. Head follows your finger, trail
- *  extends every node collected, higher speed each time. Touching your own
- *  trail = circuit short, run lost. */
+/** Fase "cobrinha". A cabeca segue o dedo; o rastro cresce a cada coleta e
+ *  encostar nele perde a run. Veja o bloco no topo do arquivo. */
 export class CircuitoScene extends Scene {
   private content = new Container();
   private bg = new Graphics();
@@ -36,20 +56,23 @@ export class CircuitoScene extends Scene {
   private drag!: DragInput;
   private juice!: RunJuice;
 
-  private head: Vec2 = { x: VW / 2, y: VH / 2 };
-  private trail: Vec2[] = [];
-  private trailTarget = 6;
-  private nodes: Vec2[] = [];
-  private collected = 0;
+  private head: Vec2 = { x: VW / 2, y: VH / 2 };  // posicao da cabeca, em coordenadas do jogo
+  private trail: Vec2[] = [];        // pontos do rastro, do mais antigo (cauda) ao mais novo
+  private trailTarget = 6;           // tamanho-alvo do rastro (cresce a cada coleta)
+  private nodes: Vec2[] = [];        // reles disponiveis no tabuleiro
+  private collected = 0;             // quantos reles ja foram coletados
   private timeLeft = TIMER;
   private elapsed = 0;
   private ended = false;
+  // Retangulo jogavel: deixa uma margem em cima para nao colidir com o HUD.
   private boundaryRect = { x: 6, y: 50, w: VW - 12, h: VH - 60 };
 
+  /** Monta o cenario, o HUD e o controle por arraste e toca a musica. */
   override async enter(): Promise<void> {
     const accent = Color.hex(ZONE.accent_color);
     this.bg.rect(0, 0, VW, VH).fill({ color: 0x02080a });
-    // Circuit board traces
+    // Trilhas de placa de circuito ao fundo (apenas enfeite): linhas finas
+    // horizontais e verticais espalhadas para dar o clima de placa-mae.
     for (let i = 0; i < 30; i++) {
       const y = 40 + Math.random() * (VH - 100);
       this.bg.rect(0, y, VW, 1).fill({ color: accent, alpha: 0.06 });
@@ -58,13 +81,13 @@ export class CircuitoScene extends Scene {
       const x = Math.random() * VW;
       this.bg.rect(x, 40, 1, VH - 60).fill({ color: accent, alpha: 0.06 });
     }
-    // Boundary frame
+    // Moldura do tabuleiro (a borda que mata se voce a ultrapassar).
     this.bg.rect(this.boundaryRect.x, this.boundaryRect.y, this.boundaryRect.w, this.boundaryRect.h)
       .stroke({ color: accent, width: 2, alpha: 0.6 });
     this.content.addChild(this.bg, this.trailG, this.nodeG, this.headG);
     this.root.addChild(this.content);
 
-    // NERVE attribution — Marcus designed these conduits.
+    // Easter egg de lore: assinatura "NERVE" — Marcus desenhou estes condutos.
     const sig = new Text({
       text: 'M.CHEN · NERVE v2.4',
       style: { fontFamily: '"IBM Plex Mono", ui-monospace, monospace', fontSize: 7, fill: 0x2f6a54, letterSpacing: 1 },
@@ -74,8 +97,9 @@ export class CircuitoScene extends Scene {
     sig.y = this.boundaryRect.y + this.boundaryRect.h - 4;
     this.content.addChild(sig);
 
-    this.spawnNodes(4);
+    this.spawnNodes(4); // comeca com 4 reles no tabuleiro
 
+    // bindDrag liga o arraste do dedo/mouse e mantem "this.head" como o alvo a perseguir.
     this.drag = bindDrag(this.app.pixi.canvas, this.app.world, this.head);
 
     this.juice = new RunJuice(this.root, { accent: Color.hex(ZONE.accent_color), shakeTarget: this.content, ambient: 30 });
@@ -89,46 +113,53 @@ export class CircuitoScene extends Scene {
     }
   }
 
+  /** Limpa musica, listeners de arraste e efeitos ao sair da fase. */
   override exit(): void {
     audioManager.stopMusic(300);
     this.drag.cleanup();
     this.juice.destroy();
   }
 
+  /** Quadro a quadro: move a cabeca rumo ao dedo, checa colisoes e coletas. */
   override update(dt: number): void {
+    // Limita o delta time para que travadas nao deem "saltos" enormes na cobrinha.
     const d = Math.min(dt, 1 / 30);
     this.juice.update(d);
     if (this.ended) return;
     this.elapsed += d;
     this.timeLeft -= d;
+    // Acabou o tempo: vence se ja coletou pelo menos metade da meta.
     if (this.timeLeft <= 0) { this.end(this.collected >= GOAL / 2); return; }
 
+    // Move a cabeca em direcao ao ponteiro; quanto mais reles, mais rapida ela fica.
     const speed = BASE_SPEED + this.collected * SPEED_PER_NODE;
     const dx = this.drag.pos.x - this.head.x;
     const dy = this.drag.pos.y - this.head.y;
     const dist = Math.hypot(dx, dy);
     if (dist > 0.5) {
-      const step = Math.min(dist, speed * d);
+      const step = Math.min(dist, speed * d); // nunca passa do ponteiro num so quadro
       this.head.x += (dx / dist) * step;
       this.head.y += (dy / dist) * step;
     }
 
-    // Clamp to circuit board.
+    // Bateu na moldura do tabuleiro? Perdeu.
     const b = this.boundaryRect;
     if (this.head.x < b.x + HEAD_R || this.head.x > b.x + b.w - HEAD_R ||
         this.head.y < b.y + HEAD_R || this.head.y > b.y + b.h - HEAD_R) {
-      this.end(false); // ran off the board
+      this.end(false);
       return;
     }
 
-    // Drop trail breadcrumbs at fixed distance intervals.
+    // Deixa um ponto de rastro a cada TRAIL_SEG_DIST pixels percorridos e descarta
+    // os pontos mais antigos quando o rastro passa do tamanho-alvo (a cauda "anda").
     const last = this.trail[this.trail.length - 1];
     if (!last || Math.hypot(this.head.x - last.x, this.head.y - last.y) > TRAIL_SEG_DIST) {
       this.trail.push({ x: this.head.x, y: this.head.y });
       while (this.trail.length > this.trailTarget) this.trail.shift();
     }
 
-    // Self-collision (skip newest segments — the ones right behind the head).
+    // Auto-colisao: encostou no proprio rastro? Pulamos os segmentos mais novos
+    // (logo atras da cabeca), senao a cobrinha se mataria sozinha sempre.
     for (let i = 0; i < this.trail.length - TRAIL_GRACE_SEGS; i++) {
       const seg = this.trail[i]!;
       if (Math.hypot(seg.x - this.head.x, seg.y - this.head.y) < HEAD_R + 4) {
@@ -137,7 +168,8 @@ export class CircuitoScene extends Scene {
       }
     }
 
-    // Node collection.
+    // Coleta de reles: para cada rele encostado, soma pontos, cresce o rastro e
+    // repoe um novo rele no lugar (mantendo o tabuleiro sempre com alvos).
     for (let i = this.nodes.length - 1; i >= 0; i--) {
       const n = this.nodes[i]!;
       if (Math.hypot(n.x - this.head.x, n.y - this.head.y) < COLLECT_DIST) {
@@ -146,8 +178,7 @@ export class CircuitoScene extends Scene {
         this.collected += 1;
         this.trailTarget += 4;
         if (this.collected >= GOAL) { this.end(true); return; }
-        // spawn replacement
-        this.spawnNodes(1);
+        this.spawnNodes(1); // repoe o rele coletado
       }
     }
 
@@ -157,6 +188,8 @@ export class CircuitoScene extends Scene {
     this.hud.setHealth(1 - this.collected / GOAL);
   }
 
+  /** Cria N reles em posicoes aleatorias dentro do tabuleiro, longe da cabeca
+   *  (ate 20 tentativas por rele para nao nascer em cima do jogador). */
   private spawnNodes(n: number): void {
     const b = this.boundaryRect;
     for (let i = 0; i < n; i++) {
@@ -172,6 +205,7 @@ export class CircuitoScene extends Scene {
     }
   }
 
+  /** Redesenha rastro, reles e cabeca (chamado todo quadro). */
   private draw(): void {
     const accent = Color.hex(ZONE.accent_color);
     this.trailG.clear();
@@ -182,9 +216,9 @@ export class CircuitoScene extends Scene {
     }
 
     this.nodeG.clear();
-    const pulse = 0.5 + 0.5 * Math.sin(this.elapsed * 3);
+    const pulse = 0.5 + 0.5 * Math.sin(this.elapsed * 3); // brilho pulsante dos reles
     for (const n of this.nodes) {
-      // Relay junction — diamond node.
+      // Rele desenhado como um losango (diamante) com nucleo branco.
       this.nodeG.circle(n.x, n.y, NODE_R + 3).fill({ color: 0xffffff, alpha: 0.08 * pulse });
       this.nodeG.poly([n.x, n.y - NODE_R, n.x + NODE_R, n.y, n.x, n.y + NODE_R, n.x - NODE_R, n.y]).fill({ color: accent, alpha: 0.85 });
       this.nodeG.poly([n.x, n.y - 3.5, n.x + 3.5, n.y, n.x, n.y + 3.5, n.x - 3.5, n.y]).fill({ color: 0xffffff });
@@ -196,8 +230,10 @@ export class CircuitoScene extends Scene {
     this.headG.circle(this.head.x, this.head.y, HEAD_R - 3).fill({ color: accent });
   }
 
+  /** Encerra a fase (uma vez so): toca o efeito, deposita recompensa se venceu,
+   *  avisa o HubState e mostra a tela de fim. */
   private end(victory: boolean): void {
-    if (this.ended) return;
+    if (this.ended) return; // protege contra chamar duas vezes
     this.ended = true;
     if (victory) this.juice.victoryFx(); else this.juice.defeatFx();
     if (victory && this.collected > 0) {

@@ -1,3 +1,14 @@
+/*
+ * StealthAgent — o personagem solo da zona de furtividade (stealth).
+ *
+ * Ideia central: quanto MAIS RÁPIDO o jogador se move, MAIOR o "raio de som"
+ * que ele emite (e mais fácil é ser detectado). Ficar dentro de áreas de sombra
+ * (shadow rects, definidas pela cena) deixa o personagem escondido/escurecido.
+ *
+ * O controle é por arrastar (igual ao DragController da party), mas aqui move um
+ * único personagem. A cena consulta getSpeed()/getSoundRadius()/isInShadow()
+ * para decidir se os inimigos percebem o jogador.
+ */
 import { Container, Graphics } from 'pixi.js';
 import type { App } from '../../core/App';
 import { Color } from '../../core/Color';
@@ -5,12 +16,13 @@ import { GameConfig } from '../../state/GameConfig';
 import { GameState, RunState } from '../../state/GameState';
 import type { Vec2 } from '../../core/types';
 
+/** Uma área retangular de sombra onde o agente fica escondido. */
 interface ShadowRect {
   x: number; y: number; w: number; h: number;
 }
 
-/** Solo infiltrator for the Stealth zone. Speed determines sound radius;
- *  shadow rects (set by the run scene) dim the character. */
+/** Infiltrador solo da zona de furtividade. A velocidade define o raio de som;
+ *  as áreas de sombra (definidas pela cena) escurecem/escondem o personagem. */
 export class StealthAgent {
   readonly node = new Container();
   position: Vec2 = { x: 0, y: 0 };
@@ -19,8 +31,10 @@ export class StealthAgent {
   private soundRing = new Graphics();
   private moveTarget: Vec2 = { x: 0, y: 0 };
   private dragActive = false;
+  /** Velocidade atual (calculada pela diferença de posição entre frames). */
   private velocity: Vec2 = { x: 0, y: 0 };
   private shadowRects: ShadowRect[] = [];
+  /** Bloqueia o controle (ex.: quando um terminal de hack abre um puzzle). */
   private inputLocked = false;
   private app: App;
 
@@ -43,6 +57,7 @@ export class StealthAgent {
     c.addEventListener('pointercancel', this.onUp);
   }
 
+  /** Remove os listeners e libera os gráficos. Chamar ao sair da cena. */
   destroy(): void {
     const c = this.app.pixi.canvas;
     c.removeEventListener('pointerdown', this.onDown);
@@ -52,11 +67,12 @@ export class StealthAgent {
     this.node.destroy({ children: true });
   }
 
+  /** Define as áreas de sombra do mapa (a cena passa isso). */
   setShadowRects(rects: ShadowRect[]): void {
     this.shadowRects = rects;
   }
 
-  /** Called by HackTerminal when a puzzle opens. */
+  /** Chamado pelo HackTerminal quando um puzzle abre (trava o movimento). */
   setInputLocked(locked: boolean): void {
     this.inputLocked = locked;
     if (locked) {
@@ -86,13 +102,18 @@ export class StealthAgent {
     this.dragActive = false;
   }
 
+  /** Roda todo frame: move suavemente em direção ao alvo, calcula a velocidade
+   *  e redesenha o corpo e o anel de som. */
   update(dt: number): void {
     if (!this.isPlaying()) return;
     if (!this.dragActive) this.moveTarget = { ...this.position };
 
+    // Mantém o alvo dentro da arena (margem de 30px).
     this.moveTarget.x = Math.max(30, Math.min(GameConfig.ARENA_WIDTH - 30, this.moveTarget.x));
     this.moveTarget.y = Math.max(30, Math.min(GameConfig.ARENA_HEIGHT - 30, this.moveTarget.y));
 
+    // Lerp em direção ao alvo (movimento suave). Guardamos a posição anterior
+    // para descobrir a velocidade real (distância percorrida ÷ tempo).
     const prevX = this.position.x;
     const prevY = this.position.y;
     const t = Math.min(1, GameConfig.DRAG_LERP_FACTOR * dt);
@@ -109,16 +130,20 @@ export class StealthAgent {
     this.node.y = this.position.y;
   }
 
+  /** Velocidade atual (magnitude do vetor velocidade). */
   getSpeed(): number {
     return Math.hypot(this.velocity.x, this.velocity.y);
   }
 
+  /** Raio de som: cresce conforme a velocidade, entre um mínimo e um máximo.
+   *  "t" é a velocidade normalizada (0 = parado, 1 = velocidade máxima). */
   getSoundRadius(): number {
     const t = Math.max(0, Math.min(1, this.getSpeed() / GameConfig.STEALTH_AGENT_SPEED_MAX));
     return GameConfig.STEALTH_SOUND_RADIUS_MIN
       + t * (GameConfig.STEALTH_SOUND_RADIUS_MAX - GameConfig.STEALTH_SOUND_RADIUS_MIN);
   }
 
+  /** Verifica se o personagem está dentro de alguma área de sombra. */
   isInShadow(): boolean {
     for (const r of this.shadowRects) {
       if (this.position.x >= r.x && this.position.x <= r.x + r.w
@@ -127,6 +152,7 @@ export class StealthAgent {
     return false;
   }
 
+  /** Desenha o corpo; na sombra fica mais escuro e ganha um contorno azul. */
   private drawBody(inShadow: boolean): void {
     this.body.clear();
     const c = inShadow ? Color.rgb(0.1, 0.35, 0.65) : Color.rgb(0.25, 0.65, 1.0);
@@ -138,6 +164,8 @@ export class StealthAgent {
     }
   }
 
+  /** Desenha o anel amarelo que mostra o quanto de barulho está sendo feito.
+   *  Quase parado (raio mínimo): não desenha nada. */
   private drawSoundRing(): void {
     this.soundRing.clear();
     const sr = this.getSoundRadius();

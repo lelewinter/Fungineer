@@ -1,3 +1,9 @@
+/*
+ * ExtractionPoint — o ponto de extração (a "saída") da arena.
+ *
+ * É um círculo pulsante com o rótulo "EXIT". Quando a party entra no raio dele,
+ * a run termina em vitória. Serve como objetivo de fuga em zonas de extração.
+ */
 import { Container, Graphics, Text } from 'pixi.js';
 import { Color } from '../core/Color';
 import { GameConfig } from '../state/GameConfig';
@@ -6,7 +12,7 @@ import { FontFamily } from '../core/typography';
 import type { Party } from './Party';
 import type { Vec2 } from '../core/types';
 
-/** Exit zone. Party entering triggers run victory. */
+/** Zona de saída. A party entrando nela vence a run. */
 export class ExtractionPoint {
   readonly node = new Container();
   position: Vec2 = { x: 0, y: 0 };
@@ -32,8 +38,9 @@ export class ExtractionPoint {
     this.triggered = false;
   }
 
+  /** Roda todo frame: pulsa o visual e verifica se a party já entrou na saída. */
   update(dt: number): void {
-    if (this.triggered) return;
+    if (this.triggered) return; // já ativou a vitória; não repete
     if (GameState.current_state !== RunState.PLAYING) return;
 
     this.pulseTimer += dt;
@@ -44,13 +51,14 @@ export class ExtractionPoint {
     const dist = Math.hypot(this.party.anchor.x - this.position.x, this.party.anchor.y - this.position.y);
     if (dist <= GameConfig.EXTRACTION_RADIUS) {
       this.triggered = true;
-      GameState.endRun(true);
+      GameState.endRun(true); // entrou no raio: vitória
     }
   }
 
+  /** Desenha o círculo de extração com a pulsação (efeito de "respirar"). */
   private draw(): void {
     const r = GameConfig.EXTRACTION_RADIUS;
-    const pulse = 0.6 + 0.4 * Math.sin(this.pulseTimer * 3);
+    const pulse = 0.6 + 0.4 * Math.sin(this.pulseTimer * 3); // oscila a opacidade
     this.g.clear()
       .circle(0, 0, r)
       .fill({ color: Color.hex(Color.rgb(0.1, 0.8, 0.5)), alpha: 0.12 * pulse })

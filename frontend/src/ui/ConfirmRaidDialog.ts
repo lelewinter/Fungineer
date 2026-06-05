@@ -1,3 +1,13 @@
+// ============================================================================
+// ConfirmRaidDialog — a janela "tem certeza?" antes de começar uma raid.
+//
+// O que faz: mostra o nome e a descrição da zona e dois botões: confirmar ou
+// cancelar. Quem abriu a janela ouve os sinais `confirmed` / `cancelled` para
+// saber a decisão do jogador.
+//
+// Onde encaixa: aparece quando o jogador pede para iniciar uma incursão (raid).
+// (Equivale ao antigo ConfirmRaidDialog.gd da versão em Godot.)
+// ============================================================================
 import { Text } from 'pixi.js';
 import { Modal } from './Modal';
 import { PixiButton } from './PixiButton';
@@ -6,16 +16,18 @@ import { Signal } from '../core/Signal';
 
 /** Modal confirmation before starting a raid. Mirrors ConfirmRaidDialog.gd. */
 export class ConfirmRaidDialog extends Modal {
-  readonly confirmed = new Signal<[]>();
-  readonly cancelled = new Signal<[]>();
+  readonly confirmed = new Signal<[]>();   // jogador clicou em confirmar
+  readonly cancelled = new Signal<[]>();   // jogador clicou em cancelar
 
   constructor(zoneName: string, zoneDescription: string) {
     super(320, 220);
+    // Cor de destaque âmbar/laranja, combinando com o clima de "perigo/ação".
     this.drawPanelBg(Color.hex(Color.rgb(0.85, 0.55, 0.30)));
     this.buildContent(zoneName, zoneDescription);
     void this.animateOpen();
   }
 
+  /** Monta o conteúdo: título (nome da zona), descrição e os dois botões. */
   private buildContent(zoneName: string, zoneDescription: string): void {
     const halfH = this.panelH / 2;
     const padding = 16;
@@ -50,6 +62,7 @@ export class ConfirmRaidDialog extends Modal {
     desc.y = -halfH + padding + 32;
     this.panel.addChild(desc);
 
+    // Botão principal (confirmar): avisa via sinal e fecha a janela.
     const confirmBtn = new PixiButton({
       label: '► CONFIRMAR RAID',
       width: 220,
@@ -63,6 +76,8 @@ export class ConfirmRaidDialog extends Modal {
     confirmBtn.y = halfH - padding - 70;
     this.panel.addChild(confirmBtn);
 
+    // Botão secundário (cancelar): cor neutra/escura para não competir com o
+    // botão principal.
     const cancelBtn = new PixiButton({
       label: 'Cancelar',
       width: 220,

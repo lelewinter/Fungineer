@@ -1,4 +1,16 @@
 /**
+ * registerSW — Liga o service worker ao jogo em execucao.
+ * ------------------------------------------------------
+ * Em linguagem simples: o service worker (o "assistente de bastidores" definido
+ * em sw.ts) precisa ser registrado para comecar a trabalhar. Esta funcao faz
+ * isso e cuida das ATUALIZACOES: quando uma versao nova do jogo esta pronta,
+ * ela e aplicada automaticamente e a pagina recarrega uma unica vez — assim o
+ * jogador sempre roda a versao mais recente, sem ficar preso numa antiga.
+ *
+ * So roda em producao (no jogo publicado). Em desenvolvimento fica desligada
+ * para nao atrapalhar quem esta editando o codigo.
+ *
+ * ------------------------------------------------------------------
  * registerSW — wires the service worker into the running game.
  *
  *  1. Registers /sw.js on first load (production only).

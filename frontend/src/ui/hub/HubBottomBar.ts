@@ -1,3 +1,14 @@
+// ============================================================================
+// HubBottomBar — a barra inferior do hub (a base).
+//
+// O que faz: desenha a faixa de baixo da tela do hub, contendo:
+//  - uma dica em texto ("toque numa sala com luz piscando");
+//  - a legenda das zonas (chips coloridos), que quebra em duas linhas se não
+//    couber;
+//  - um botão de atalho "Foguete" no canto direito, que emite `rocketClicked`.
+//
+// Onde encaixa: faz parte do HUD do hub, junto com a HubTopBar.
+// ============================================================================
 import { Container, FederatedPointerEvent, Graphics, Text } from 'pixi.js';
 import { Color } from '../../core/Color';
 import { Signal } from '../../core/Signal';
@@ -8,9 +19,9 @@ import { HubData } from '../../state/HubData';
 /** BottomBar overlay. Mirrors Hub.html's BottomBar: hint line, zone legend
  *  chips wrapped below it, and a "Foguete" CTA button on the right. */
 export class HubBottomBar extends Container {
-  readonly rocketClicked = new Signal<[]>();
+  readonly rocketClicked = new Signal<[]>();   // jogador clicou no atalho "Foguete"
 
-  static readonly H = 64;
+  static readonly H = 64;   // altura da barra (em pixels)
 
   private bg = new Graphics();
   private hint = new Text();
@@ -41,7 +52,10 @@ export class HubBottomBar extends Container {
     this.hint.y = 8;
     this.addChild(this.hint);
 
-    // Zone legend chips (wraps if needed)
+    // Legenda das zonas: uma fileira de chips coloridos. Vamos posicionando da
+    // esquerda para a direita (cx avança). Se um chip não couber antes da área
+    // reservada à direita (reservedRight, onde fica o botão Foguete), passamos
+    // para a segunda linha (row = 1).
     let cx = 12;
     const cy = 26;
     let row = 0;
@@ -51,15 +65,15 @@ export class HubBottomBar extends Container {
       const chip = this.makeZoneChip(zone.name.replace('Zona ', ''), Color.hex(zone.color));
       if (cx + chip.width > W - reservedRight && row === 0) {
         row = 1;
-        cx = 12;
+        cx = 12; // recomeça a linha de baixo a partir da margem esquerda
       }
       chip.x = cx;
       chip.y = cy + row * rowH;
-      cx += chip.width + 8;
+      cx += chip.width + 8; // avança para o próximo chip (8px de espaço entre eles)
       this.addChild(chip);
     }
 
-    // Foguete CTA button
+    // Botão de atalho "Foguete" no canto direito (CTA = call to action).
     this.buildFogueteBtn();
     this.fogueteBtn.x = W - 96;
     this.fogueteBtn.y = (H - 26) / 2;
@@ -70,6 +84,7 @@ export class HubBottomBar extends Container {
     this.destroy({ children: true });
   }
 
+  /** Cria um "chip" da legenda: um quadradinho colorido + o nome da zona. */
   private makeZoneChip(name: string, color: number): Container {
     const c = new Container();
     const sw = new Graphics().rect(0, 0, 6, 6).fill({ color });
@@ -85,9 +100,13 @@ export class HubBottomBar extends Container {
     return c;
   }
 
+  /** Monta o botão "Foguete": um retângulo âmbar com brilho no hover e o
+   *  rótulo. Ao clicar, emite `rocketClicked`. */
   private buildFogueteBtn(): void {
     const w = 84;
     const h = 26;
+    // Função local que (re)desenha o fundo. Chamada de novo no hover para mudar
+    // a intensidade do preenchimento.
     const drawBg = (): void => {
       const amber = TextColor.amber;
       this.fogueteBg.clear();

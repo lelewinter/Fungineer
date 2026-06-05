@@ -1,3 +1,13 @@
+// ============================================================================
+// HubCharacterCard — o cartão de um personagem (NPC) do hub.
+//
+// O que faz: ao tocar num personagem da base, abre esta janelinha com o nome,
+// o nível de confiança (trust), a função dele, um texto de apresentação e a
+// missão que ele oferece. Tem só um botão "Fechar".
+//
+// Onde encaixa: dá vida e narrativa ao hub (a base), apresentando os aliados.
+// (Equivale ao antigo HubCharacterCard.gd da versão em Godot.)
+// ============================================================================
 import { Text } from 'pixi.js';
 import { Modal } from '../Modal';
 import { PixiButton } from '../PixiButton';
@@ -11,11 +21,14 @@ export class HubCharacterCard extends Modal {
   constructor(npc: HubNpc) {
     super(300, 220);
     this.npc = npc;
+    // Cor de destaque lilás suave.
     this.drawPanelBg(Color.hex(Color.rgb(0.65, 0.56, 0.78)));
     this.buildContent();
     void this.animateOpen();
   }
 
+  /** Monta o conteúdo de cima para baixo. A variável `y` vai sendo empurrada
+   *  para baixo a cada bloco, posicionando os textos um abaixo do outro. */
   private buildContent(): void {
     const halfW = this.panelW / 2;
     const halfH = this.panelH / 2;
@@ -57,7 +70,8 @@ export class HubCharacterCard extends Modal {
     // Separator
     y += 4;
 
-    // Dialog data
+    // Dados de diálogo (apresentação + missão). Nem todo NPC tem; só desenha
+    // este bloco se existir.
     const dialog = HubData.getDialog(this.npc.id);
     if (dialog) {
       const briefing = new Text({
