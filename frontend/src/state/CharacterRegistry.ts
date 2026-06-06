@@ -258,6 +258,38 @@ class CharacterRegistryClass {
     if (t >= 40) return 2;
     return 0;
   }
+
+  // ── Progressão por run ──
+  // A confiança sobe por PRESENÇA no bunker (toda run conta), não só por vitória
+  // — assim arcos avançam mesmo com derrotas (ver narrative-systems-plan.md).
+  advanceAllTrust(amount: number): void {
+    for (const id of CHARACTER_ORDER) this.addTrust(id, amount);
+  }
+
+  // ── Persistência / reset ──
+  snapshot(): { trust: Record<string, number>; rescued: string[] } {
+    return { trust: { ...this.trust }, rescued: this.rescued.slice() };
+  }
+
+  restore(snap: { trust?: Record<string, number>; rescued?: string[] } | undefined): void {
+    if (!snap) return;
+    if (snap.trust) {
+      for (const id of CHARACTER_ORDER) {
+        const v = snap.trust[id];
+        if (typeof v === 'number') this.trust[id] = Math.max(0, Math.min(100, v));
+      }
+    }
+    if (Array.isArray(snap.rescued)) {
+      this.rescued.length = 0;
+      for (const id of snap.rescued) if (!this.rescued.includes(id)) this.rescued.push(id);
+    }
+  }
+
+  /** Zera confiança e resgates — usado no Novo Ciclo (NG+). */
+  resetAll(): void {
+    for (const id of CHARACTER_ORDER) this.trust[id] = 0;
+    this.rescued.length = 0;
+  }
 }
 
 export const CharacterRegistry = new CharacterRegistryClass();

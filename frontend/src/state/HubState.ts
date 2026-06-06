@@ -181,6 +181,9 @@ export interface HubStateSnapshot {
   hub_density: 'minimal' | 'balanced' | 'informative';
   hub_ui_visible: boolean;
   room_unlocked: Record<string, boolean>;
+  /** Confiança e resgates dos personagens (CharacterRegistry). Opcional para
+   *  compatibilidade com saves antigos. */
+  character_state?: { trust: Record<string, number>; rescued: string[] };
 }
 
 class HubStateClass {
@@ -368,6 +371,7 @@ class HubStateClass {
     this.total_runs = 0;
     this.lore_found = [];
     this.room_unlocked = { saida_hordas: true, lab_rival: true };
+    CharacterRegistry.resetAll();
     this.stockChanged.emit(this.stock);
   }
 
@@ -407,9 +411,12 @@ class HubStateClass {
     return 1.0;
   }
 
-  onRunEnded(_victory: boolean): void {
+  onRunEnded(victory: boolean): void {
     this.total_runs += 1;
     this.updateDeterioration();
+    // Confiança sobe por presença (toda run), com bônus por vitória. Avança os
+    // arcos dos personagens ao longo do jogo, mesmo em derrotas.
+    CharacterRegistry.advanceAllTrust(victory ? 6 : 3);
   }
 
   private updateDeterioration(): void {
@@ -447,6 +454,7 @@ class HubStateClass {
       hub_density: this.hub_density,
       hub_ui_visible: this.hub_ui_visible,
       room_unlocked: { ...this.room_unlocked },
+      character_state: CharacterRegistry.snapshot(),
     };
   }
 
@@ -475,6 +483,7 @@ class HubStateClass {
     if (s.hub_density) this.hub_density = s.hub_density;
     if (typeof s.hub_ui_visible === 'boolean') this.hub_ui_visible = s.hub_ui_visible;
     if (s.room_unlocked) this.room_unlocked = { ...s.room_unlocked };
+    if (s.character_state) CharacterRegistry.restore(s.character_state);
     this.stockChanged.emit(this.stock);
     this.hubVariantChanged.emit(this.hub_variant);
     return true;
