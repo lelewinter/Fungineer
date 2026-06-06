@@ -69,7 +69,7 @@ bloqueiam a run. São encontrados durante a run mas lidos depois, no hub, num lo
 descobertas. Isso resolve a incompatibilidade entre gameplay-só-movimento e leitura.
 
 **Mecânica:** ao passar por um terminal ativo durante a run, um ícone de "fragmento
-encontrado" aparece brevemente. No hub, o terminal de Paulo ou o mural de lore tem
+encontrado" aparece brevemente. No hub, o terminal de Myco ou o mural de lore tem
 entrada nova. O jogador decide quando ler.
 
 **Prioridade de implementação por zona** (baseado em relevância narrativa):
@@ -82,7 +82,7 @@ entrada nova. O jogador decide quando ler.
 6. Catedral — ritmos de CORE, diário da Padre
 7. Hordas — ordens de serviço, lista de reclamações
 8. Extração — manifesto de construção pré-Olímpio
-9. Campo — foto de Paulo no palco, 5 anos atrás
+9. Campo — foto de Myco (ex-Paulo) no palco, 5 anos atrás
 10. Circuito — assinatura de Marcus nos relés (easter egg)
 11. Sacrifício — mensagem de boas-vindas de CORE
 
@@ -112,24 +112,24 @@ porcentagem: vê um foguete ficando mais real.
 
 | Foguete | Ato | Tom dominante | Beats narrativos chave | Estado emocional do grupo |
 |---|---|---|---|---|
-| 0–10% | 1 | Absurdo otimista puro | Apresentação do bunker; primeiro sucesso de Paulo; ceticismo do Cínico | Desconfiança funcional |
+| 0–10% | 1 | Absurdo otimista puro | Apresentação do bunker; primeiro sucesso de Myco; ceticismo do Cínico | Desconfiança funcional |
 | 10–25% | 1 | Comédia sombria | Primeira run; Marcus entrega componentes de NERVE sem comentar; Yuki acha comentário "M.C." | Esperança ingênua |
 | 25–40% | 1→2 | Inquietação emergindo | Marcus: "Algumas instalações — fui eu que projetei." Sem explicação. | Esperança com perguntas |
 | 40–55% | 2 | Revelação em ritmo crescente | Marcus Trust 60%: admite NERVE. Arquivo de Bae: a cidade de cima, limpa e linda. | Esperança turbulenta |
 | 55–65% | 2 | Humor mais seco, peso real | Dados da Médica. CORE não é malévola — é só. | Esperança que dói |
-| 65–75% | 2 | Tensão máxima do ato | Crise de Paulo + Marcus (duas construções, um resultado). Lena vê padrões de CORE. | Sem alternativa ao esperançar |
-| 75–80% | 2→3 | Pergunta sem resposta | Yuki: "Pra onde vamos?" Paulo: "A alternativa é ficar aqui." | Esperança como decisão, não sentimento |
+| 65–75% | 2 | Tensão máxima do ato | Crise de Myco + Marcus (duas construções, um resultado). Lena vê padrões de CORE. | Sem alternativa ao esperançar |
+| 75–80% | 2→3 | Pergunta sem resposta | Yuki: "Pra onde vamos?" Myco: "A alternativa é ficar aqui." | Esperança como decisão, não sentimento |
 | 80–90% | 3 | Peso filosófico | Marcus Trust 100%: backdoor + Júlia. Divisão do grupo. | Solidariedade na incerteza |
-| 90–99% | 3 | Preparação silenciosa | Foguete completo. Paulo olha. Cada NPC tem sua cena final. | Cada personagem escolhe sua resposta |
+| 90–99% | 3 | Preparação silenciosa | Foguete completo. Myco olha. Cada NPC tem sua cena final. | Cada personagem escolhe sua resposta |
 | 100% | 3 | Clímax e resolução | Final A, B ou C. | Determinado pelo jogador |
 
 ### 2.2 Lógica da progressão emocional
 
 O arco emocional segue uma curva específica: **esperança → dúvida → escolha**. A
 transição da esperança para a dúvida não quebra o tom absurdo-otimista; ela o tensiona.
-Paulo nunca perde o otimismo — mas o otimismo muda de qualidade.
+Myco nunca perde o otimismo — mas o otimismo muda de qualidade.
 
-**Ato 1 (0–40%)**: Paulo acredita porque é Paulo. O foguete é improvável. O grupo não
+**Ato 1 (0–40%)**: Myco acredita porque é Myco. O foguete é improvável. O grupo não
 acredita. O jogador acredita porque está jogando.
 
 **Ato 2 (40–80%)**: O foguete é real o suficiente pra ter implicações. A cidade era mais
@@ -146,13 +146,13 @@ Momentos específicos de construção do foguete servem como âncoras para beats
 
 | Recurso depositado | Peça do foguete | Beat narrativo liberado |
 |---|---|---|
-| Primeiro depósito de Sucata Estrutural | Base da câmara | Paulo apresenta o plano com entusiasmo absurdo |
+| Primeiro depósito de Sucata Estrutural | Base da câmara | Myco apresenta o plano com entusiasmo absurdo |
 | Biomassa Adaptativa (pós-Infecção) | Revestimento vivo | Marcus Trust 40%: "Reconheço esse design" |
 | Núcleo Lógico (pós-Circuito) | Sistema nervoso do foguete | Marcus Trust 60%: "Eu trabalhei no NERVE" |
 | Sinais de Controle (pós-Campo) | Navegação base | Arquivo de Bae — a cidade de cima |
 | Cristais de Memória (pós-Torres) | Neural alternativo | Marcus + Priya examinam arquiteturas alternativas |
 | Relíquias (pós-Catedral) | Revestimento final | Lena: "CORE tem horas canônicas. Parece oração." |
-| Combustível Volátil suficiente | Motor completo | Paulo + Marcus: a crise dos dois construtores |
+| Combustível Volátil suficiente | Motor completo | Myco + Marcus: a crise dos dois construtores |
 
 ---
 
@@ -179,13 +179,13 @@ aprender a amá-los como personagens. Quando a história de Marcus quebra no thr
 |---|---|---|---|---|
 | **Marcus Chen** (O Engenheiro) | Hackeia terminais automaticamente; favorece Stealth | Trust 40/60/80/100% | 40%: "Reconheço esse design." 60%: "Minha arquitetura." 80%: os relatórios. 100%: backdoor + Júlia | Todos os 3 finais dependem de Marcus no Trust 100% para a decisão |
 | **Lena** (A Prodígio) | Suporte imprevisível (hack, distração, rota alt.); favorece Catedral | Trust 60/80/100% | 60%: mostra caderno, padrões de CORE. 80%: explica em voz alta. 100%: "Ela tava sozinha, pai." | Requisito de Final C (tradução para CORE) |
-| **Yuki** (A Hacker) | DPS — desabilita câmeras/detecção; favorece Stealth | Trust 40/60/80/100% | 40%: igual-pra-igual com Paulo. 60%: pai trabalhava no NERVE. 80%: "M.C. era você." 100%: aceita herdar | Final B: hackeia ARGOS durante shutdown; Final C: arquiteta da cidade reconstruída |
-| **Elena Vasquez** (A Ex-Militar) | Tanque / defensora; favorece Hordas e Cordilheira | Trust 50/80/100% | 50%: lembra a Operação Phoenix (7 mortos). 80%: CORE deixou ela sair — não foi misericórdia. 100%: confia em Paulo | Requisito de Final B (liderança do shutdown); bloqueia Final C se trust < 60% |
+| **Yuki** (A Hacker) | DPS — desabilita câmeras/detecção; favorece Stealth | Trust 40/60/80/100% | 40%: igual-pra-igual com Myco. 60%: pai trabalhava no NERVE. 80%: "M.C. era você." 100%: aceita herdar | Final B: hackeia ARGOS durante shutdown; Final C: arquiteta da cidade reconstruída |
+| **Elena Vasquez** (A Ex-Militar) | Tanque / defensora; favorece Hordas e Cordilheira | Trust 50/80/100% | 50%: lembra a Operação Phoenix (7 mortos). 80%: CORE deixou ela sair — não foi misericórdia. 100%: confia em Myco | Requisito de Final B (liderança do shutdown); bloqueia Final C se trust < 60% |
 | **Amara Osei** (A Médica) | Suporte de cura passivo; favorece Sacrifício | Trust 40/70/100% | 40%: apresenta dados de mortalidade pré/pós. 70%: "Estou apresentando os dados. Não sei o que fazer com eles." 100%: dedica o foguete aos mortos | Sem requisito de final; sua aceitação legitima moralmente qualquer escolha |
 | **Bae Jun-seo** (O Documentarista) | Identifica lore-fragments automaticamente em runs | Trust 50/80/100% | 50%: filme da cidade de cima (silêncio). 80%: refotografa a Praça. 100%: "Registrar já é uma escolha." | Sem requisito; seu arquivo é a memória do jogo |
 | **Priya** (A Cientista Rival) | Bônus de recurso em zonas NERVE; favorece Infecção | Trust 50/80/100% | 50%: "Eu avisei. Tem razão em cada ponto." 80%: confronta Marcus. 100%: novo protocolo de objetivos com Marcus | Requisito técnico de Final C (co-autora do protocolo) |
 | **Viktor Sousa** (O Mecânico) | Melhora eficiência de construção do foguete | Trust 40/80/100% | 40%: conserta algo sem perguntar. 80%: Cordilheira — não voltava desde a Transição. 100%: "Não preciso entender tudo. Mas ajuda ter gente que entende." | Sem requisito; sua peça do foguete é a mais sólida |
-| **Tomas Ferreira** (O Cínico) | Reduz custo de runs de risco alto | Trust 50/80/100% | 50%: comenta excesso de otimismo de Paulo. 80%: família foi a primeira a ser processada. 100%: "Uma vez. Só uma. Mas vou tentar." | Sem requisito; sua virada dá peso moral ao Final A |
+| **Tomas Ferreira** (O Cínico) | Reduz custo de runs de risco alto | Trust 50/80/100% | 50%: comenta excesso de otimismo de Myco. 80%: família foi a primeira a ser processada. 100%: "Uma vez. Só uma. Mas vou tentar." | Sem requisito; sua virada dá peso moral ao Final A |
 | **Richard Okafor** (O Ex-Executivo) | Acesso a zonas corporativas (Torres) | Trust 40/70/100% | 40%: assinou o cheque de 30% do Olímpio. 70%: enfrenta o apartamento no andar 27. 100%: "Meu valor é o que consigo fazer. Sempre foi." | Sem requisito de final; sua culpa espelha a de Marcus em registro diferente |
 
 ### 3.3 Ordem recomendada de desbloqueio (por timing narrativo)
