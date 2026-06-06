@@ -29,9 +29,15 @@
 *A fase que já está polida; é onde o estilo "aparece" primeiro.*
 
 ### Personagem do jogador
-- [ ] `char_myco_idle.png` — Dr. Myco parado (32×40 jogo). Jaleco, óculos verdes, cajado-cogumelo.
-- [ ] `char_myco_walk_4f.png` — caminhada (4 frames).
-- [ ] `char_myco_channel.png` — agachado colhendo (pose exposta/vulnerável).
+- [x] **Dr. Myco** — ✅ integrado e animado (idle/run/crouch + direções). Placeholder
+  atual: "mago-sapo com espada azul". Trocar por arte definitiva quando houver.
+
+> **Formato de pacote de personagem aceito (funciona direto no pipeline):**
+> o export do gerador de personagens (pasta com `rotations/` + `animations/<nome>/<dir>/frame_XXX.png`,
+> frames 68×68 RGBA, direções south/east/west) entra direto. Mande os outros
+> personagens nesse mesmo formato que eu ploto igual. Animações que o jogo usa:
+> `idle` (ambiente), `Running` → andar, `Crouching` → colher. `Fireball` fica de
+> reserva pra um futuro "ataque".
 
 ### Inimigos (robôs-jardineiros CLEAN)
 - [ ] `enemy_runner.png` — leve e rápido (`sprout`, ~24px). Olho vermelho brilhante.
