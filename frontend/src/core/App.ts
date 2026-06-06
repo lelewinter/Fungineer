@@ -20,6 +20,7 @@
 import { Application, Container } from 'pixi.js';
 import { GameConfig } from '../state/GameConfig';
 import { CRTFilter } from './filters/CRTFilter';
+import { CinematicPipeline } from './postfx/CinematicPipeline';
 
 export class App {
   /** A aplicacao PixiJS (renderer, ticker, canvas...). */
@@ -28,7 +29,9 @@ export class App {
   readonly stage: Container;
   /** Container do mundo do jogo — este sim e escalado para caber no aparelho. */
   readonly world: Container;
-  /** O filtro de efeito CRT (TV antiga) aplicado a imagem final. */
+  /** Pipeline de pos-processamento cinematografico (color grade + bloom + CRT). */
+  readonly fx: CinematicPipeline;
+  /** O filtro CRT (mantido por compatibilidade; e o mesmo de `fx.crt`). */
   readonly crt: CRTFilter;
 
   // O elemento HTML que hospeda o canvas do jogo.
@@ -46,18 +49,19 @@ export class App {
     this.world.label = 'WorldRoot';
     this.stage.addChild(this.world);
 
-    this.crt = new CRTFilter({
-      viewportW: GameConfig.VIEWPORT_WIDTH,
-      viewportH: GameConfig.VIEWPORT_HEIGHT,
-      intensity: 0.16,
-    });
-    // O CRT e um pos-processamento de tela cheia, entao ele vive no `stage` — que
-    // esta sempre alinhado a tela e sem escala. Aplica-lo ao `world` (que e
+    // Pipeline cinematografico de tela cheia (color grade + bloom + CRT). Vive no
+    // `stage` — sempre alinhado a tela e sem escala. Aplica-lo ao `world` (que e
     // escalado de forma nao-uniforme) fazia o Pixi calcular errado a regiao do
     // filtro e cortar a borda direita, deixando uma faixa morta sem preencher.
-    this.stage.filters = [this.crt];
+    this.fx = new CinematicPipeline({
+      viewportW: GameConfig.VIEWPORT_WIDTH,
+      viewportH: GameConfig.VIEWPORT_HEIGHT,
+      crtIntensity: 0.12,
+    });
+    this.crt = this.fx.crt;
+    this.stage.filters = this.fx.filters;
     this.stage.filterArea = this.pixi.screen;
-    this.pixi.ticker.add(() => this.crt.tick());
+    this.pixi.ticker.add(() => this.fx.tick());
 
     // Gerenciamos o tamanho do renderer manualmente em vez de usar o `resizeTo`
     // do Pixi: no celular a area visivel muda com a barra de URL do navegador
