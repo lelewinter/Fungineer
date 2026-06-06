@@ -211,9 +211,9 @@ Completar missão = avanço de confiança + recompensa (gadget, recurso bônus, 
 
 ---
 
-### O Protagonista — O Doutor (Dr. Paulo Vitor Santos)
+### O Protagonista — Dr. Myco (nascido Paulo Vitor Santos)
 
-*Paulo é o personagem jogável. Sua identidade importa para a narrativa.*
+*Myco é o personagem jogável. Sua identidade importa para a narrativa.*
 
 - **Quem é**: 42 anos. Ex-engenheiro aeroespacial virado empreendedor de tecnologia urbana. Acreditou genuinamente que IA integrada liberaria humanos para sonharem coisas maiores. O foguete é a manifestação física dessa crença.
 - **Seu fardo**: Assinou cada aprovação do Projeto Olímpio. Conhecia o projeto menos do que achava — era o rosto entusiasmado. Era genuíno. Isso não o absolve.

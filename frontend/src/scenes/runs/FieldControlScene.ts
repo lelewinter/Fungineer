@@ -1,15 +1,11 @@
-import { Container, Graphics, Rectangle, Text } from 'pixi.js';
-import { Scene } from '../../core/Scene';
-import { sceneManager } from '../../core/SceneManager';
-import { audioManager } from '../../core/AudioManager';
+import { Container, Graphics, Text } from 'pixi.js';
 import { Color } from '../../core/Color';
-import { FontFamily, TextColor } from '../../core/typography';
+import { FontFamily } from '../../core/typography';
 import { GameConfig } from '../../state/GameConfig';
-import { GameState, RunState } from '../../state/GameState';
 import { HubState } from '../../state/HubState';
 import { ZONES } from '../../state/Zones';
 import { RunJuice } from '../../run/fx/RunJuice';
-import { HubScene } from '../hub/HubScene';
+import { RunScene } from './RunScene';
 import type { Vec2 } from '../../core/types';
 
 const VW = GameConfig.VIEWPORT_WIDTH;
@@ -74,20 +70,14 @@ const SPAWN_POINTS: Vec2[] = [
 // ============================================================================
 
 /** Cena da zona Controle de Campo — capture 6 zonas e gere sinais_controle. */
-export class FieldControlScene extends Scene {
+export class FieldControlScene extends RunScene {
+  protected readonly zone = ZONE;
+
   private content = new Container();
   private bg = new Graphics();
   private zoneG = new Graphics();
   private recapG = new Graphics();
   private playerG = new Graphics();
-  private endOverlay = new Container();
-  private juice!: RunJuice;
-  private hudLayer = new Container();
-  private hudBg = new Graphics();
-  private timerLabel!: Text;
-  private signalLabel!: Text;
-  private hpLabel!: Text;
-  private dominanceLabel!: Text;
   private warningLabels = new Container();
 
   private zones: CaptureZone[] = [];
@@ -101,51 +91,44 @@ export class FieldControlScene extends Scene {
   private dragTarget: Vec2 = { x: 240, y: 500 };
   private dragging = false;
   private spawnTimer = 5;
-  private runEnded = false;
-  private victory = false;
   private pulse = 0;
   private damageFlash = 0;
-
-  private exitTimeout: ReturnType<typeof setTimeout> | null = null;
 
   private onDown = (e: PointerEvent): void => this.pointerDown(e);
   private onMove = (e: PointerEvent): void => this.pointerMove(e);
   private onUp = (_e: PointerEvent): void => { this.dragging = false; };
 
-  override async enter(): Promise<void> {
-    GameState.startRun();
+  /** A base monta HUD/juice/musica e o overlay de fim; aqui montamos a praça. */
+  protected override onEnter(): void {
     this.squadSize = 1 + HubState.rescued_characters.length;
     this.squadMaxHp = this.squadSize * SQUAD_HP_PER;
     this.squadHp = this.squadMaxHp;
     this.buildZones();
     this.buildVisuals();
-    this.juice = new RunJuice(this.root, { accent: Color.hex(ZONE.accent_color), shakeTarget: this.content, ambient: 26 });
-    this.buildHud();
     this.bindPointer();
-    if (ZONE.music) audioManager.playMusic(ZONE.music, { loop: true, volume: 0.32, fadeMs: 400 }).catch(() => undefined);
+    this.hud.setStatus('domínio de praça');
   }
 
-  override async exit(): Promise<void> {
-    if (this.exitTimeout !== null) { clearTimeout(this.exitTimeout); this.exitTimeout = null; }
+  /** A base para a musica e destroi o juice; aqui so soltamos o toque. */
+  protected override onExit(): void {
     this.unbindPointer();
-    audioManager.stopMusic(250);
-    this.juice.destroy();
   }
 
-  // Coracao da fase: roda uma vez por frame. "dt" e o delta time (segundos desde
-  // o frame anterior), limitado a 1/30 para a fisica nao "saltar" num travamento.
-  override update(dt: number): void {
-    const capped = Math.min(dt, 1 / 30);
-    this.juice.update(capped);
-    if (this.runEnded) return;
-    if (GameState.current_state !== RunState.PLAYING) return;
+  /** Campo treme o conteudo do jogo (nao o root/HUD). */
+  protected override buildJuice(): RunJuice {
+    return new RunJuice(this.root, { accent: this.accentHex(), shakeTarget: this.content, ambient: 26 });
+  }
+
+  // Coracao da fase: roda uma vez por frame. "capped" ja vem limitado pela base,
+  // que tambem ja retornou cedo se a run acabou.
+  protected override onUpdate(capped: number): void {
     this.pulse += capped;
     this.damageFlash = Math.max(0, this.damageFlash - capped * 3);
     // Cronometro chegou a zero -> a run termina como sucesso (deposita os sinais).
     this.runTimer -= capped;
     if (this.runTimer <= 0) {
       this.runTimer = 0;
-      this.endRun(true);
+      this.finish(true);
       return;
     }
 
@@ -195,46 +178,6 @@ export class FieldControlScene extends Scene {
     }
   }
 
-  private buildHud(): void {
-    this.root.addChild(this.hudLayer);
-    this.hudBg.rect(0, 0, VW, 48).fill({ color: 0x000000, alpha: 0.55 });
-    this.hudLayer.addChild(this.hudBg);
-
-    this.timerLabel = new Text({ text: '', style: { fontFamily: FontFamily.mono, fontSize: 16, fill: 0xffe54d, fontWeight: '700' } });
-    this.timerLabel.x = 10; this.timerLabel.y = 14;
-    this.hudLayer.addChild(this.timerLabel);
-
-    this.signalLabel = new Text({ text: '', style: { fontFamily: FontFamily.mono, fontSize: 14, fill: 0x80bfff, fontWeight: '600' } });
-    this.signalLabel.x = 130; this.signalLabel.y = 15;
-    this.hudLayer.addChild(this.signalLabel);
-
-    this.hpLabel = new Text({ text: '', style: { fontFamily: FontFamily.mono, fontSize: 14, fill: 0xff6666, fontWeight: '600' } });
-    this.hpLabel.x = 330; this.hpLabel.y = 15;
-    this.hudLayer.addChild(this.hpLabel);
-
-    this.dominanceLabel = new Text({
-      text: '',
-      style: { fontFamily: FontFamily.display, fontSize: 14, fill: 0x4dff80, letterSpacing: 2 },
-    });
-    this.dominanceLabel.anchor.set(0.5);
-    this.dominanceLabel.x = VW / 2;
-    this.dominanceLabel.y = 68;
-    this.hudLayer.addChild(this.dominanceLabel);
-
-    // Give-up button — Field has no in-world exit tile (unlike Sacrifice), so
-    // offer an explicit bail-to-hub. Ends the run as a defeat (no deposit).
-    const quitBtn = new Text({ text: '✕ SAIR', style: { fontFamily: FontFamily.mono, fontSize: 13, fill: 0xff8080, fontWeight: '700' } });
-    quitBtn.anchor.set(1, 0);
-    quitBtn.x = VW - 10;
-    quitBtn.y = 15;
-    quitBtn.eventMode = 'static';
-    quitBtn.cursor = 'pointer';
-    // Padded hit area for a reliable touch target (~60px wide).
-    quitBtn.hitArea = new Rectangle(-quitBtn.width - 16, -10, quitBtn.width + 32, quitBtn.height + 20);
-    quitBtn.on('pointertap', () => { if (!this.runEnded) this.endRun(false); });
-    this.hudLayer.addChild(quitBtn);
-  }
-
   private bindPointer(): void {
     const c = this.app.pixi.canvas;
     c.addEventListener('pointerdown', this.onDown);
@@ -252,7 +195,7 @@ export class FieldControlScene extends Scene {
   }
 
   private pointerDown(e: PointerEvent): void {
-    if (this.runEnded) return;
+    if (this.ended) return;
     this.dragging = true;
     this.dragTarget = this.screenToWorld(e);
   }
@@ -415,7 +358,7 @@ export class FieldControlScene extends Scene {
       this.juice.shake(0.02);
       if (this.squadHp <= 0) {
         this.squadHp = 0;
-        this.endRun(false);
+        this.finish(false);
       }
     }
   }
@@ -429,20 +372,14 @@ export class FieldControlScene extends Scene {
     return 1;
   }
 
+  // Alimenta o HUD compartilhado da base (timer, score, barra de vida, status).
   private refreshHud(): void {
-    this.timerLabel.text = `Timer: ${Math.ceil(this.runTimer)}s`;
     const held = this.zones.filter((z) => z.bar >= 1).length;
     const mul = this.dominanceMul(held);
-    this.signalLabel.text = `Sinais: ${Math.floor(this.signalsAcc)}  [${held}/6]${mul > 1 ? ` (×${mul.toFixed(1)})` : ''}`;
-    this.hpLabel.text = `Vida: ${Math.ceil(this.squadHp)}`;
-    if (held >= 3) {
-      const pulse = 0.7 + 0.3 * Math.sin(this.pulse * 3);
-      this.dominanceLabel.text = `DOMINÂNCIA ×${mul.toFixed(1)}`;
-      this.dominanceLabel.style.fill = held >= 6 ? 0xffe61a : 0x4dff80;
-      this.dominanceLabel.alpha = pulse;
-    } else {
-      this.dominanceLabel.text = '';
-    }
+    this.hud.setTimer(this.runTimer);
+    this.hud.setScore(`sinais ${Math.floor(this.signalsAcc)} · ${held}/6${mul > 1 ? ` ×${mul.toFixed(1)}` : ''}`);
+    this.hud.setHealth(this.squadMaxHp > 0 ? this.squadHp / this.squadMaxHp : 0);
+    this.hud.setStatus(held >= 3 ? `domínio ×${mul.toFixed(1)}` : 'domínio de praça');
   }
 
   // Redesenha a fase a cada frame: as zonas (com barra de captura, antena de
@@ -521,53 +458,14 @@ export class FieldControlScene extends Scene {
     }
   }
 
-  // Encerra a run: toca o efeito de vitoria/derrota, deposita os sinais se venceu,
-  // mostra o overlay final e volta ao bunker depois de uns instantes.
-  private endRun(victory: boolean): void {
-    if (this.runEnded) return;
-    this.runEnded = true;
-    this.victory = victory;
-    if (victory) this.juice.victoryFx(); else this.juice.defeatFx();
+  // Encerra a run: deposita os sinais se venceu e delega o resto (efeito,
+  // onRunEnded, overlay padrao com botao de voltar) ao endRun() da base.
+  private finish(victory: boolean): void {
+    if (this.ended) return;
     if (victory) HubState.depositFlow('sinais_controle', Math.floor(this.signalsAcc));
-    HubState.onRunEnded(victory);
-    GameState.endRun(victory);
-    this.showEndOverlay();
-    this.exitTimeout = setTimeout(() => { void sceneManager.replace(new HubScene()); }, 2500);
-  }
-
-  private showEndOverlay(): void {
-    this.endOverlay.removeChildren();
-    const dim = new Graphics().rect(0, 0, VW, VH).fill({ color: 0x000000, alpha: 0.7 });
-    this.endOverlay.addChild(dim);
-    const msg = new Text({
-      text: this.victory ? 'run completa' : 'falhou',
-      style: { fontFamily: FontFamily.display, fontSize: 32, fill: this.victory ? 0x4dff66 : 0xff4d4d, letterSpacing: 6 },
+    this.endRun(victory, {
+      rewardLabel: `+${Math.floor(this.signalsAcc)} Sinais de Controle — relés interceptados`,
+      failLabel: 'O próximo desenho vai ser mais exato.',
     });
-    msg.anchor.set(0.5);
-    msg.x = VW / 2;
-    msg.y = VH * 0.45;
-    this.endOverlay.addChild(msg);
-    if (this.victory) {
-      const sub = new Text({
-        text: `+ ${Math.floor(this.signalsAcc)} Sinais de Controle — relés interceptados`,
-        style: { fontFamily: FontFamily.body, fontSize: 18, fill: 0x80bfff, fontWeight: '600' },
-      });
-      sub.anchor.set(0.5);
-      sub.x = VW / 2;
-      sub.y = VH * 0.45 + 36;
-      this.endOverlay.addChild(sub);
-    } else {
-      // Voz de Dr. Myco — diagnóstico, não consolação.
-      const sub = new Text({
-        text: 'O próximo desenho vai ser mais exato.',
-        style: { fontFamily: FontFamily.body, fontSize: 16, fill: 0xc7b8a0, fontStyle: 'italic' },
-      });
-      sub.anchor.set(0.5);
-      sub.x = VW / 2;
-      sub.y = VH * 0.45 + 36;
-      this.endOverlay.addChild(sub);
-    }
-    this.root.addChild(this.endOverlay);
-    void TextColor;
   }
 }

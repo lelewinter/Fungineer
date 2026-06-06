@@ -1,15 +1,11 @@
 import { Container, Graphics, Text } from 'pixi.js';
-import { Scene } from '../../core/Scene';
-import { sceneManager } from '../../core/SceneManager';
-import { audioManager } from '../../core/AudioManager';
 import { Color } from '../../core/Color';
 import { FontFamily } from '../../core/typography';
 import { GameConfig } from '../../state/GameConfig';
-import { GameState, RunState } from '../../state/GameState';
 import { HubState } from '../../state/HubState';
 import { ZONES } from '../../state/Zones';
 import { RunJuice } from '../../run/fx/RunJuice';
-import { HubScene } from '../hub/HubScene';
+import { RunScene } from './RunScene';
 import { shuffleInPlace } from '../../core/types';
 import type { Vec2 } from '../../core/types';
 
@@ -108,7 +104,9 @@ function rectHasPoint(r: { x: number; y: number; w: number; h: number }, p: Vec2
 // ============================================================================
 
 /** Cena da zona Sacrificio — 5 camaras ao redor de um hub, cada uma com um custo. */
-export class SacrificeScene extends Scene {
+export class SacrificeScene extends RunScene {
+  protected readonly zone = ZONE;
+
   private bg = new Graphics();
   private corridorG = new Graphics();
   private hubG = new Graphics();
@@ -116,17 +114,10 @@ export class SacrificeScene extends Scene {
   private enemyG = new Graphics();
   private playerG = new Graphics();
   private labelLayer = new Container();
-  private endOverlay = new Container();
   private content = new Container();
-  private juice!: RunJuice;
 
-  private hudLayer = new Container();
-  private hudBg = new Graphics();
-  private timerLabel!: Text;
-  private bagLabel!: Text;
-  private hpLabel!: Text;
+  // Rotulos de mundo (nao-HUD): titulo do hub, tile de saida e a fala da CORE.
   private exitLabel!: Text;
-  private exitTimeout: ReturnType<typeof setTimeout> | null = null;
   private hubTitle!: Text;
   private coreLabel!: Text;
 
@@ -141,8 +132,6 @@ export class SacrificeScene extends Scene {
   private dragTarget: Vec2 = { ...HUB_CENTER };
   private dragging = false;
   private currentChamberIdx = -1;
-  private runEnded = false;
-  private victory = false;
   private damageFlash = 0;
   private pulse = 0;
   private hubEnemies: HubEnemy[] = [];
@@ -154,34 +143,32 @@ export class SacrificeScene extends Scene {
   private onMove = (e: PointerEvent): void => this.pointerMove(e);
   private onUp = (): void => { this.dragging = false; };
 
-  override async enter(): Promise<void> {
-    GameState.startRun();
+  /** A base monta HUD/juice/musica e o overlay de fim; aqui montamos as câmaras. */
+  protected override onEnter(): void {
     this.bagCap = HubState.getBackpackCapacity();
     this.squadSize = 1 + HubState.rescued_characters.length;
     this.squadMaxHp = this.squadSize * SQUAD_HP_PER;
     this.squadHp = this.squadMaxHp;
     this.buildChambers();
     this.buildVisuals();
-    this.juice = new RunJuice(this.root, { accent: Color.hex(ZONE.accent_color), shakeTarget: this.content, ambient: 26 });
-    this.buildHud();
+    this.buildWorldLabels();
     this.bindPointer();
-    if (ZONE.music) audioManager.playMusic(ZONE.music, { loop: true, volume: 0.35, fadeMs: 400 }).catch(() => undefined);
+    this.hud.setStatus('câmaras de CORE');
   }
 
-  override async exit(): Promise<void> {
-    if (this.exitTimeout !== null) { clearTimeout(this.exitTimeout); this.exitTimeout = null; }
+  /** A base para a musica e destroi o juice; aqui so soltamos o toque. */
+  protected override onExit(): void {
     this.unbindPointer();
-    audioManager.stopMusic(250);
-    this.juice.destroy();
   }
 
-  // Coracao da fase: roda uma vez por frame. "dt" e o delta time (segundos desde
-  // o frame anterior), limitado a 1/30 para a fisica nao "saltar" num travamento.
-  override update(dt: number): void {
-    const capped = Math.min(dt, 1 / 30);
-    this.juice.update(capped);
-    if (this.runEnded) return;
-    if (GameState.current_state !== RunState.PLAYING) return;
+  /** Sacrifício treme o conteudo do jogo (nao o root/HUD). */
+  protected override buildJuice(): RunJuice {
+    return new RunJuice(this.root, { accent: this.accentHex(), shakeTarget: this.content, ambient: 26 });
+  }
+
+  // Coracao da fase: roda uma vez por frame. "capped" ja vem limitado pela base,
+  // que tambem ja retornou cedo se a run acabou.
+  protected override onUpdate(capped: number): void {
     this.pulse += capped;
     this.damageFlash = Math.max(0, this.damageFlash - capped * 3);
 
@@ -189,7 +176,7 @@ export class SacrificeScene extends Scene {
     this.runTimer -= capped;
     if (this.runTimer <= 0) {
       this.runTimer = 0;
-      this.endRun(true);
+      this.finish(true);
       return;
     }
 
@@ -231,7 +218,7 @@ export class SacrificeScene extends Scene {
 
     this.movePlayer(capped);
     this.updateHubEnemies(capped);
-    if (this.runEnded) return;
+    if (this.ended) return;
 
     // Logica da camara atual: cobra o custo ao entrar, depois deixa coletar.
     if (this.currentChamberIdx >= 0) {
@@ -253,7 +240,7 @@ export class SacrificeScene extends Scene {
         this.juice.shake(0.02);
         if (this.squadHp <= 0) {
           this.squadHp = 0;
-          this.endRun(false);
+          this.finish(false);
           return;
         }
       } else {
@@ -264,7 +251,7 @@ export class SacrificeScene extends Scene {
     this.refreshHud();
 
     if (rectHasPoint(EXIT_RECT, this.playerPos)) {
-      this.endRun(true);
+      this.finish(true);
       return;
     }
 
@@ -348,20 +335,9 @@ export class SacrificeScene extends Scene {
     }
   }
 
-  private buildHud(): void {
-    this.root.addChild(this.hudLayer);
-    this.hudBg.rect(0, 0, VW, 48).fill({ color: 0x000000, alpha: 0.55 });
-    this.hudLayer.addChild(this.hudBg);
-    this.timerLabel = new Text({ text: '', style: { fontFamily: FontFamily.mono, fontSize: 16, fill: 0xffe54d, fontWeight: '700' } });
-    this.timerLabel.x = 10; this.timerLabel.y = 14;
-    this.hudLayer.addChild(this.timerLabel);
-    this.bagLabel = new Text({ text: '', style: { fontFamily: FontFamily.mono, fontSize: 14, fill: 0xe6b3ff, fontWeight: '600' } });
-    this.bagLabel.x = 130; this.bagLabel.y = 15;
-    this.hudLayer.addChild(this.bagLabel);
-    this.hpLabel = new Text({ text: '', style: { fontFamily: FontFamily.mono, fontSize: 14, fill: 0xff6666, fontWeight: '600' } });
-    this.hpLabel.x = 300; this.hpLabel.y = 15;
-    this.hudLayer.addChild(this.hpLabel);
-
+  // Cria os rotulos de MUNDO (posicionados em coordenadas do jogo, adicionados a
+  // labelLayer no redraw). O HUD do topo (timer/bag/vida) vem da base via this.hud.
+  private buildWorldLabels(): void {
     this.hubTitle = new Text({ text: 'HUB', style: { fontFamily: FontFamily.mono, fontSize: 10, fill: 0xb399cc, fontWeight: '600' } });
     this.hubTitle.anchor.set(0.5);
     this.hubTitle.x = HUB_CENTER.x;
@@ -395,7 +371,7 @@ export class SacrificeScene extends Scene {
     c.removeEventListener('pointercancel', this.onUp);
   }
   private pointerDown(e: PointerEvent): void {
-    if (this.runEnded) return;
+    if (this.ended) return;
     this.dragging = true;
     this.dragTarget = this.screenToWorld(e);
   }
@@ -560,18 +536,19 @@ export class SacrificeScene extends Scene {
       this.juice.shake(0.025);
       if (this.squadHp <= 0) {
         this.squadHp = 0;
-        this.endRun(false);
+        this.finish(false);
       }
     }
   }
 
   // ── Desenho ──────────────────────────────────────────────────────────────
   // Atualiza os textos do HUD (cronometro, mochila, vida e aviso de invasores).
+  // Alimenta o HUD compartilhado da base (timer, mochila como score, barra de vida).
   private refreshHud(): void {
-    this.timerLabel.text = `Timer: ${Math.ceil(this.runTimer)}s`;
-    this.bagLabel.text = `Bag: ${this.backpack.length}/${this.bagCap}`;
     const inv = this.hubEnemies.length;
-    this.hpLabel.text = `Vida: ${Math.ceil(this.squadHp)}${inv > 0 ? `  ⚠ ×${inv}` : ''}`;
+    this.hud.setTimer(this.runTimer);
+    this.hud.setScore(`bag ${this.backpack.length}/${this.bagCap}${inv > 0 ? ` · ⚠×${inv}` : ''}`);
+    this.hud.setHealth(this.squadMaxHp > 0 ? this.squadHp / this.squadMaxHp : 0);
   }
 
   // Redesenha a fase inteira a cada frame: corredores, hub, camaras (com seus
@@ -780,40 +757,14 @@ export class SacrificeScene extends Scene {
 
   // Encerra a run: toca o efeito de vitoria/derrota, deposita a mochila se venceu,
   // mostra o overlay final e volta ao bunker depois de uns instantes.
-  private endRun(victory: boolean): void {
-    if (this.runEnded) return;
-    this.runEnded = true;
-    this.victory = victory;
-    if (victory) this.juice.victoryFx(); else this.juice.defeatFx();
+  // Encerra a run: deposita a mochila se venceu e delega o resto (efeito,
+  // onRunEnded, overlay padrao com botao de voltar) ao endRun() da base.
+  private finish(victory: boolean): void {
+    if (this.ended) return;
     if (victory) HubState.depositBackpack(this.backpack);
-    HubState.onRunEnded(victory);
-    GameState.endRun(victory);
-    this.showEndOverlay();
-    this.exitTimeout = setTimeout(() => { void sceneManager.replace(new HubScene()); }, 2500);
-  }
-
-  private showEndOverlay(): void {
-    this.endOverlay.removeChildren();
-    const dim = new Graphics().rect(0, 0, VW, VH).fill({ color: 0x000000, alpha: 0.7 });
-    this.endOverlay.addChild(dim);
-    const msg = new Text({
-      text: this.victory ? 'vitória' : 'falhou',
-      style: { fontFamily: FontFamily.display, fontSize: 36, fill: this.victory ? 0x4dff66 : 0xff4d4d, letterSpacing: 8 },
+    this.endRun(victory, {
+      rewardLabel: `+${this.backpack.length} recursos — câmaras autorizadas`,
+      failLabel: 'Vault selado. O preço foi alto demais.',
     });
-    msg.anchor.set(0.5);
-    msg.x = VW / 2;
-    msg.y = VH * 0.45;
-    this.endOverlay.addChild(msg);
-    if (this.victory) {
-      const sub = new Text({
-        text: `+ ${this.backpack.length} recursos — câmaras autorizadas`,
-        style: { fontFamily: FontFamily.body, fontSize: 18, fill: 0xf2c64d, fontWeight: '600' },
-      });
-      sub.anchor.set(0.5);
-      sub.x = VW / 2;
-      sub.y = VH * 0.45 + 36;
-      this.endOverlay.addChild(sub);
-    }
-    this.root.addChild(this.endOverlay);
   }
 }

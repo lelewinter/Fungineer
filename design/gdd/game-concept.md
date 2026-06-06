@@ -36,7 +36,7 @@ tipo: game-design-doc
 
 ## Core Fantasy
 
-Dr. Paulo Vitor Santos aprovou o sistema de IA que acabou com o mundo — não por malícia, por excesso de crença. Agora convence os últimos humanos a construir um foguete artesanal. O foguete crescendo visualmente é a âncora emocional: progresso concreto raideando a infraestrutura que Paulo mesmo ajudou a construir.
+Dr. Myco — então Paulo Vitor Santos — aprovou o sistema de IA que acabou com o mundo, não por malícia, por excesso de crença. Agora, como Dr. Myco, convence os últimos humanos a construir um foguete artesanal. O foguete crescendo é a âncora emocional: progresso concreto raideando a infraestrutura que ele mesmo ajudou a construir.
 
 **A questão que o jogo não responde por você**: A IA estava errada? Ou o mandato estava errado?
 

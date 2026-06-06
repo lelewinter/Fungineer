@@ -24,6 +24,7 @@
 
 import { Color, type RGBA } from '../core/Color';
 import { Signal } from '../core/Signal';
+import { LoreFragments, type LoreFragment } from '../data/LoreFragments';
 import { CharacterRegistry } from './CharacterRegistry';
 import { GameConfig } from './GameConfig';
 import { HubData, type HubNpc, type HubRoom, type HubZone } from './HubData';
@@ -176,10 +177,14 @@ export interface HubStateSnapshot {
   zone_deterioration: number[];
   total_runs: number;
   lore_found: string[];
+  zones_introduced?: string[];
   hub_variant: HubVariantKey;
   hub_density: 'minimal' | 'balanced' | 'informative';
   hub_ui_visible: boolean;
   room_unlocked: Record<string, boolean>;
+  /** Confiança e resgates dos personagens (CharacterRegistry). Opcional para
+   *  compatibilidade com saves antigos. */
+  character_state?: { trust: Record<string, number>; rescued: string[] };
 }
 
 class HubStateClass {
@@ -211,6 +216,9 @@ class HubStateClass {
 
   // ── Lore ──
   lore_found: string[] = [];
+
+  // Zonas cujo cartão de ensino de movimento já foi mostrado (some depois).
+  zones_introduced: string[] = [];
 
   // ── Hub view state ──
   hub_variant: HubVariantKey = 'fungus';
@@ -367,6 +375,7 @@ class HubStateClass {
     this.total_runs = 0;
     this.lore_found = [];
     this.room_unlocked = { saida_hordas: true, lab_rival: true };
+    CharacterRegistry.resetAll();
     this.stockChanged.emit(this.stock);
   }
 
@@ -385,6 +394,24 @@ class HubStateClass {
     return this.lore_found.includes(fragmentId);
   }
 
+  // ── Onboarding ──
+  isZoneIntroduced(scene: string): boolean {
+    return this.zones_introduced.includes(scene);
+  }
+  markZoneIntroduced(scene: string): void {
+    if (!this.zones_introduced.includes(scene)) this.zones_introduced.push(scene);
+  }
+
+  /** Descobre (marca como encontrado) o primeiro fragmento ainda não-achado da
+   *  zona dada, e devolve-o — ou null se a zona não tem fragmentos novos.
+   *  Chamado na vitória de uma run (ver RunScene.endRun). */
+  discoverFragmentForZone(loreZone: string): LoreFragment | null {
+    const next = LoreFragments.getZoneFragments(loreZone).find((f) => !this.isLoreFound(f.id));
+    if (!next) return null;
+    this.markLoreFound(next.id);
+    return next;
+  }
+
   // ── Deterioracao das zonas ──
   // Quanto mais o jogador joga, mais "deterioradas" as zonas ficam, e mais
   // inimigos surgem. Este multiplicador (1.0, 1.25 ou 1.5) escala a quantidade
@@ -396,9 +423,12 @@ class HubStateClass {
     return 1.0;
   }
 
-  onRunEnded(_victory: boolean): void {
+  onRunEnded(victory: boolean): void {
     this.total_runs += 1;
     this.updateDeterioration();
+    // Confiança sobe por presença (toda run), com bônus por vitória. Avança os
+    // arcos dos personagens ao longo do jogo, mesmo em derrotas.
+    CharacterRegistry.advanceAllTrust(victory ? 6 : 3);
   }
 
   private updateDeterioration(): void {
@@ -432,10 +462,12 @@ class HubStateClass {
       zone_deterioration: this.zone_deterioration.slice(),
       total_runs: this.total_runs,
       lore_found: this.lore_found.slice(),
+      zones_introduced: this.zones_introduced.slice(),
       hub_variant: this.hub_variant,
       hub_density: this.hub_density,
       hub_ui_visible: this.hub_ui_visible,
       room_unlocked: { ...this.room_unlocked },
+      character_state: CharacterRegistry.snapshot(),
     };
   }
 
@@ -460,10 +492,12 @@ class HubStateClass {
     }
     if (typeof s.total_runs === 'number') this.total_runs = s.total_runs;
     if (Array.isArray(s.lore_found)) this.lore_found = s.lore_found.slice();
+    if (Array.isArray(s.zones_introduced)) this.zones_introduced = s.zones_introduced.slice();
     if (s.hub_variant && s.hub_variant in HUB_VARIANTS) this.hub_variant = s.hub_variant;
     if (s.hub_density) this.hub_density = s.hub_density;
     if (typeof s.hub_ui_visible === 'boolean') this.hub_ui_visible = s.hub_ui_visible;
     if (s.room_unlocked) this.room_unlocked = { ...s.room_unlocked };
+    if (s.character_state) CharacterRegistry.restore(s.character_state);
     this.stockChanged.emit(this.stock);
     this.hubVariantChanged.emit(this.hub_variant);
     return true;

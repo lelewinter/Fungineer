@@ -5,6 +5,7 @@ import { Color } from '../../core/Color';
 import { FontFamily } from '../../core/typography';
 import { GameConfig } from '../../state/GameConfig';
 import { HubState, ROCKET_RECIPE } from '../../state/HubState';
+import { CharacterRegistry } from '../../state/CharacterRegistry';
 
 const VW = GameConfig.VIEWPORT_WIDTH;
 const VH = GameConfig.VIEWPORT_HEIGHT;
@@ -194,16 +195,28 @@ export class RocketLaunchOverlay extends Modal {
     const ink = Color.hex(Color.rgb(0.85, 0.78, 0.60));
     const amber = C_HIFA;
 
+    // O final depende do estado de confiança dos personagens (narrative-arc.md).
+    const ending = CharacterRegistry.getEnding();
+    const ENDINGS = {
+      A: { tag: 'Final A — Lançamento', title: 'GERMINAÇÃO', color: amber,
+           flavor: 'Dr. Myco: "Desta vez, vamos construir algo que fica melhor com a gente dentro."' },
+      B: { tag: 'Final B — Desligamento', title: 'SILÊNCIO', color: C_CYAN,
+           flavor: 'Dr. Myco: "Então recomeçamos aqui."' },
+      C: { tag: 'Final C — Reprogramação', title: 'REPROGRAMAÇÃO', color: Color.hex(Color.rgb(0.56, 0.83, 0.31)),
+           flavor: 'Lena: "Ela não odeia a gente. Ela só não sabia que a gente importava."' },
+    } as const;
+    const end = ENDINGS[ending];
+
     const title = new Text({
-      text: 'GERMINAÇÃO',
-      style: { fontFamily: FontFamily.display, fontSize: 26, fontWeight: '700', fill: amber, align: 'center', letterSpacing: 3 },
+      text: end.title,
+      style: { fontFamily: FontFamily.display, fontSize: 26, fontWeight: '700', fill: end.color, align: 'center', letterSpacing: 3 },
     });
     title.anchor.set(0.5, 0);
     title.y = -halfH + 60;
     this.panel.addChild(title);
 
     const flavor = new Text({
-      text: 'Dr. Myco: "Não era um foguete. Era uma semente. Ela encontrou solo."',
+      text: end.flavor,
       style: { fontFamily: FontFamily.body, fontSize: 11, fill: C_CYAN, align: 'center', fontStyle: 'italic', wordWrap: true, wordWrapWidth: this.panelW - padding * 2 },
     });
     flavor.anchor.set(0.5, 0);
@@ -213,6 +226,7 @@ export class RocketLaunchOverlay extends Modal {
     const survivors = HubState.rescued_characters.length;
     const summary = new Text({
       text: [
+        end.tag,
         `Peças germinadas    ${ROCKET_RECIPE.length} / ${ROCKET_RECIPE.length}`,
         `Raides realizadas    ${HubState.total_runs}`,
         `Sobreviventes a bordo ${survivors}`,

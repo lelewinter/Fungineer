@@ -258,6 +258,49 @@ class CharacterRegistryClass {
     if (t >= 40) return 2;
     return 0;
   }
+
+  // ── Progressão por run ──
+  // A confiança sobe por PRESENÇA no bunker (toda run conta), não só por vitória
+  // — assim arcos avançam mesmo com derrotas (ver narrative-systems-plan.md).
+  advanceAllTrust(amount: number): void {
+    for (const id of CHARACTER_ORDER) this.addTrust(id, amount);
+  }
+
+  // ── Persistência / reset ──
+  snapshot(): { trust: Record<string, number>; rescued: string[] } {
+    return { trust: { ...this.trust }, rescued: this.rescued.slice() };
+  }
+
+  restore(snap: { trust?: Record<string, number>; rescued?: string[] } | undefined): void {
+    if (!snap) return;
+    if (snap.trust) {
+      for (const id of CHARACTER_ORDER) {
+        const v = snap.trust[id];
+        if (typeof v === 'number') this.trust[id] = Math.max(0, Math.min(100, v));
+      }
+    }
+    if (Array.isArray(snap.rescued)) {
+      this.rescued.length = 0;
+      for (const id of snap.rescued) if (!this.rescued.includes(id)) this.rescued.push(id);
+    }
+  }
+
+  /** Qual final o estado de confiança atual destrava (ver narrative-arc.md):
+   *  C — todos os 10 a 100%; B — Marcus 100% e menos de 6 outros a 60%+;
+   *  A — lançamento padrão (qualquer estado). */
+  getEnding(): 'A' | 'B' | 'C' {
+    if (CHARACTER_ORDER.every((id) => this.getTrust(id) >= 100)) return 'C';
+    const marcus100 = this.getTrust('marcus') >= 100;
+    const others60 = CHARACTER_ORDER.filter((id) => id !== 'marcus' && this.getTrust(id) >= 60).length;
+    if (marcus100 && others60 < 6) return 'B';
+    return 'A';
+  }
+
+  /** Zera confiança e resgates — usado no Novo Ciclo (NG+). */
+  resetAll(): void {
+    for (const id of CHARACTER_ORDER) this.trust[id] = 0;
+    this.rescued.length = 0;
+  }
 }
 
 export const CharacterRegistry = new CharacterRegistryClass();

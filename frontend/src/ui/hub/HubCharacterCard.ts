@@ -13,13 +13,14 @@ import { Modal } from '../Modal';
 import { PixiButton } from '../PixiButton';
 import { Color } from '../../core/Color';
 import { HubData, type HubNpc } from '../../state/HubData';
+import { CharacterRegistry, CHARACTERS } from '../../state/CharacterRegistry';
 
 /** NPC popover with name, role, briefing, and mission. Mirrors HubCharacterCard.gd. */
 export class HubCharacterCard extends Modal {
   private npc: HubNpc;
 
   constructor(npc: HubNpc) {
-    super(300, 220);
+    super(300, 290);
     this.npc = npc;
     // Cor de destaque lilás suave.
     this.drawPanelBg(Color.hex(Color.rgb(0.65, 0.56, 0.78)));
@@ -46,8 +47,12 @@ export class HubCharacterCard extends Modal {
     name.y = y;
     this.panel.addChild(name);
 
+    // Confiança dinâmica do CharacterRegistry (sobe por run). Para o Doutor (e
+    // qualquer NPC fora do registro) cai no valor estático do HubData.
+    const inReg = this.npc.id in CHARACTERS;
+    const trustVal = inReg ? CharacterRegistry.getTrust(this.npc.id) : this.npc.trust;
     const trust = new Text({
-      text: `🤝 ${this.npc.trust}%`,
+      text: `🤝 ${trustVal}%`,
       style: { fontFamily: '"Space Grotesk", system-ui, sans-serif', fontSize: 12, fill: Color.hex(Color.rgb(0.85, 0.92, 0.78)) },
     });
     trust.anchor.set(1, 0);
@@ -57,9 +62,9 @@ export class HubCharacterCard extends Modal {
 
     y += 22;
 
-    // Hint (role)
+    // Hint (role) + rótulo de confiança
     const hint = new Text({
-      text: this.npc.hint,
+      text: inReg ? `${this.npc.hint} · ${CharacterRegistry.getTrustLabel(this.npc.id)}` : this.npc.hint,
       style: { fontFamily: '"Space Grotesk", system-ui, sans-serif', fontSize: 10, fill: 0xcccccc },
     });
     hint.x = left;
@@ -102,6 +107,27 @@ export class HubCharacterCard extends Modal {
       mission.x = left;
       mission.y = y;
       this.panel.addChild(mission);
+      y += mission.height + 12;
+    }
+
+    // Revelação por confiança — a fala que o personagem libera no nível atual
+    // (CharacterRegistry, sobe a cada run). É a carga narrativa do arco dele.
+    if (this.npc.id in CHARACTERS) {
+      const line = CharacterRegistry.getDialogue(this.npc.id);
+      if (line) {
+        const rev = new Text({
+          text: `"${line}"`,
+          style: {
+            fontFamily: '"Space Grotesk", system-ui, sans-serif',
+            fontSize: 10, fontStyle: 'italic',
+            fill: Color.hex(Color.rgb(0.72, 0.85, 0.95)),
+            wordWrap: true, wordWrapWidth: this.panelW - padding * 2,
+          },
+        });
+        rev.x = left;
+        rev.y = y;
+        this.panel.addChild(rev);
+      }
     }
 
     // Close button
