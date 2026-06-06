@@ -19,7 +19,7 @@
 import { Graphics, Ticker } from 'pixi.js';
 import type { App } from './App';
 import type { Scene } from './Scene';
-import { Easing, tween } from './tween';
+import { tweenAsync } from './anim/animation';
 
 // Duracao padrao do escurece/clareia, em milissegundos.
 const DEFAULT_FADE_MS = 220;
@@ -84,11 +84,7 @@ class SceneManager {
 
       // 1) Escurece (so se ja havia uma tela na frente).
       if (this.current && overlay) {
-        await tween({
-          durationMs: fadeMs,
-          ease: Easing.easeInCubic,
-          onUpdate: (t) => { overlay.alpha = t; },
-        });
+        await tweenAsync(overlay, { alpha: 1, duration: fadeMs / 1000, ease: 'power2.in' });
       }
 
       // 2) Fecha a tela antiga: desliga seu update, chama exit() e destroi tudo.
@@ -116,11 +112,7 @@ class SceneManager {
 
       // 4) Clareia de volta (fade saindo do preto).
       if (overlay) {
-        await tween({
-          durationMs: fadeMs,
-          ease: Easing.easeOutCubic,
-          onUpdate: (t) => { overlay.alpha = 1 - t; },
-        });
+        await tweenAsync(overlay, { alpha: 0, duration: fadeMs / 1000, ease: 'power2.out' });
         overlay.alpha = 0;
       }
     } finally {
