@@ -177,6 +177,7 @@ export interface HubStateSnapshot {
   zone_deterioration: number[];
   total_runs: number;
   lore_found: string[];
+  zones_introduced?: string[];
   hub_variant: HubVariantKey;
   hub_density: 'minimal' | 'balanced' | 'informative';
   hub_ui_visible: boolean;
@@ -215,6 +216,9 @@ class HubStateClass {
 
   // ── Lore ──
   lore_found: string[] = [];
+
+  // Zonas cujo cartão de ensino de movimento já foi mostrado (some depois).
+  zones_introduced: string[] = [];
 
   // ── Hub view state ──
   hub_variant: HubVariantKey = 'fungus';
@@ -390,6 +394,14 @@ class HubStateClass {
     return this.lore_found.includes(fragmentId);
   }
 
+  // ── Onboarding ──
+  isZoneIntroduced(scene: string): boolean {
+    return this.zones_introduced.includes(scene);
+  }
+  markZoneIntroduced(scene: string): void {
+    if (!this.zones_introduced.includes(scene)) this.zones_introduced.push(scene);
+  }
+
   /** Descobre (marca como encontrado) o primeiro fragmento ainda não-achado da
    *  zona dada, e devolve-o — ou null se a zona não tem fragmentos novos.
    *  Chamado na vitória de uma run (ver RunScene.endRun). */
@@ -450,6 +462,7 @@ class HubStateClass {
       zone_deterioration: this.zone_deterioration.slice(),
       total_runs: this.total_runs,
       lore_found: this.lore_found.slice(),
+      zones_introduced: this.zones_introduced.slice(),
       hub_variant: this.hub_variant,
       hub_density: this.hub_density,
       hub_ui_visible: this.hub_ui_visible,
@@ -479,6 +492,7 @@ class HubStateClass {
     }
     if (typeof s.total_runs === 'number') this.total_runs = s.total_runs;
     if (Array.isArray(s.lore_found)) this.lore_found = s.lore_found.slice();
+    if (Array.isArray(s.zones_introduced)) this.zones_introduced = s.zones_introduced.slice();
     if (s.hub_variant && s.hub_variant in HUB_VARIANTS) this.hub_variant = s.hub_variant;
     if (s.hub_density) this.hub_density = s.hub_density;
     if (typeof s.hub_ui_visible === 'boolean') this.hub_ui_visible = s.hub_ui_visible;
