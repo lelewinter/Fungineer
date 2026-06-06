@@ -76,6 +76,11 @@ export abstract class RunScene extends Scene {
     this.ended = true;
     if (victory) this.juice.victoryFx(); else this.juice.defeatFx();
     HubState.onRunEnded(victory);
+    // Vitória pode revelar um fragmento de lore desta zona (lido depois no
+    // Arquivo do hub). O id da cena 'main' (Hordas) mapeia para a lore 'hordas'.
+    if (victory) {
+      HubState.discoverFragmentForZone(this.zone.scene === 'main' ? 'hordas' : this.zone.scene);
+    }
     this.root.addChild(buildEndOverlay({
       zone: this.zone,
       victory,

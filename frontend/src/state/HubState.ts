@@ -24,6 +24,7 @@
 
 import { Color, type RGBA } from '../core/Color';
 import { Signal } from '../core/Signal';
+import { LoreFragments, type LoreFragment } from '../data/LoreFragments';
 import { CharacterRegistry } from './CharacterRegistry';
 import { GameConfig } from './GameConfig';
 import { HubData, type HubNpc, type HubRoom, type HubZone } from './HubData';
@@ -383,6 +384,16 @@ class HubStateClass {
 
   isLoreFound(fragmentId: string): boolean {
     return this.lore_found.includes(fragmentId);
+  }
+
+  /** Descobre (marca como encontrado) o primeiro fragmento ainda não-achado da
+   *  zona dada, e devolve-o — ou null se a zona não tem fragmentos novos.
+   *  Chamado na vitória de uma run (ver RunScene.endRun). */
+  discoverFragmentForZone(loreZone: string): LoreFragment | null {
+    const next = LoreFragments.getZoneFragments(loreZone).find((f) => !this.isLoreFound(f.id));
+    if (!next) return null;
+    this.markLoreFound(next.id);
+    return next;
   }
 
   // ── Deterioracao das zonas ──

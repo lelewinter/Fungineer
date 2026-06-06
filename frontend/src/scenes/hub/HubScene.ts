@@ -27,6 +27,8 @@ import { RocketLaunchOverlay } from '../../ui/hub/RocketLaunchOverlay';
 import { HubZoomPanel } from '../../ui/hub/HubZoomPanel';
 import { AudioButton } from '../../ui/hub/AudioButton';
 import { AudioSettingsModal } from '../../ui/AudioSettingsModal';
+import { LoreLogPanel } from '../../ui/hub/LoreLogPanel';
+import { PixiButton } from '../../ui/PixiButton';
 import { Modal } from '../../ui/Modal';
 
 /**
@@ -75,6 +77,7 @@ export class HubScene extends Scene {
 
     this.buildResourceStrip();
     this.buildAudioButton();
+    this.buildLoreButton();
 
     this.disposers.push(
       this.renderer.roomClicked.connect((roomId) => this.onRoomClicked(roomId)),
@@ -281,6 +284,17 @@ export class HubScene extends Scene {
         this.openModal(new AudioSettingsModal());
       }),
     );
+  }
+
+  /** Botão "Arquivo" — abre o terminal de lore (fragmentos descobertos). */
+  private buildLoreButton(): void {
+    const btn = new PixiButton({
+      label: '✦ Arquivo', width: 92, height: 26, fontSize: 12,
+      onClick: () => { this.hubAudio.playOpenPanelSfx(); this.openModal(new LoreLogPanel()); },
+    });
+    btn.x = GameConfig.VIEWPORT_WIDTH - 92 - 12;
+    btn.y = 44;
+    this.uiLayer.addChild(btn);
   }
 
   // ── Faixa de recursos (o "placar" de estoque, antes no World Map) ───────────
