@@ -32,18 +32,22 @@ trocado por pixel art real depois.
 
 ---
 
-## 3. As 8 zonas (mecânica = "o que mover significa")
+## 3. As 11 zonas (mecânica = "o que mover significa")
 
-Specs detalhados em `design/gdd/zone-*.md`. Status atual entre parênteses.
+Specs detalhados em `design/gdd/zone-*.md`; mecânica real verificada em
+`design/levels/zone-pacing-verified.md`. Todas as 11 são jogáveis.
 
-1. Hordas (jogável) — squad de 4, auto-combate radial, resgate de humanos, boss. Recurso: sucata/estrutura.
-2. Campo de Controle (jogável) — capturar e defender zonas com burst de chegada.
-3. Sacrifício (jogável) — coleta cronometrada, execução urgente, invasores.
-4. Stealth (stub) — evitar cones de visão e raio sonoro; velocidade afeta detecção. + puzzle de hack.
-5. Circuito Quebrado (stub) — movimento como corrente elétrica, placas em sequência, sentinelas.
-6. Extração (stub) — lane runner vertical, parede de perigo avançando, coletar canisters.
-7. Infecção (stub) — jogador é o vírus, movimento como propagação, conter/curar.
-8. Labirinto Dinâmico (stub) — navegação procedural estilo Pac-Man, impulso de abertura, rastreadores.
+1. Hordas — Vampire Survivors: squad em arena infinita, auto-combate radial, coletar nódulos de biomassa parado (exposto), boss na extração. Recurso: biomassa_adaptativa.
+2. Stealth — Agar.io: crescer comendo bolhas menores, fugir das maiores; massa maior = mais lento. Recurso: ai_components.
+3. Circuito — Snake / Tron: cabeça segue o dedo, rastro cresce por relé coletado, auto-colisão = derrota. Recurso: nucleo_logico.
+4. Extração — Boulder Dash: cavar grade de terra, empurrar pedras, coletar combustível sem ser esmagado. Recurso: combustivel_volatil.
+5. Campo — Domínio de praça: capturar e segurar 6 zonas contra recapturadores; dominância multiplica os sinais. Recurso: sinais_controle.
+6. Infecção — Pac-Man: comer pastilhas no labirinto, fugir de drones, power pellet inverte papéis. Recurso: biomassa_adaptativa.
+7. Labirinto — Sokoban: empurrar fragmentos até os receptores; só empurra, nunca puxa. Recurso: fragmentos_estruturais.
+8. Sacrifício — Câmaras com custo: 5 câmaras ao redor de um hub, cada uma cobra um preço ao entrar; mochila limitada; tile EXIT encerra. Recurso: scrap + ai_components.
+9. Cordilheira — Frogger: atravessar faixas hostis na vertical, 3 travessias. Recurso: scrap (Memórias Coletivas).
+10. Torres — Donkey Kong: escalar a torre por vigas/escadas desviando de barris. Recurso: ai_components (Cristais de Memória).
+11. Catedral — Q*bert: pular numa pirâmide isométrica acendendo os degraus. Recurso: fragmentos_estruturais (Relíquias).
 
 ---
 
@@ -101,7 +105,7 @@ Cada milestone termina com teste ao vivo no navegador e commit.
 - Commit a cada milestone (e em pontos estáveis intermediários).
 - Testo no navegador via dev server + Chrome a cada mudança visual.
 - Só paro em blocker real: aprovar download de pack, gerar arte custom externa, decisão de direção que muda o jogo.
-- Sem MVP. Alvo é o jogo inteiro, 8 zonas, no ar.
+- Sem MVP. Alvo é o jogo inteiro, 11 zonas, no ar.
 
 ---
 
