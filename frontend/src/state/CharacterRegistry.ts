@@ -285,6 +285,17 @@ class CharacterRegistryClass {
     }
   }
 
+  /** Qual final o estado de confiança atual destrava (ver narrative-arc.md):
+   *  C — todos os 10 a 100%; B — Marcus 100% e menos de 6 outros a 60%+;
+   *  A — lançamento padrão (qualquer estado). */
+  getEnding(): 'A' | 'B' | 'C' {
+    if (CHARACTER_ORDER.every((id) => this.getTrust(id) >= 100)) return 'C';
+    const marcus100 = this.getTrust('marcus') >= 100;
+    const others60 = CHARACTER_ORDER.filter((id) => id !== 'marcus' && this.getTrust(id) >= 60).length;
+    if (marcus100 && others60 < 6) return 'B';
+    return 'A';
+  }
+
   /** Zera confiança e resgates — usado no Novo Ciclo (NG+). */
   resetAll(): void {
     for (const id of CHARACTER_ORDER) this.trust[id] = 0;
