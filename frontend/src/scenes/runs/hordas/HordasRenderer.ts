@@ -18,6 +18,7 @@
 import { Container, Graphics, Text } from 'pixi.js';
 import { Color } from '../../../core/Color';
 import { FontFamily, TextColor } from '../../../core/typography';
+import { CharacterSprite, MYCO_DESC } from '../../../core/sprites/CharacterSprite';
 import type { DragInput } from '../RunFrame';
 import {
   AURA, FOREST, GRID, HARVEST_TIME, ORBIT, PLANTS, PLANT_TYPES,
@@ -77,6 +78,10 @@ export class HordasRenderer {
   readonly projG = new Graphics();
   readonly orbitG = new Graphics();
   readonly playerG = new Graphics();
+  // Sprite animado do Dr. Myco (corpo do jogador). O playerG vira só o glow/mira.
+  readonly playerSprite = new CharacterSprite(MYCO_DESC);
+  private lastPx = 0;
+  private lastPy = 0;
 
   // ── Camadas de TELA (HUD fixo, nao se mexe com a camera) ──────────────────
   readonly xpG = new Graphics();
@@ -117,7 +122,7 @@ export class HordasRenderer {
   attachWorldLayers(camera: Container): void {
     camera.addChild(
       this.auraG, this.extractG, this.nodeG, this.plantG, this.gemG, this.enemyG,
-      this.novaG, this.projG, this.orbitG, this.playerG,
+      this.novaG, this.projG, this.orbitG, this.playerG, this.playerSprite,
     );
   }
 
@@ -287,9 +292,26 @@ export class HordasRenderer {
       const wp = 0.5 + 0.5 * Math.sin(t * 9);
       this.playerG.circle(px, py, PLAYER_R + 7).stroke({ color: 0xffcf4d, width: 2.5, alpha: 0.4 + 0.45 * wp });
     }
+    // Halo de chão sob os pés (sempre) — o bloom global transforma num glow.
     this.playerG.circle(px, py, PLAYER_R + 4).fill({ color: pc, alpha: 0.2 });
-    this.playerG.circle(px, py, PLAYER_R).fill({ color: pc, alpha: 0.95 });
-    this.playerG.circle(px, py, PLAYER_R - 4).fill({ color: 0xffffff, alpha: 0.65 });
+    // Enquanto o sprite ainda carrega, mostra o corpo vetorial antigo (fallback).
+    if (!this.playerSprite.isReady()) {
+      this.playerG.circle(px, py, PLAYER_R).fill({ color: pc, alpha: 0.95 });
+      this.playerG.circle(px, py, PLAYER_R - 4).fill({ color: 0xffffff, alpha: 0.65 });
+    }
+
+    // Sprite do Myco: posiciona e escolhe a animação pelo estado (colhendo /
+    // andando / parado) e a direção pelo facing. O AnimatedSprite avança os
+    // quadros sozinho pelo ticker.
+    this.playerSprite.x = px;
+    this.playerSprite.y = py;
+    const moved = Math.hypot(px - this.lastPx, py - this.lastPy);
+    this.lastPx = px;
+    this.lastPy = py;
+    const anim = view.channeling ? 'crouch' : moved > 0.4 ? 'run' : 'idle';
+    this.playerSprite.play(anim, view.facing);
+    this.playerSprite.tint = view.hurtFlash > 0.4 ? 0xff8888 : 0xffffff;
+
     // Quando nao esta coletando, uma "mira" aponta para o inimigo mais proximo.
     if (!view.channeling) {
       const tgt = view.nearestEnemy();
