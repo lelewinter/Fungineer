@@ -3,7 +3,7 @@ import { Scene } from '../../core/Scene';
 import { sceneManager } from '../../core/SceneManager';
 import { Color } from '../../core/Color';
 import { GameConfig } from '../../state/GameConfig';
-import { HubState, ROCKET_RECIPE, PIECE_INSTALL_BEAT } from '../../state/HubState';
+import { HubState, ROCKET_RECIPE, PIECE_INSTALL_BEAT, type ResourceKey } from '../../state/HubState';
 import { HubData, ROOM_TO_ZONE } from '../../state/HubData';
 import { ZONES } from '../../state/Zones';
 import { StubRunScene } from '../runs/StubRunScene';
@@ -338,16 +338,31 @@ export class HubScene extends Scene {
     this.disposers.push(HubState.rocketPieceBuilt.connect(() => this.refreshResourceStrip()));
   }
 
-  /** Atualiza o texto da faixa de recursos com os numeros atuais. */
+  // Rótulos curtos por recurso para a faixa de "próxima peça".
+  private static readonly RES_LABEL: Record<string, string> = {
+    scrap: 'Suc', ai_components: 'IA', nucleo_logico: 'Núc', combustivel_volatil: 'Comb',
+    sinais_controle: 'Sin', biomassa_adaptativa: 'Bio', fragmentos_estruturais: 'Frag',
+  };
+
+  /** Atualiza a faixa: a próxima peça do foguete e quanto falta de cada recurso
+   *  dela (have/need) — assim o jogador sabe o que ir raidar. */
   private refreshResourceStrip(): void {
     if (!this.resourceText) return;
     const idx = HubState.rocket_pieces_built;
-    const nextName = idx >= ROCKET_RECIPE.length ? 'FOGUETE COMPLETO' : ROCKET_RECIPE[idx]!.name;
-    const s = HubState.stock;
-    // +1 conta o proprio jogador alem dos personagens resgatados.
-    const survivors = HubState.rescued_characters.length + 1;
-    this.resourceText.text =
-      `▲ ${nextName}  ·  Suc ${s.scrap} IA ${s.ai_components} Bio ${s.biomassa_adaptativa}  ·  Sobrev ${survivors}/10`;
+    const survivors = HubState.rescued_characters.length + 1; // +1 = o próprio Myco
+    if (idx >= ROCKET_RECIPE.length) {
+      this.resourceText.text = `▲ FOGUETE COMPLETO — pronto pra lançar  ·  Sobrev ${survivors}/10`;
+      return;
+    }
+    const recipe = ROCKET_RECIPE[idx]!;
+    const parts: string[] = [];
+    for (const k of Object.keys(recipe)) {
+      if (k === 'name') continue;
+      const need = (recipe[k as keyof typeof recipe] as number) ?? 0;
+      const have = HubState.stock[k as ResourceKey] ?? 0;
+      parts.push(`${HubScene.RES_LABEL[k] ?? k} ${Math.min(have, need)}/${need}`);
+    }
+    this.resourceText.text = `▲ ${recipe.name}: ${parts.join('  ')}  ·  Sobrev ${survivors}/10`;
   }
 
   /** Clique numa ruina da superficie: abre o zoom da zona correspondente. */
