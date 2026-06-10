@@ -151,7 +151,7 @@ export class HubRenderer extends Container {
         const label = new Text({
           text: room.silhouette,
           style: {
-            fontFamily: '"Space Grotesk", system-ui, sans-serif',
+            fontFamily: '"Rubik", system-ui, sans-serif',
             fontSize: 8,
             fill: Color.hex(Color.rgb(0.55, 0.48, 0.40)),
             align: 'center',
@@ -211,7 +211,7 @@ export class HubRenderer extends Container {
       const label = new Text({
         text: sz.label,
         style: {
-          fontFamily: '"Space Grotesk", system-ui, sans-serif',
+          fontFamily: '"Rubik", system-ui, sans-serif',
           fontSize: 11,
           fontWeight: '700',
           fill: 0xeef4e8,
@@ -230,7 +230,7 @@ export class HubRenderer extends Container {
     const hordasLabel = new Text({
       text: '▼ HORDAS · SAÍDA',
       style: {
-        fontFamily: '"Space Grotesk", system-ui, sans-serif',
+        fontFamily: '"Rubik", system-ui, sans-serif',
         fontSize: 11,
         fontWeight: '700',
         fill: 0xffae90,
@@ -308,7 +308,7 @@ export class HubRenderer extends Container {
       const label = new Text({
         text: room.label,
         style: {
-          fontFamily: '"Space Grotesk", system-ui, sans-serif',
+          fontFamily: '"Rubik", system-ui, sans-serif',
           fontSize: 11,
           fontWeight: '700',
           fill: isZone ? 0xf6faef : 0xd6decb,

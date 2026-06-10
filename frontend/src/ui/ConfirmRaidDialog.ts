@@ -49,7 +49,7 @@ export class ConfirmRaidDialog extends Modal {
     const desc = new Text({
       text: zoneDescription,
       style: {
-        fontFamily: '"Space Grotesk", system-ui, sans-serif',
+        fontFamily: '"Rubik", system-ui, sans-serif',
         fontSize: 11,
         fill: Color.hex(Color.rgb(0.85, 0.85, 0.85)),
         wordWrap: true,

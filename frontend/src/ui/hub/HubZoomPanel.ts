@@ -47,7 +47,7 @@ export class HubZoomPanel extends Modal {
     // Header
     const header = new Text({
       text: zoneName,
-      style: { fontFamily: '"Space Grotesk", system-ui, sans-serif', fontSize: 19, fill: 0xffffff, fontWeight: '700', letterSpacing: 0.5 },
+      style: { fontFamily: '"Rubik", system-ui, sans-serif', fontSize: 19, fill: 0xffffff, fontWeight: '700', letterSpacing: 0.5 },
     });
     header.x = -halfW + padding;
     header.y = -halfH + padding;
@@ -57,7 +57,7 @@ export class HubZoomPanel extends Modal {
     const briefing = new Text({
       text: zone?.briefing ?? 'Zona desconhecida',
       style: {
-        fontFamily: '"Space Grotesk", system-ui, sans-serif',
+        fontFamily: '"Rubik", system-ui, sans-serif',
         fontSize: 14,
         fill: Color.hex(Color.rgb(0.90, 0.94, 0.85)),
         lineHeight: 20,

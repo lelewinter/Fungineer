@@ -149,7 +149,7 @@ export class UpdateBanner {
       border: '1px solid rgba(255, 255, 255, 0.12)',
       borderRadius: '10px',
       padding: '12px 14px',
-      fontFamily: '"Space Grotesk", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif',
+      fontFamily: '"Rubik", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif',
       fontSize: '14px',
       lineHeight: '1.35',
       boxShadow: '0 6px 24px rgba(0, 0, 0, 0.45)',

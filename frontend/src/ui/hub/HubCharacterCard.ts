@@ -41,7 +41,7 @@ export class HubCharacterCard extends Modal {
     // Header — name + trust
     const name = new Text({
       text: this.npc.nome,
-      style: { fontFamily: '"Space Grotesk", system-ui, sans-serif', fontSize: 14, fill: 0xffffff, fontWeight: '700' },
+      style: { fontFamily: '"Rubik", system-ui, sans-serif', fontSize: 14, fill: 0xffffff, fontWeight: '700' },
     });
     name.x = left;
     name.y = y;
@@ -53,7 +53,7 @@ export class HubCharacterCard extends Modal {
     const trustVal = inReg ? CharacterRegistry.getTrust(this.npc.id) : this.npc.trust;
     const trust = new Text({
       text: `🤝 ${trustVal}%`,
-      style: { fontFamily: '"Space Grotesk", system-ui, sans-serif', fontSize: 12, fill: Color.hex(Color.rgb(0.85, 0.92, 0.78)) },
+      style: { fontFamily: '"Rubik", system-ui, sans-serif', fontSize: 12, fill: Color.hex(Color.rgb(0.85, 0.92, 0.78)) },
     });
     trust.anchor.set(1, 0);
     trust.x = right;
@@ -65,7 +65,7 @@ export class HubCharacterCard extends Modal {
     // Hint (role) + rótulo de confiança
     const hint = new Text({
       text: inReg ? `${this.npc.hint} · ${CharacterRegistry.getTrustLabel(this.npc.id)}` : this.npc.hint,
-      style: { fontFamily: '"Space Grotesk", system-ui, sans-serif', fontSize: 10, fill: 0xcccccc },
+      style: { fontFamily: '"Rubik", system-ui, sans-serif', fontSize: 10, fill: 0xcccccc },
     });
     hint.x = left;
     hint.y = y;
@@ -82,7 +82,7 @@ export class HubCharacterCard extends Modal {
       const briefing = new Text({
         text: dialog.briefing,
         style: {
-          fontFamily: '"Space Grotesk", system-ui, sans-serif',
+          fontFamily: '"Rubik", system-ui, sans-serif',
           fontSize: 10,
           fill: Color.hex(Color.rgb(0.85, 0.85, 0.85)),
           wordWrap: true,
@@ -97,7 +97,7 @@ export class HubCharacterCard extends Modal {
       const mission = new Text({
         text: `→ ${dialog.mission}`,
         style: {
-          fontFamily: '"Space Grotesk", system-ui, sans-serif',
+          fontFamily: '"Rubik", system-ui, sans-serif',
           fontSize: 10,
           fill: Color.hex(Color.rgb(0.91, 0.58, 0.23)),
           wordWrap: true,
@@ -118,7 +118,7 @@ export class HubCharacterCard extends Modal {
         const rev = new Text({
           text: `"${line}"`,
           style: {
-            fontFamily: '"Space Grotesk", system-ui, sans-serif',
+            fontFamily: '"Rubik", system-ui, sans-serif',
             fontSize: 10, fontStyle: 'italic',
             fill: Color.hex(Color.rgb(0.72, 0.85, 0.95)),
             wordWrap: true, wordWrapWidth: this.panelW - padding * 2,

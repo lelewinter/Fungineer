@@ -23,10 +23,16 @@ import { audioSettings } from './state/AudioSettings';
 import { saveService } from './state/SaveService';
 import { StartScene } from './scenes/StartScene';
 import { registerSW } from './pwa/registerSW';
+import { loadFonts } from './core/fonts';
 
 async function bootstrap(): Promise<void> {
   const host = document.getElementById('app');
   if (!host) throw new Error('#app host element missing');
+
+  // Espera as fontes carregarem ANTES de montar qualquer cena: o PixiJS "assa" o
+  // texto na criação, então criar Text com a fonte ainda não pronta gera texto
+  // feio e permanente. Veja core/fonts.ts.
+  await loadFonts();
 
   const app = await App.create(host);
   sceneManager.attach(app);

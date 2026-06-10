@@ -18,8 +18,8 @@ export const FontFamily = {
    * `body` em negrito no lugar).
    */
   display: '"Major Mono Display", "Courier New", monospace',
-  /** "Space Grotesk" — texto corrido, rotulos, interface e titulos. */
-  body: '"Space Grotesk", system-ui, -apple-system, sans-serif',
+  /** "Rubik" — texto corrido, rotulos, interface e titulos. */
+  body: '"Rubik", system-ui, -apple-system, sans-serif',
   /** "IBM Plex Mono" — leituras do HUD, cronometros, dados estilo terminal. */
   mono: '"IBM Plex Mono", "JetBrains Mono", ui-monospace, monospace',
 } as const;
@@ -30,13 +30,13 @@ export const FontFamily = {
  * de cada faixa para manter a legibilidade.
  */
 export const FontSize = {
-  micro: 11,   // o menor permitido — so para legendas minusculas
-  small: 12,
-  label: 13,   // botoes, rotulos de salas, info secundaria do HUD
-  body: 14,    // briefings, paragrafos
-  hud: 15,     // leituras principais do HUD
-  h2: 19,      // cabecalhos de painel
-  h1: 26,      // titulos de tela
+  micro: 12,   // o menor permitido — so para legendas minusculas
+  small: 13,
+  label: 14,   // botoes, rotulos de salas, info secundaria do HUD
+  body: 15,    // briefings, paragrafos
+  hud: 16,     // leituras principais do HUD
+  h2: 20,      // cabecalhos de painel
+  h1: 28,      // titulos de tela
 } as const;
 
 /** Pesos (espessuras) de fonte disponiveis. */

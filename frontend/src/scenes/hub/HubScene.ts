@@ -134,7 +134,7 @@ export class HubScene extends Scene {
     const label = new Text({
       text,
       style: {
-        fontFamily: '"Space Grotesk", system-ui, sans-serif',
+        fontFamily: '"Rubik", system-ui, sans-serif',
         fontSize: 13, fontStyle: 'italic', fill: Color.hex(Color.rgb(0.78, 0.94, 0.48)),
         align: 'center', wordWrap: true, wordWrapWidth: W - 80,
       },

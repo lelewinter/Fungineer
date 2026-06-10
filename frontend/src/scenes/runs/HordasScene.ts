@@ -380,7 +380,7 @@ export class HordasScene extends RunScene {
 
     const sub = new Text({
       text: 'Escolha uma melhoria — toque numa carta',
-      style: { fontFamily: FontFamily.mono, fontSize: 13, fill: TextColor.ink, dropShadow: SHADOW },
+      style: { fontFamily: FontFamily.body, fontSize: 14, fill: TextColor.ink, dropShadow: SHADOW },
     });
     sub.anchor.set(0.5);
     sub.x = VW / 2;
@@ -464,7 +464,7 @@ export class HordasScene extends RunScene {
 
     const desc = new Text({
       text: offer.desc,
-      style: { fontFamily: FontFamily.mono, fontSize: 12, fill: TextColor.ink, wordWrap: true, wordWrapWidth: w - 28, dropShadow: SHADOW },
+      style: { fontFamily: FontFamily.body, fontSize: 13, fill: TextColor.ink, wordWrap: true, wordWrapWidth: w - 28, lineHeight: 17, dropShadow: SHADOW },
     });
     desc.x = 14;
     desc.y = 52;

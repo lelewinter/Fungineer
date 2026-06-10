@@ -62,7 +62,8 @@ export class CinematicPipeline {
     // Só o que passa do `threshold` brilha; o resto fica intacto. É isso que
     // transforma traços de cor sólida em "luz viva" no escuro.
     this.bloom = new AdvancedBloomFilter({
-      threshold: 0.5,     // a partir de quão claro um pixel "acende"
+      threshold: 0.62,    // mais alto: só luzes BEM brilhantes acendem — o texto
+                          // da UI (off-white) não "borra" no glow, fica nítido.
       bloomScale: 1.2,    // intensidade do halo de luz
       brightness: 1.0,
       blur: 8,            // raio do sangramento de luz

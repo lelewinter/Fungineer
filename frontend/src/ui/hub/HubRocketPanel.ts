@@ -93,7 +93,7 @@ export class HubRocketPanel extends Modal {
 
     const header = new Text({
       text: '◈ CASULO BIOLÓGICO · ESQUEMA',
-      style: { fontFamily: '"Space Grotesk", system-ui, sans-serif', fontSize: 15, fontWeight: '700', fill: Color.hex(Color.rgb(0.88, 0.94, 0.82)), align: 'center', letterSpacing: 1 },
+      style: { fontFamily: '"Rubik", system-ui, sans-serif', fontSize: 15, fontWeight: '700', fill: Color.hex(Color.rgb(0.88, 0.94, 0.82)), align: 'center', letterSpacing: 1 },
     });
     header.anchor.set(0.5, 0);
     header.x = 0;
@@ -103,7 +103,7 @@ export class HubRocketPanel extends Modal {
 
     const subtitle = new Text({
       text: 'Dr. Myco: "Foguete? Não. Semente."',
-      style: { fontFamily: '"Space Grotesk", system-ui, sans-serif', fontSize: 9, fill: Color.hex(Color.rgb(0.72, 0.45, 0.85)), align: 'center' },
+      style: { fontFamily: '"Rubik", system-ui, sans-serif', fontSize: 9, fill: Color.hex(Color.rgb(0.72, 0.45, 0.85)), align: 'center' },
     });
     subtitle.anchor.set(0.5, 0);
     subtitle.x = 0;
@@ -138,7 +138,7 @@ export class HubRocketPanel extends Modal {
       : (STAGE[built] ?? [`${built} / ${total} peças`, Color.rgb(0.30, 0.78, 0.72)]);
     const status = new Text({
       text: stage[0],
-      style: { fontFamily: '"Space Grotesk", system-ui, sans-serif', fontSize: 10, fill: Color.hex(stage[1]), align: 'center' },
+      style: { fontFamily: '"Rubik", system-ui, sans-serif', fontSize: 10, fill: Color.hex(stage[1]), align: 'center' },
     });
     status.anchor.set(0.5, 0);
     status.x = 0;
@@ -337,7 +337,7 @@ export class HubRocketPanel extends Modal {
     // Garante um rótulo para cada peça da receita (cria os que faltam,
     // descarta os que sobram caso a receita encolha).
     while (this.annotationLabels.length < recipe.length) {
-      const t = new Text({ text: '', style: { fontFamily: '"Space Grotesk", system-ui, sans-serif', fontSize: 9 } });
+      const t = new Text({ text: '', style: { fontFamily: '"Rubik", system-ui, sans-serif', fontSize: 9 } });
       this.annotationLabels.push(t);
       this.canvasContainer.addChild(t);
     }
@@ -354,7 +354,7 @@ export class HubRocketPanel extends Modal {
       t.text = prefix + recipe[i]!.name;
       const { annotationY, isRight, annotationX, lineColor } = this.annotationLayout(i, built);
       t.style = {
-        fontFamily: '"Space Grotesk", system-ui, sans-serif',
+        fontFamily: '"Rubik", system-ui, sans-serif',
         fontSize: 9,
         fill: Color.hex(lineColor),
         wordWrap: true,
