@@ -28,6 +28,7 @@
 
 import { Container, Graphics, Text } from 'pixi.js';
 import { audioManager } from '../../core/AudioManager';
+import { gsap } from '../../core/anim/animation';
 import { FontFamily, TextColor } from '../../core/typography';
 import { HubState } from '../../state/HubState';
 import type { Vec2 } from '../../core/types';
@@ -391,19 +392,42 @@ export class HordasScene extends RunScene {
     const gap = 14;
     const x0 = (VW - cardW) / 2;
     const y0 = VH * 0.35;
+    const cards: Container[] = [];
     offers.forEach((offer, i) => {
-      panel.addChild(this.buildCard(offer, x0, y0 + i * (cardH + gap), cardW, cardH, () => {
+      const card = this.buildCard(offer, x0, y0 + i * (cardH + gap), cardW, cardH, () => {
         this.applyOffer(offer);
         panel.destroy({ children: true });
         this.pendingLevels = Math.max(0, this.pendingLevels - 1);
         // Se ainda restam niveis para gastar, abre o menu de novo; senao, despausa.
         if (this.pendingLevels > 0) this.openLevelUp();
         else this.paused = false;
-      }));
+      });
+      panel.addChild(card);
+      cards.push(card);
     });
 
     this.root.addChild(panel);
     audioManager.playSfx('res://assets/audio/sfx/ui/Confirm_03.wav', 0.5);
+
+    // Entrada animada (gsap): o fundo escurece, o título "salta" e as cartas
+    // entram em cascata de baixo pra cima — dá o feeling de menu de jogo polido.
+    dim.alpha = 0;
+    gsap.to(dim, { alpha: 1, duration: 0.22, ease: 'power2.out' });
+    for (const node of [title, sub]) {
+      const ty = node.y;
+      node.alpha = 0;
+      node.y = ty + 14;
+      gsap.to(node, { alpha: 1, y: ty, duration: 0.34, ease: 'back.out(2.2)' });
+    }
+    cards.forEach((c, i) => {
+      const cy = c.y;
+      c.alpha = 0;
+      c.y = cy + 26;
+      c.scale.set(0.96);
+      const delay = 0.06 + i * 0.07;
+      gsap.to(c, { alpha: 1, y: cy, duration: 0.34, ease: 'power3.out', delay });
+      gsap.to(c.scale, { x: 1, y: 1, duration: 0.34, ease: 'back.out(1.7)', delay });
+    });
   }
 
   /** Desenha uma carta de melhoria clicavel (com efeito de hover). */
@@ -446,10 +470,15 @@ export class HordasScene extends RunScene {
     desc.y = 52;
     card.addChild(desc);
 
+    // Pivô central para o "pop" de hover crescer a partir do meio da carta.
+    card.pivot.set(w / 2, h / 2);
+    card.x += w / 2;
+    card.y += h / 2;
+
     card.eventMode = 'static';
     card.cursor = 'pointer';
-    card.on('pointerover', () => paint(true));
-    card.on('pointerout', () => paint(false));
+    card.on('pointerover', () => { paint(true); gsap.to(card.scale, { x: 1.04, y: 1.04, duration: 0.14, ease: 'power2.out' }); });
+    card.on('pointerout', () => { paint(false); gsap.to(card.scale, { x: 1, y: 1, duration: 0.14, ease: 'power2.out' }); });
     card.on('pointertap', (e) => { e.stopPropagation(); audioManager.playSfx('res://assets/audio/sfx/ui/Click_03.wav', 0.4); onPick(); });
     return card;
   }
@@ -558,7 +587,7 @@ export class HordasScene extends RunScene {
       for (const e of this.enemies) {
         if (p.hit.has(e)) continue;  // nao bate duas vezes no mesmo inimigo
         if (Math.hypot(e.pos.x - p.pos.x, e.pos.y - p.pos.y) < e.r + 4) {
-          this.damageEnemy(e, p.dmg, p.vel.x * inv * 7, p.vel.y * inv * 7);
+          this.damageEnemy(e, p.dmg, p.vel.x * inv * 7, p.vel.y * inv * 7, true);
           p.hit.add(e);
           this.juice.burst(this.sx(p.pos.x), this.sy(p.pos.y), { count: 5, color: 0x9fffe0, speed: 130, life: 0.25, size: 1.6 });
           if (p.pierce <= 0) { this.projs.splice(i, 1); this.releaseProj(p); break; }
@@ -602,7 +631,7 @@ export class HordasScene extends RunScene {
         if (e.orbitCd > 0) continue;  // recarga para nao bater no mesmo inimigo todo frame
         if (Math.hypot(e.pos.x - bx, e.pos.y - by) < e.r + 7) {
           const inv = 1 / (Math.hypot(e.pos.x - this.player.x, e.pos.y - this.player.y) || 1);
-          this.damageEnemy(e, dmg, (e.pos.x - this.player.x) * inv * 8, (e.pos.y - this.player.y) * inv * 8);
+          this.damageEnemy(e, dmg, (e.pos.x - this.player.x) * inv * 8, (e.pos.y - this.player.y) * inv * 8, true);
           e.orbitCd = 0.3;
         }
       }
@@ -623,7 +652,7 @@ export class HordasScene extends RunScene {
       const dist = Math.hypot(e.pos.x - this.player.x, e.pos.y - this.player.y);
       if (dist < r + e.r) {
         const inv = 1 / (dist || 1);
-        this.damageEnemy(e, dmg, (e.pos.x - this.player.x) * inv * 16, (e.pos.y - this.player.y) * inv * 16);
+        this.damageEnemy(e, dmg, (e.pos.x - this.player.x) * inv * 16, (e.pos.y - this.player.y) * inv * 16, true);
       }
     }
     this.juice.shockwave(FOREST, 0.45);
@@ -641,11 +670,14 @@ export class HordasScene extends RunScene {
   }
 
   // ── Dano / morte ──────────────────────────────────────────────────────────────
-  private damageEnemy(e: Enemy, dmg: number, kx: number, ky: number): void {
+  // showNum: mostra o número de dano flutuante (só nos golpes "discretos" —
+  // dardo/orbital/nova; a aura, que tica direto, não polui a tela com números).
+  private damageEnemy(e: Enemy, dmg: number, kx: number, ky: number, showNum = false): void {
     e.hp -= dmg;
     e.flash = 0.12;       // pisca branco
     e.pos.x += kx;        // empurrao (knockback)
     e.pos.y += ky;
+    if (showNum) this.renderer.popDamage(e.pos.x, e.pos.y, dmg, e.hp <= 0);
     if (e.hp <= 0) this.killEnemy(e);
   }
 

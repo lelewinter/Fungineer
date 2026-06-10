@@ -83,6 +83,11 @@ export class HordasRenderer {
   private lastPx = 0;
   private lastPy = 0;
 
+  // Números de dano flutuantes (no MUNDO): pool fixo de Text reaproveitados.
+  readonly damageLayer = new Container();
+  private readonly dmgPool: { t: Text; vy: number; life: number; max: number }[] = [];
+  private lastElapsed = -1;
+
   // ── Camadas de TELA (HUD fixo, nao se mexe com a camera) ──────────────────
   readonly xpG = new Graphics();
   readonly joyG = new Graphics();
@@ -116,14 +121,58 @@ export class HordasRenderer {
     });
     this.buffText.x = 8;
     this.buffText.y = TOP + 30;
+
+    // Pré-cria o pool de números de dano (nada é alocado durante o jogo).
+    for (let i = 0; i < 28; i++) {
+      const t = new Text({
+        text: '',
+        style: { fontFamily: FontFamily.mono, fontSize: 13, fill: 0xffffff, fontWeight: '700', dropShadow: SHADOW },
+      });
+      t.anchor.set(0.5);
+      t.visible = false;
+      this.damageLayer.addChild(t);
+      this.dmgPool.push({ t, vy: 0, life: 0, max: 1 });
+    }
   }
 
   /** Coloca as camadas do mundo dentro do container da camera, na ordem certa. */
   attachWorldLayers(camera: Container): void {
     camera.addChild(
       this.auraG, this.extractG, this.nodeG, this.plantG, this.gemG, this.enemyG,
-      this.novaG, this.projG, this.orbitG, this.playerG, this.playerSprite,
+      this.novaG, this.projG, this.orbitG, this.playerG, this.playerSprite, this.damageLayer,
     );
+  }
+
+  /** Cospe um número de dano flutuante no MUNDO (x,y em coordenadas do mundo).
+   *  Reaproveita um slot livre do pool; se todos ocupados, ignora (sem alocar). */
+  popDamage(x: number, y: number, amount: number, crit = false): void {
+    const slot = this.dmgPool.find((d) => d.life <= 0);
+    if (!slot) return;
+    slot.t.text = String(Math.max(1, Math.round(amount)));
+    slot.t.style.fontSize = crit ? 19 : 13;
+    slot.t.style.fill = crit ? 0xffd36b : 0xffffff;
+    slot.t.x = x + (Math.random() * 10 - 5);
+    slot.t.y = y - 10;
+    slot.t.scale.set(crit ? 1 : 0.9);
+    slot.t.alpha = 1;
+    slot.t.visible = true;
+    slot.vy = -46;
+    slot.life = slot.max = crit ? 0.85 : 0.6;
+  }
+
+  /** Atualiza os números flutuantes (sobem e somem). dt vem do elapsed da cena. */
+  private updateDamage(elapsed: number): void {
+    const dt = this.lastElapsed < 0 ? 0 : Math.min(1 / 20, elapsed - this.lastElapsed);
+    this.lastElapsed = elapsed;
+    for (const d of this.dmgPool) {
+      if (d.life <= 0) continue;
+      d.life -= dt;
+      d.vy += 70 * dt;  // desacelera a subida (gravidinha)
+      d.t.y += d.vy * dt;
+      const f = Math.max(0, d.life / d.max);
+      d.t.alpha = Math.min(1, f * 1.6);
+      if (d.life <= 0) d.t.visible = false;
+    }
   }
 
   /** Coloca o HUD de tela (XP, textos, joystick, setas) no overlay. */
@@ -168,6 +217,7 @@ export class HordasRenderer {
   drawWorld(view: HordasView): void {
     const t = view.elapsed;
     this.drawGrid(view);
+    this.updateDamage(view.elapsed);
 
     // Aura de esporos ao redor do jogador (so se a arma estiver ativa).
     this.auraG.clear();
