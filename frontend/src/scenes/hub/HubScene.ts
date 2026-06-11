@@ -379,6 +379,11 @@ export class HubScene extends Scene {
   /** Clique numa ruina da superficie: abre o zoom da zona correspondente. */
   private onSurfaceZoneClicked(zoneId: string): void {
     this.hubAudio.playClickSfx();
+    // Superfície só abre na metade do arco (Tomas reativa o depósito).
+    if (!StoryProgress.isSurfaceOpen()) {
+      this.showPieceBeat('Dr. Myco: "A superfície ainda é loucura. Primeiro a gente traz mais gente pra casa."');
+      return;
+    }
     this.openZoomView(`surface_${zoneId}`, zoneId);
     HubState.hubRoomSelected.emit(`surface_${zoneId}`);
   }

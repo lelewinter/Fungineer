@@ -136,12 +136,20 @@ class StoryProgressClass {
    * Chamado ao carregar um save (cura saves antigos/parciais) e no novo ciclo.
    */
   reconcileUnlocks(): void {
+    // Reconstrói do zero: o conjunto canônico é casa-base + salas ganhas por
+    // resgate. Isso também REMOVE destravas órfãs de saves antigos.
+    HubState.room_unlocked = {};
     for (const room of BASE_ROOMS) HubState.unlockRoom(room);
     for (const link of RESCUE_CHAIN) {
       if (CharacterRegistry.isRescued(link.charId)) {
         for (const room of link.rooms) HubState.unlockRoom(room);
       }
     }
+  }
+
+  /** Zonas de superfície (Cordilheira/Torres/Catedral) abrem na metade do arco. */
+  isSurfaceOpen(): boolean {
+    return CharacterRegistry.isRescued('tomas');
   }
 
   /** A zona está acessível? (hordas sempre; as outras, via corrente). */
