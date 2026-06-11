@@ -6,6 +6,8 @@ import { FontFamily } from '../../core/typography';
 import { GameConfig } from '../../state/GameConfig';
 import { HubState, ROCKET_RECIPE } from '../../state/HubState';
 import { CharacterRegistry } from '../../state/CharacterRegistry';
+import { audioManager } from '../../core/AudioManager';
+import { audioSettings } from '../../state/AudioSettings';
 
 const VW = GameConfig.VIEWPORT_WIDTH;
 const VH = GameConfig.VIEWPORT_HEIGHT;
@@ -23,6 +25,9 @@ const C_OUTLINE = Color.hex(Color.rgb(0.05, 0.03, 0.02));
 const COUNTDOWN_END = 800;
 const IGNITION_END = 1400;
 const ASCEND_END = 4000;
+/** Batida de pausa (silêncio visual) entre o foguete sumir e o painel entrar. */
+const HOLD_MS = 500;
+const REVEAL_AT = ASCEND_END + HOLD_MS;
 const REVEAL_MS = 600;
 
 interface Spore { x: number; y: number; vx: number; vy: number; alpha: number; color: number }
@@ -42,6 +47,8 @@ export class RocketLaunchOverlay extends Modal {
   private spawnAcc = 0;
   private revealed = false;
   private readonly restCenterY = VH * 0.5;
+  private readonly reducedMotion =
+    typeof window !== 'undefined' && !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
   constructor() {
     super(340, 420);
@@ -53,11 +60,16 @@ export class RocketLaunchOverlay extends Modal {
     // Do NOT call animateOpen() — the victory panel stays hidden until phase 3.
     // (visible:false also blocks blind taps on the invisible Novo Ciclo button.)
     this.panel.visible = false;
+    // Áudio do clímax: música do hub abaixa, o rumble da decolagem assume.
+    audioManager.setMusicVolume(audioSettings.muted ? 0 : audioSettings.music * 0.15);
+    audioManager.playSfx('res://assets/audio/sfx/game/launch.wav', 1.0);
     this.startAnimation();
   }
 
   override async requestClose(): Promise<void> {
     cancelAnimationFrame(this.animationFrame);
+    // Restaura o volume de música escolhido pelo jogador.
+    audioManager.setMusicVolume(audioSettings.muted ? 0 : audioSettings.music);
     await super.requestClose();
   }
 
@@ -71,11 +83,29 @@ export class RocketLaunchOverlay extends Modal {
       this.lastMs = this.elapsedMs;
       this.backdrop.alpha = Math.min(this.backdropAlpha, (this.elapsedMs / 250) * this.backdropAlpha);
       this.updateSpores(dt);
+      this.applyShake();
       this.draw();
-      if (this.elapsedMs >= ASCEND_END) this.revealPanel();
+      if (this.elapsedMs >= REVEAL_AT) this.revealPanel();
       this.animationFrame = requestAnimationFrame(tick);
     };
     this.animationFrame = requestAnimationFrame(tick);
+  }
+
+  /**
+   * Tremor de tela do lançamento: cresce na ignição, decai conforme o foguete
+   * se afasta. Só mexe na camada de FX — o painel de vitória fica firme.
+   * Respeita prefers-reduced-motion.
+   */
+  private applyShake(): void {
+    if (this.reducedMotion) return;
+    const t = this.elapsedMs;
+    let mag = 0;
+    if (t >= COUNTDOWN_END && t < IGNITION_END) {
+      mag = 7 * ((t - COUNTDOWN_END) / (IGNITION_END - COUNTDOWN_END));
+    } else if (t >= IGNITION_END && t < ASCEND_END) {
+      mag = 6 * (1 - (t - IGNITION_END) / (ASCEND_END - IGNITION_END));
+    }
+    this.fx.position.set((Math.random() - 0.5) * 2 * mag, (Math.random() - 0.5) * 2 * mag);
   }
 
   /** Rocket-seed vertical centre at the current time (screen coords). */
@@ -137,6 +167,25 @@ export class RocketLaunchOverlay extends Modal {
       g.circle(cx, baseY, 4 + p * 4).fill({ color: C_CORE, alpha: 1 - p });
     }
 
+    // Liftoff flash: um pulso quente de tela cheia no instante da decolagem.
+    if (t >= IGNITION_END && t < IGNITION_END + 250) {
+      const p = (t - IGNITION_END) / 250;
+      g.rect(0, 0, VW, VH).fill({ color: C_CORE, alpha: 0.5 * (1 - p) });
+    }
+
+    // Speed streaks na subida: o mundo passando pelo foguete.
+    if (t >= IGNITION_END && t < ASCEND_END) {
+      const p = (t - IGNITION_END) / (ASCEND_END - IGNITION_END);
+      for (let i = 0; i < 14; i++) {
+        const sx = (i * 73.3 + 11) % VW;
+        const speed = 300 + (i % 5) * 160;
+        const sy = ((i * 191 + t * 0.001 * speed * (0.3 + p)) % (VH + 80)) - 40;
+        const len = 26 + (i % 4) * 14;
+        g.moveTo(sx, sy).lineTo(sx, sy + len)
+          .stroke({ color: i % 3 === 0 ? C_SPORE : C_CYAN, width: 1.5, alpha: 0.14 * Math.min(1, p * 3) });
+      }
+    }
+
     // Phase 2 — Ascension: mycelium trail behind the rising rocket.
     if (t >= IGNITION_END && t < ASCEND_END) {
       for (let i = 0; i < 8; i++) {
@@ -183,7 +232,7 @@ export class RocketLaunchOverlay extends Modal {
   /** Fades the victory panel in once the rocket has cleared the screen. */
   private revealPanel(): void {
     this.panel.visible = true;
-    const k = Math.min(1, (this.elapsedMs - ASCEND_END) / REVEAL_MS);
+    const k = Math.min(1, (this.elapsedMs - REVEAL_AT) / REVEAL_MS);
     this.panel.alpha = k;
     this.panel.scale.set(0.9 + 0.1 * k);
     if (!this.revealed && k >= 1) this.revealed = true;

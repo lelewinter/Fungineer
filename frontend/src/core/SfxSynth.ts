@@ -83,6 +83,7 @@ class SfxSynth {
       case 'munch': return this.voiceMunch(g);
       case 'powerup': return this.voicePowerup(g);
       case 'pickup': return this.voicePickup(spec, g);
+      case 'launch': return this.voiceLaunch(g);
       case 'click':
       default:
         return this.voiceClick(spec, g);
@@ -157,6 +158,61 @@ class SfxSynth {
     const notes = [440, 554.37, 659.25, 880]; // A4 C#5 E5 A5
     notes.forEach((f, i) => {
       this.tone(f, { type: 'triangle', dur: 0.09, attack: 0.002, gain: 0.34 * gain, at: i * 0.05 });
+    });
+  }
+
+  /**
+   * Decolagem do bio-foguete (~5s) — o som do climax do loop. Acompanha as
+   * fases do RocketLaunchOverlay: contagem (3 pulsos graves), ignicao (rajada),
+   * subida (rumble de ruido em loop com filtro abrindo e fechando = doppler) e
+   * o "bloom" final (acorde quente de germinacao na batida de pausa).
+   */
+  private voiceLaunch(gain: number): void {
+    const ctx = this.ensureContext();
+    const master = this.master;
+    if (!ctx || !master) return;
+    const buf = this.ensureNoise(ctx);
+    if (!buf) return;
+    const t0 = ctx.currentTime;
+
+    // Fase 0 — contagem: tres pulsos graves (casam com os aneis do overlay).
+    for (let i = 0; i < 3; i++) {
+      this.tone(110, { type: 'sine', slideTo: 80, dur: 0.18, attack: 0.004, gain: 0.5 * gain, at: i * 0.25 });
+    }
+
+    // Fase 1+2 — rumble continuo: ruido em loop por um lowpass que abre na
+    // ignicao (0.8s) e fecha conforme o foguete se afasta (ate ~4.2s).
+    const src = ctx.createBufferSource();
+    src.buffer = buf;
+    src.loop = true;
+    const lp = ctx.createBiquadFilter();
+    lp.type = 'lowpass';
+    lp.frequency.setValueAtTime(140, t0 + 0.78);
+    lp.frequency.exponentialRampToValueAtTime(900, t0 + 1.6);
+    lp.frequency.exponentialRampToValueAtTime(200, t0 + 4.2);
+    const env = ctx.createGain();
+    env.gain.setValueAtTime(0.0001, t0 + 0.78);
+    env.gain.exponentialRampToValueAtTime(0.8 * gain, t0 + 1.5);
+    env.gain.setValueAtTime(0.8 * gain, t0 + 2.4);
+    env.gain.exponentialRampToValueAtTime(0.0001, t0 + 4.3);
+    src.connect(lp).connect(env).connect(master);
+    src.start(t0 + 0.78);
+    src.stop(t0 + 4.4);
+    src.onended = (): void => {
+      src.disconnect();
+      lp.disconnect();
+      env.disconnect();
+    };
+
+    // Sub-grave da ignicao: o "empurrao" que desliza enquanto o foguete sobe.
+    this.tone(55, { type: 'sawtooth', slideTo: 36, dur: 2.8, attack: 0.4, gain: 0.45 * gain, at: 0.8 });
+    // Assobio fino da subida (vapor / esporos cortando o ar).
+    this.tone(1700, { type: 'sine', slideTo: 480, dur: 2.2, attack: 0.5, gain: 0.1 * gain, at: 1.6 });
+
+    // Fase 3 — bloom: acorde quente (C maior) na pausa antes do painel.
+    const chord = [261.63, 329.63, 392.0, 523.25]; // C4 E4 G4 C5
+    chord.forEach((f, i) => {
+      this.tone(f, { type: 'triangle', dur: 1.2, attack: 0.06, gain: 0.18 * gain, at: 4.4 + i * 0.06 });
     });
   }
 
