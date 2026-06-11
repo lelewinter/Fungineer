@@ -76,6 +76,7 @@ class SceneManager {
    */
   async replace(next: Scene, opts: { fadeMs?: number } = {}): Promise<void> {
     if (!this.app) throw new Error('SceneManager not attached');
+    console.info('[scene] replace ->', next.constructor.name, 'busy =', this.busy);
     if (this.busy) return;
     this.busy = true;
     try {
@@ -102,7 +103,9 @@ class SceneManager {
       // 3) Abre a tela nova: liga ao app, adiciona ao mundo e chama enter().
       next.bind(this.app);
       this.app.world.addChild(next.root);
+      console.info('[scene] enter() begin:', next.constructor.name);
       await next.enter();
+      console.info('[scene] enter() done:', next.constructor.name);
       this.current = next;
 
       // Liga o update da nova tela ao ticker. O ticker conta em milissegundos;
