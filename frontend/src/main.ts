@@ -21,6 +21,7 @@ import { sceneManager } from './core/SceneManager';
 import { audioManager } from './core/AudioManager';
 import { audioSettings } from './state/AudioSettings';
 import { saveService } from './state/SaveService';
+import { StoryProgress } from './state/StoryProgress';
 import { StartScene } from './scenes/StartScene';
 import { registerSW } from './pwa/registerSW';
 
@@ -36,6 +37,8 @@ async function bootstrap(): Promise<void> {
   // Restore HubState before mounting the first scene, then start watching
   // for changes. Failures are non-fatal — defaults take over.
   const source = await saveService.load();
+  // Reconstrói as salas destravadas a partir dos resgates (cura saves antigos).
+  StoryProgress.reconcileUnlocks();
   console.info('[Fungineer] save loaded from:', source);
   saveService.arm();
 

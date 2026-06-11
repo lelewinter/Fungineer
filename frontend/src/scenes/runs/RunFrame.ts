@@ -197,6 +197,7 @@ export interface RunEndOpts {
   victory: boolean;
   rewardLabel?: string;  // texto da recompensa quando vence
   failLabel?: string;    // texto quando falha
+  storyLine?: string;    // beat narrativo (ex.: sobrevivente resgatado)
 }
 
 /** Desenha a tela escura de fim de raid com o botao de "voltar ao bunker". */
@@ -205,7 +206,7 @@ export function buildEndOverlay(opts: RunEndOpts): Container {
   const layer = new Container();
   layer.zIndex = 200;
   const cardW = 290;
-  const cardH = 184;
+  const cardH = opts.storyLine ? 234 : 184;
   const cx = VW / 2;
   const cy = VH / 2;
 
@@ -242,8 +243,20 @@ export function buildEndOverlay(opts: RunEndOpts): Container {
   });
   detail.anchor.set(0.5);
   detail.x = cx;
-  detail.y = cy - 24;
+  detail.y = opts.storyLine ? cy - 48 : cy - 24;
   layer.addChild(detail);
+
+  // Beat narrativo: o resgate da run, em destaque acima do botão.
+  if (opts.storyLine) {
+    const story = new Text({
+      text: '◈ ' + opts.storyLine,
+      style: { fontFamily: FontFamily.body, fontSize: 12, fill: accent, fontStyle: 'italic', align: 'center', wordWrap: true, wordWrapWidth: cardW - 28, dropShadow: HUD_SHADOW },
+    });
+    story.anchor.set(0.5);
+    story.x = cx;
+    story.y = cy - 6;
+    layer.addChild(story);
+  }
 
   const back = new PixiButton({
     label: '← Voltar ao bunker',
@@ -252,7 +265,7 @@ export function buildEndOverlay(opts: RunEndOpts): Container {
     onClick: () => { void sceneManager.replace(new HubScene()); },
   });
   back.x = cx - 100;
-  back.y = cy + 14;
+  back.y = opts.storyLine ? cy + 44 : cy + 14;
   layer.addChild(back);
 
   return layer;

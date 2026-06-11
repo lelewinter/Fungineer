@@ -58,6 +58,7 @@ class SaveServiceClass {
     HubState.deteriorationChanged.connect(() => this.scheduleSave());
     HubState.roomUnlockedSignal.connect(() => this.scheduleSave());
     HubState.hubVariantChanged.connect(() => this.scheduleSave());
+    HubState.storyFlagChanged.connect(() => this.scheduleSave());
   }
 
   /** Force-flush any pending debounced save. Call before scene transitions

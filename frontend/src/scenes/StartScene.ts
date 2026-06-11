@@ -8,6 +8,8 @@ import { GameConfig } from '../state/GameConfig';
 import { FontFamily, TextColor } from '../core/typography';
 import { PixiButton } from '../ui/PixiButton';
 import { HubScene } from './hub/HubScene';
+import { IntroScene } from './IntroScene';
+import { HubState } from '../state/HubState';
 
 /**
  * StartScene — a tela inicial do jogo (menu principal).
@@ -278,6 +280,11 @@ export class StartScene extends Scene {
   /** Toca o som de confirmacao e troca para o hub com uma transicao de fade. */
   private startGame(): void {
     audioManager.playSfx('res://assets/audio/sfx/ui/Confirm_03.wav', 0.7);
-    void sceneManager.replace(new HubScene(), { fadeMs: 320 });
+    // Save novo → cutscene de abertura; senão direto pro bunker.
+    if (!HubState.story_intro_seen) {
+      void sceneManager.replace(new IntroScene(), { fadeMs: 320 });
+    } else {
+      void sceneManager.replace(new HubScene(), { fadeMs: 320 });
+    }
   }
 }

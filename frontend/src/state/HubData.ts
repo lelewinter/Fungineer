@@ -91,7 +91,7 @@ const ROOMS: HubRoom[] = [
   { id: 'enfermaria',  label: 'MYCELIUM LAB',       col: 4, w: 2, floor: 3, type: 'mycelium-lab',  light: 'hospital', zone_id: 'infeccao', silhouette: 'laboratorio de bioformas', npcs: ['amara'] },
 
   // Floor 4
-  { id: 'workshop',    label: 'HYPHAE FORGE', col: 0, w: 2, floor: 4, type: 'hyphae-forge', light: 'amber',    silhouette: 'forja de hifas',           npcs: [] },
+  { id: 'workshop',    label: 'HYPHAE FORGE', col: 0, w: 2, floor: 4, type: 'hyphae-forge', light: 'amber',    silhouette: 'forja de hifas',           npcs: ['marcus'] },
   { id: 'rocket_mid2', label: '',              col: 2, w: 2, floor: 4, type: 'rocket',       light: 'dim',      npcs: [] },
   { id: 'sala',        label: 'SALA COMUM',   col: 4, w: 2, floor: 4, type: 'common',       light: 'amber',    silhouette: 'sala de convivência',      npcs: ['richard'] },
 

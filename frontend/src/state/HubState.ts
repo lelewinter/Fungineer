@@ -182,6 +182,7 @@ export interface HubStateSnapshot {
   hub_density: 'minimal' | 'balanced' | 'informative';
   hub_ui_visible: boolean;
   room_unlocked: Record<string, boolean>;
+  story_intro_seen?: boolean;
   /** Confiança e resgates dos personagens (CharacterRegistry). Opcional para
    *  compatibilidade com saves antigos. */
   character_state?: { trust: Record<string, number>; rescued: string[] };
@@ -226,10 +227,20 @@ class HubStateClass {
   hub_ui_visible = true;
 
   // ── Room unlocks ──
+  // Estado inicial = a casa do Dr. Myco recém-virada bunker: a saída pra
+  // superfície, a forja (onde o Marcus se instala na intro) e o vão do foguete.
+  // O resto destrava via resgates (ver state/StoryProgress.ts).
   room_unlocked: Record<string, boolean> = {
     saida_hordas: true,
-    lab_rival: true,
+    workshop: true,
+    rocket_top: true,
+    rocket_mid1: true,
+    rocket_mid2: true,
+    rocket_base: true,
   };
+
+  /** O jogador já viu a cutscene de abertura (Marcus chegando)? */
+  story_intro_seen = false;
 
   // ── Signals ──
   readonly stockChanged = new Signal<[stock: Record<ResourceKey, number>]>();
@@ -243,13 +254,20 @@ class HubStateClass {
   readonly hubRocketClosed = new Signal<[]>();
   readonly hubVariantChanged = new Signal<[variant: HubVariantKey]>();
   readonly roomUnlockedSignal = new Signal<[roomId: string]>();
+  readonly storyFlagChanged = new Signal<[]>();
 
   // ── Room helpers ──
-  // The hub is the single main screen, so every room/zone is reachable from
-  // the start (the old rocket-progression gating is retired). Kept as a method
-  // so future modes could re-introduce gating without touching call sites.
-  isRoomUnlocked(_roomId: string): boolean {
-    return true;
+  // Gating narrativo: salas destravam quando o sobrevivente certo é resgatado
+  // (ver state/StoryProgress.ts). Salas estruturais nascem destravadas.
+  isRoomUnlocked(roomId: string): boolean {
+    return this.room_unlocked[roomId] === true;
+  }
+
+  /** Marca a intro como vista e dispara persistência. */
+  markIntroSeen(): void {
+    if (this.story_intro_seen) return;
+    this.story_intro_seen = true;
+    this.storyFlagChanged.emit();
   }
 
   unlockRoom(roomId: string): void {
@@ -374,7 +392,10 @@ class HubStateClass {
     this.zone_deterioration = this.zone_deterioration.map(() => 0);
     this.total_runs = 0;
     this.lore_found = [];
-    this.room_unlocked = { saida_hordas: true, lab_rival: true };
+    this.room_unlocked = {
+      saida_hordas: true, workshop: true,
+      rocket_top: true, rocket_mid1: true, rocket_mid2: true, rocket_base: true,
+    };
     CharacterRegistry.resetAll();
     this.stockChanged.emit(this.stock);
   }
@@ -467,6 +488,7 @@ class HubStateClass {
       hub_density: this.hub_density,
       hub_ui_visible: this.hub_ui_visible,
       room_unlocked: { ...this.room_unlocked },
+      story_intro_seen: this.story_intro_seen,
       character_state: CharacterRegistry.snapshot(),
     };
   }
@@ -497,6 +519,7 @@ class HubStateClass {
     if (s.hub_density) this.hub_density = s.hub_density;
     if (typeof s.hub_ui_visible === 'boolean') this.hub_ui_visible = s.hub_ui_visible;
     if (s.room_unlocked) this.room_unlocked = { ...s.room_unlocked };
+    if (typeof s.story_intro_seen === 'boolean') this.story_intro_seen = s.story_intro_seen;
     if (s.character_state) CharacterRegistry.restore(s.character_state);
     this.stockChanged.emit(this.stock);
     this.hubVariantChanged.emit(this.hub_variant);

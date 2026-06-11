@@ -7,6 +7,7 @@ import { GameConfig } from '../../state/GameConfig';
 import { HubState } from '../../state/HubState';
 import type { ZoneData } from '../../state/Zones';
 import { RunJuice } from '../../run/fx/RunJuice';
+import { StoryProgress, hubZoneIdForScene } from '../../state/StoryProgress';
 import { buildHud, buildEndOverlay, type RunHud } from './RunFrame';
 
 /** Delta máximo passado à lógica de update. Evita "spiral of death" ao voltar
@@ -144,14 +145,20 @@ export abstract class RunScene extends Scene {
     HubState.onRunEnded(victory);
     // Vitória pode revelar um fragmento de lore desta zona (lido depois no
     // Arquivo do hub). O id da cena 'main' (Hordas) mapeia para a lore 'hordas'.
+    let storyLine: string | undefined;
     if (victory) {
       HubState.discoverFragmentForZone(this.zone.scene === 'main' ? 'hordas' : this.zone.scene);
+      // Storytelling: vitória pode resgatar o sobrevivente desta zona.
+      const hubZone = hubZoneIdForScene(this.zone.scene);
+      const rescue = hubZone ? StoryProgress.onZoneVictory(hubZone) : null;
+      if (rescue) storyLine = rescue.foundLine;
     }
     this.root.addChild(buildEndOverlay({
       zone: this.zone,
       victory,
       rewardLabel: opts?.rewardLabel,
       failLabel: opts?.failLabel,
+      storyLine,
     }));
   }
 

@@ -22,6 +22,8 @@ import { HubAudio } from './HubAudio';
 import { HubRenderer } from './HubRenderer';
 import { HubNPCManager } from './HubNPCManager';
 import { HubCharacterCard } from '../../ui/hub/HubCharacterCard';
+import { ArrivalModal } from '../../ui/hub/ArrivalModal';
+import { StoryProgress } from '../../state/StoryProgress';
 import { HubRocketPanel } from '../../ui/hub/HubRocketPanel';
 import { RocketLaunchOverlay } from '../../ui/hub/RocketLaunchOverlay';
 import { HubZoomPanel } from '../../ui/hub/HubZoomPanel';
@@ -78,6 +80,15 @@ export class HubScene extends Scene {
     this.buildResourceStrip();
     this.buildAudioButton();
     this.buildLoreButton();
+
+    // Storytelling: se uma run acabou de resgatar alguém, o beat de chegada
+    // toca assim que o jogador pisa de volta no bunker.
+    const arrival = StoryProgress.consumeArrival();
+    if (arrival) {
+      setTimeout(() => {
+        if (!this.root.destroyed) this.openModal(new ArrivalModal(arrival));
+      }, 600);
+    }
 
     this.disposers.push(
       this.renderer.roomClicked.connect((roomId) => this.onRoomClicked(roomId)),
