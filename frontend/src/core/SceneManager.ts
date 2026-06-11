@@ -21,6 +21,20 @@ import type { App } from './App';
 import type { Scene } from './Scene';
 import { tweenAsync } from './anim/animation';
 
+/**
+ * Tween com rede de segurança: se o rAF estiver estrangulado (aba em segundo
+ * plano), o gsap pode nunca completar — e a flag `busy` travaria o jogo
+ * inteiro. Corremos o tween contra um timeout e seguimos em frente.
+ */
+async function tweenSafe(target: { alpha: number }, vars: Parameters<typeof tweenAsync>[1], alphaEnd: number): Promise<void> {
+  const ms = ((vars as { duration?: number }).duration ?? 0.25) * 1000;
+  await Promise.race([
+    tweenAsync(target, vars),
+    new Promise<void>((resolve) => setTimeout(resolve, ms + 400)),
+  ]);
+  target.alpha = alphaEnd;
+}
+
 // Duracao padrao do escurece/clareia, em milissegundos.
 const DEFAULT_FADE_MS = 220;
 
@@ -85,7 +99,7 @@ class SceneManager {
 
       // 1) Escurece (so se ja havia uma tela na frente).
       if (this.current && overlay) {
-        await tweenAsync(overlay, { alpha: 1, duration: fadeMs / 1000, ease: 'power2.in' });
+        await tweenSafe(overlay, { alpha: 1, duration: fadeMs / 1000, ease: 'power2.in' }, 1);
       }
 
       // 2) Fecha a tela antiga: desliga seu update, chama exit() e destroi tudo.
@@ -115,8 +129,7 @@ class SceneManager {
 
       // 4) Clareia de volta (fade saindo do preto).
       if (overlay) {
-        await tweenAsync(overlay, { alpha: 0, duration: fadeMs / 1000, ease: 'power2.out' });
-        overlay.alpha = 0;
+        await tweenSafe(overlay, { alpha: 0, duration: fadeMs / 1000, ease: 'power2.out' }, 0);
       }
     } finally {
       // Libera a trava mesmo que algo de errado aconteca no meio do caminho.
