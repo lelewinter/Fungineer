@@ -135,10 +135,10 @@ export class HordasRenderer {
   /** Carrega as texturas pixel-art dos inimigos/nódulos (assets gerados). */
   private async loadSprites(): Promise<void> {
     const [runner, spitter, bruiser, nodule] = await Promise.all([
-      assets.texture('res://assets/art/enemies/drone_runner.png'),
-      assets.texture('res://assets/art/enemies/drone_spitter.png'),
-      assets.texture('res://assets/art/enemies/drone_bruiser.png'),
-      assets.texture('res://assets/art/items/scrap_nodule.png'),
+      assets.texture('res://assets/art/enemies/drone_runner.png?v=1'),
+      assets.texture('res://assets/art/enemies/drone_spitter.png?v=1'),
+      assets.texture('res://assets/art/enemies/drone_bruiser.png?v=1'),
+      assets.texture('res://assets/art/items/scrap_nodule.png?v=1'),
     ]);
     if (!runner || !spitter || !bruiser) return; // segue no desenho procedural
     for (const tx of [runner, spitter, bruiser, nodule]) {

@@ -19,9 +19,13 @@
 /assets/*
   Cache-Control: public, max-age=31536000, immutable
 
-# Game art / vfx — also content-addressed by the hash in filenames once Vite
-# touches them. If you ever serve raw (un-hashed) images, drop this section.
-# (Audio inherits the wildcard below.)
+# Game art / áudio crus (sem hash no nome) — NÃO podem ser immutable: um 404
+# sondado antes do deploy ficaria envenenado na edge por 1 ano. Revalidação
+# barata (1h) e por último pra sobrescrever o wildcard acima.
+/assets/art/*
+  Cache-Control: public, max-age=3600, must-revalidate
+/assets/audio/*
+  Cache-Control: public, max-age=3600, must-revalidate
 
 # The service worker file. MUST be fresh on every load — the browser already
 # enforces a 24h max for SWs, but we want it shorter than that. Without this,
