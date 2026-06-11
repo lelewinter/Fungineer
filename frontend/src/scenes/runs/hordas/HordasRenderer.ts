@@ -15,7 +15,8 @@
 // num jogo em tempo real.
 // ============================================================================
 
-import { Container, Graphics, Text } from 'pixi.js';
+import { Container, Graphics, Sprite, Text, type Texture } from 'pixi.js';
+import { assets } from '../../../core/AssetLoader';
 import { Color } from '../../../core/Color';
 import { FontFamily, TextColor } from '../../../core/typography';
 import { CharacterSprite, MYCO_DESC } from '../../../core/sprites/CharacterSprite';
@@ -74,6 +75,9 @@ export class HordasRenderer {
   readonly plantG = new Graphics();
   readonly gemG = new Graphics();
   readonly enemyG = new Graphics();
+  /** Sprites de inimigos (pixel-art). Pool: um Sprite vivo por Enemy. */
+  readonly enemyLayer = new Container();
+  readonly nodeLayer = new Container();
   readonly novaG = new Graphics();
   readonly projG = new Graphics();
   readonly orbitG = new Graphics();
@@ -93,6 +97,14 @@ export class HordasRenderer {
 
   // Buffer reaproveitado para montar o texto de buffs sem criar lixo por frame.
   private readonly buffParts: string[] = [];
+
+  // ── Sprites pixel-art (gerados) ── caem pro desenho procedural se faltarem.
+  private enemyTex: Partial<Record<string, Texture>> = {};
+  private nodeTex: Texture | null = null;
+  private texReady = false;
+  private readonly enemySprites = new Map<Enemy, Sprite>();
+  private readonly nodeSprites = new Map<Node, Sprite>();
+  private readonly liveEnemies = new Set<Enemy>();
 
   constructor() {
     this.levelText = new Text({
@@ -116,12 +128,31 @@ export class HordasRenderer {
     });
     this.buffText.x = 8;
     this.buffText.y = TOP + 30;
+
+    void this.loadSprites();
+  }
+
+  /** Carrega as texturas pixel-art dos inimigos/nódulos (assets gerados). */
+  private async loadSprites(): Promise<void> {
+    const [runner, spitter, bruiser, nodule] = await Promise.all([
+      assets.texture('res://assets/art/enemies/drone_runner.png'),
+      assets.texture('res://assets/art/enemies/drone_spitter.png'),
+      assets.texture('res://assets/art/enemies/drone_bruiser.png'),
+      assets.texture('res://assets/art/items/scrap_nodule.png'),
+    ]);
+    if (!runner || !spitter || !bruiser) return; // segue no desenho procedural
+    for (const tx of [runner, spitter, bruiser, nodule]) {
+      if (tx) tx.source.scaleMode = 'nearest';
+    }
+    this.enemyTex = { sprout: runner, crawler: spitter, brute: bruiser, boss: bruiser };
+    this.nodeTex = nodule ?? null;
+    this.texReady = true;
   }
 
   /** Coloca as camadas do mundo dentro do container da camera, na ordem certa. */
   attachWorldLayers(camera: Container): void {
     camera.addChild(
-      this.auraG, this.extractG, this.nodeG, this.plantG, this.gemG, this.enemyG,
+      this.auraG, this.extractG, this.nodeG, this.nodeLayer, this.plantG, this.gemG, this.enemyG, this.enemyLayer,
       this.novaG, this.projG, this.orbitG, this.playerG, this.playerSprite,
     );
   }
@@ -178,20 +209,39 @@ export class HordasRenderer {
       this.auraG.circle(view.player.x, view.player.y, r).stroke({ color: FOREST, width: 1.5, alpha: 0.25 + 0.15 * pulse });
     }
 
-    // Nodulos de biomassa — vagens ambar; o que esta sendo coletado mostra um anel de progresso.
+    // Nodulos de biomassa — sprite de sucata+cogumelos; halo e anel de
+    // progresso continuam procedurais por cima.
     this.nodeG.clear();
+    const useNodeSprite = this.texReady && this.nodeTex;
     for (const nd of view.nodes) {
       const pulse = 0.6 + 0.4 * Math.sin(t * 2.5 + nd.phase);
       this.nodeG.circle(nd.pos.x, nd.pos.y, 20).fill({ color: 0xffd36b, alpha: 0.08 * pulse });
-      for (let k = 0; k < 3; k++) {
-        const a = nd.phase + (k / 3) * TAU;
-        this.nodeG.circle(nd.pos.x + Math.cos(a) * 5, nd.pos.y + Math.sin(a) * 5, 5).fill({ color: 0xe0a83a, alpha: 0.95 });
+      if (useNodeSprite) {
+        let sp = this.nodeSprites.get(nd);
+        if (!sp) {
+          sp = new Sprite(this.nodeTex!);
+          sp.anchor.set(0.5, 0.58);
+          sp.scale.set(40 / 64);
+          sp.position.set(nd.pos.x, nd.pos.y);
+          this.nodeLayer.addChild(sp);
+          this.nodeSprites.set(nd, sp);
+        }
+      } else {
+        for (let k = 0; k < 3; k++) {
+          const a = nd.phase + (k / 3) * TAU;
+          this.nodeG.circle(nd.pos.x + Math.cos(a) * 5, nd.pos.y + Math.sin(a) * 5, 5).fill({ color: 0xe0a83a, alpha: 0.95 });
+        }
+        this.nodeG.circle(nd.pos.x, nd.pos.y, 4).fill({ color: 0xfff0c0, alpha: 0.9 });
       }
-      this.nodeG.circle(nd.pos.x, nd.pos.y, 4).fill({ color: 0xfff0c0, alpha: 0.9 });
       if (nd.progress > 0) {
         const prog = Math.min(1, nd.progress / HARVEST_TIME);
         this.nodeG.arc(nd.pos.x, nd.pos.y, 22, -Math.PI / 2, -Math.PI / 2 + TAU * prog, false)
           .stroke({ color: 0xfff0a0, width: 3.5, alpha: 0.95 });
+      }
+    }
+    if (useNodeSprite) {
+      for (const [nd, sp] of this.nodeSprites) {
+        if (!view.nodes.includes(nd)) { sp.destroy(); this.nodeSprites.delete(nd); }
       }
     }
 
@@ -232,27 +282,57 @@ export class HordasRenderer {
       this.gemG.circle(g.pos.x, g.pos.y, big ? 7 : 5).fill({ color: col, alpha: 0.2 });
     }
 
-    // Inimigos. O boss tem desenho especial (com barra de vida).
+    // Inimigos: sprites pixel-art (drones) quando carregados; senão, o
+    // desenho procedural original. Flash de dano e barra do boss continuam
+    // no Graphics por cima dos sprites.
     this.enemyG.clear();
-    for (const e of view.enemies) {
-      const c = e.flash > 0 ? 0xffffff : e.color;  // pisca branco ao levar dano
-      if (e.kind === 'boss') {
-        this.enemyG.circle(e.pos.x, e.pos.y, e.r + 4).fill({ color: 0xff3a3a, alpha: 0.12 });
-        this.enemyG.rect(e.pos.x - e.r, e.pos.y - e.r, e.r * 2, e.r * 2).fill({ color: c });
-        this.enemyG.rect(e.pos.x - e.r, e.pos.y - e.r, e.r * 2, e.r * 2).stroke({ color: 0xffb0c0, width: 2, alpha: 0.7 });
-        this.enemyG.circle(e.pos.x, e.pos.y, 5).fill({ color: 0xff3a3a });
-        const w = e.r * 2;
-        this.enemyG.rect(e.pos.x - e.r, e.pos.y - e.r - 7, w, 3).fill({ color: 0x301015, alpha: 0.9 });
-        this.enemyG.rect(e.pos.x - e.r, e.pos.y - e.r - 7, w * (e.hp / e.maxHp), 3).fill({ color: 0xff5a6a, alpha: 0.95 });
-        continue;
+    if (this.texReady) {
+      this.liveEnemies.clear();
+      for (const e of view.enemies) {
+        this.liveEnemies.add(e);
+        let sp = this.enemySprites.get(e);
+        if (!sp) {
+          sp = new Sprite(this.enemyTex[e.kind]);
+          sp.anchor.set(0.5);
+          this.enemyLayer.addChild(sp);
+          this.enemySprites.set(e, sp);
+        }
+        sp.position.set(e.pos.x, e.pos.y);
+        sp.scale.set((e.r * 2.8) / 64);
+        if (e.kind === 'boss') {
+          this.enemyG.circle(e.pos.x, e.pos.y, e.r + 6).fill({ color: 0xff3a3a, alpha: 0.12 });
+          const w = e.r * 2;
+          this.enemyG.rect(e.pos.x - e.r, e.pos.y - e.r - 9, w, 3).fill({ color: 0x301015, alpha: 0.9 });
+          this.enemyG.rect(e.pos.x - e.r, e.pos.y - e.r - 9, w * (e.hp / e.maxHp), 3).fill({ color: 0xff5a6a, alpha: 0.95 });
+        }
+        if (e.flash > 0) {
+          this.enemyG.circle(e.pos.x, e.pos.y, e.r + 2).fill({ color: 0xffffff, alpha: 0.55 });
+        }
       }
-      this.enemyG.rect(e.pos.x - e.r, e.pos.y - e.r + 2, e.r * 2, e.r * 2 - 2).fill({ color: c });
-      this.enemyG.rect(e.pos.x - e.r, e.pos.y - e.r + 2, e.r * 2, e.r * 2 - 2).stroke({ color: 0x7a8694, width: 1, alpha: 0.6 });
-      this.enemyG.moveTo(e.pos.x - e.r, e.pos.y - 4).lineTo(e.pos.x - e.r - 4, e.pos.y - 7)
-        .moveTo(e.pos.x + e.r, e.pos.y - 4).lineTo(e.pos.x + e.r + 4, e.pos.y - 7)
-        .stroke({ color: 0x8a96a4, width: 1.5, alpha: 0.7 });
-      const blink = 0.6 + 0.4 * Math.sin(t * 6 + e.pos.x);  // "olho" vermelho piscando
-      this.enemyG.circle(e.pos.x, e.pos.y, 2.6).fill({ color: 0xff3a3a, alpha: 0.6 + 0.4 * blink });
+      for (const [e, sp] of this.enemySprites) {
+        if (!this.liveEnemies.has(e)) { sp.destroy(); this.enemySprites.delete(e); }
+      }
+    } else {
+      for (const e of view.enemies) {
+        const c = e.flash > 0 ? 0xffffff : e.color;  // pisca branco ao levar dano
+        if (e.kind === 'boss') {
+          this.enemyG.circle(e.pos.x, e.pos.y, e.r + 4).fill({ color: 0xff3a3a, alpha: 0.12 });
+          this.enemyG.rect(e.pos.x - e.r, e.pos.y - e.r, e.r * 2, e.r * 2).fill({ color: c });
+          this.enemyG.rect(e.pos.x - e.r, e.pos.y - e.r, e.r * 2, e.r * 2).stroke({ color: 0xffb0c0, width: 2, alpha: 0.7 });
+          this.enemyG.circle(e.pos.x, e.pos.y, 5).fill({ color: 0xff3a3a });
+          const w = e.r * 2;
+          this.enemyG.rect(e.pos.x - e.r, e.pos.y - e.r - 7, w, 3).fill({ color: 0x301015, alpha: 0.9 });
+          this.enemyG.rect(e.pos.x - e.r, e.pos.y - e.r - 7, w * (e.hp / e.maxHp), 3).fill({ color: 0xff5a6a, alpha: 0.95 });
+          continue;
+        }
+        this.enemyG.rect(e.pos.x - e.r, e.pos.y - e.r + 2, e.r * 2, e.r * 2 - 2).fill({ color: c });
+        this.enemyG.rect(e.pos.x - e.r, e.pos.y - e.r + 2, e.r * 2, e.r * 2 - 2).stroke({ color: 0x7a8694, width: 1, alpha: 0.6 });
+        this.enemyG.moveTo(e.pos.x - e.r, e.pos.y - 4).lineTo(e.pos.x - e.r - 4, e.pos.y - 7)
+          .moveTo(e.pos.x + e.r, e.pos.y - 4).lineTo(e.pos.x + e.r + 4, e.pos.y - 7)
+          .stroke({ color: 0x8a96a4, width: 1.5, alpha: 0.7 });
+        const blink = 0.6 + 0.4 * Math.sin(t * 6 + e.pos.x);  // "olho" vermelho piscando
+        this.enemyG.circle(e.pos.x, e.pos.y, 2.6).fill({ color: 0xff3a3a, alpha: 0.6 + 0.4 * blink });
+      }
     }
 
     // Aneis de explosao (nova).
